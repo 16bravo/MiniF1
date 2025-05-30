@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log('Rain:', rain);
 
         document.getElementById("GPName").textContent = grandPrix + " Grand Prix";
-        document.getElementById("GPFlag").src = "../img/flags/" + country + ".png";
+        document.getElementById("GPFlag").src = "img/flags/" + country.toLowerCase().replace(/ /g, "_") + ".png";
     } else {
         alert('No Grand Prix selected.');
     };

@@ -594,9 +594,9 @@ async function loadCircuitData(circuit) {
         var countryFlagHTML = document.getElementById("countryFlag");
 
         countryNameHTML.innerText = "#" + circuit.toUpperCase() + "GP";
-        countryFlagHTML.src = "../img/flags/" + country + ".png";
+        countryFlagHTML.src = "img/flags/" + country.toLowerCase().replace(/ /g, "_") + ".png";
 
-        let rain = selectedCircuit && selectedCircuit.rain ? selectedCircuit.rain : 30; // 30% par défaut
+        let rain = selectedCircuit && selectedCircuit.rain ? selectedCircuit.rain : 30; // 30% by default
         [rainCurve, trackWaterCurve] = generateRainCurve(rain);
         //console.log(rainCurve);
 

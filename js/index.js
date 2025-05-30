@@ -14,7 +14,7 @@ async function loadCircuits() {
         circuits.forEach(circuit => {
             const listItem = document.createElement('li');
             listItem.classList.add('circuit-list-item');
-            listItem.innerHTML = `<img src="img/flags/${circuit.country}.png" alt="${circuit.country}"><span>${circuit.grandPrix}</span>`;
+            listItem.innerHTML = `<img src="img/flags/${circuit.country.toLowerCase().replace(/ /g, "_")}.png" alt="${circuit.country}"><span>${circuit.grandPrix}</span>`;
             listItem.dataset.value = circuit.circuit;
             circuitList.appendChild(listItem);
 
@@ -239,7 +239,7 @@ function showOverview() {
         overviewDiv.innerHTML += `
             <h2>Selected Circuit</h2>
             <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;">
-                <img src="img/flags/${circuit.country}.png" alt="${circuit.country}" style="height:32px;">
+                <img src="img/flags/${circuit.country.toLowerCase().replace(/ /g, "_")}.png" alt="${circuit.country}" style="height:32px;">
                 <p style="margin:0;">
                     <strong>${circuit.grandPrix}</strong> (${circuit.country})<br>
                     Length : ${circuit.length} m
