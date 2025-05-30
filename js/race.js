@@ -548,7 +548,7 @@ function triggerFlag(type, driverIndex) {
 // ANIMATION
 // Function for loading JSON data
 async function loadCircuitData(circuit) {
-    const response = await fetch('../data/circuits.json'); // Replace with the correct path to your JSON file
+    const response = await fetch('./data/circuits.json'); // Replace with the correct path to your JSON file
     const data = await response.json();
     // Find the data for the specified circuit
     const circuitData = data.find(item => item.circuit === circuit);

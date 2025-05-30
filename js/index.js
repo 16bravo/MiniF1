@@ -3,7 +3,7 @@ let teamNames;
 // Function to load circuits from JSON file
 async function loadCircuits() {
     try {
-        const response = await fetch('../data/circuits.json');
+        const response = await fetch('./data/circuits.json');
         const circuits = await response.json();
 
         const circuitList = document.getElementById('circuitList');
@@ -51,7 +51,7 @@ async function loadCircuits() {
 // Function to load teams from JSON file
 async function loadTeams() {
     try {
-        const response = await fetch('../data/team_default.json');
+        const response = await fetch('./data/team_default.json');
         const teams = await response.json();
 
         const teamTableBody = document.getElementById('teamTable').querySelector('tbody');
@@ -192,7 +192,7 @@ function updateDriverTeamOptions() {
 // Function to load drivers from JSON file
 async function loadDrivers() {
     try {
-        const response = await fetch('../data/driver_default.json');
+        const response = await fetch('./data/driver_default.json');
         const drivers = await response.json();
 
         const driverTableBody = document.getElementById('driverTable').querySelector('tbody');
@@ -248,7 +248,7 @@ function showOverview() {
             <canvas id="overviewCanvas" width="300" height="200" style="display:block;margin:10px auto;"></canvas>
         `;
         // Circuit design
-        fetch('../data/circuits.json')
+        fetch('./data/circuits.json')
             .then(res => res.json())
             .then(data => {
                 const circuitData = data.find(item => item.circuit === circuit.circuit);
