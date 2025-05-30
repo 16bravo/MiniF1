@@ -20,7 +20,7 @@ Future versions will support season simulations and even basic driver control!
 ## 🚀 How to use
 
 You can:
-- Run it directly from [GitHub Pages](#) *(URL to be added once deployed)*  
+- Run it directly from [GitHub Pages](https://16bravo.github.io/MiniF1/)
 - Or clone the repository and open `index.html` locally in your browser
 
 **Start from `index.html`**, where you can:
