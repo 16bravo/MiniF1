@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+	<meta charset="utf-8">
+	<title>F1 : Simulateur de course</title>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js">  </script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
+		integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+	<link rel="stylesheet" href="css/race.css">
+	<script src="js/race.js"></script>
+	<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+	<div id="ind">Lap 0</div>
+	<div id="screen">
+		<div id="tts"></div>
+
+		<i class="fa fa-clock-o" style="font-size:28px" id="clock"></i>
+
+		<img src="https://c.pxhere.com/photos/88/5e/raindrops_windows_glass_transparent_water_drops_droplets_round-1154003.jpg!d"
+			id="rain"></img>
+
+		<div id="flagBanner" style="position:fixed;top:30px;left:50%;transform:translateX(-50%);z-index:1000;opacity:0;transition:opacity 0.3s;font-size:2.5em;font-weight:bold;padding:0.3em 1.2em;border-radius:0.5em;"></div>
+		
+		<div id="logo">
+			<img src="img/logo.png" style="width:100px;margin-left:auto;margin-right:auto;display:block;"></img>
+			<div style="width:105px;margin-left:auto;margin-right:auto;display:block;"><span
+					id="countryName">BRAZIL</span> <img id="countryFlag" src="img/flags/Brazil.png"
+					style="height:15px;"></img></div>
+		</div>
+		
+		<div id="weather"></div>
+
+		<div id="rank" style="top:75px;">1</div>
+		<div id="rank" style="top:110px;">2</div>
+		<div id="rank" style="top:145px;">3</div>
+		<div id="rank" style="top:180px;">4</div>
+		<div id="rank" style="top:215px;">5</div>
+		<div id="rank" style="top:250px;">6</div>
+		<div id="rank" style="top:285px;">7</div>
+		<div id="rank" style="top:320px;">8</div>
+		<div id="rank" style="top:355px;">9</div>
+		<div id="rank" style="top:390px;">10</div>
+		<div id="rank" style="top:425px;">11</div>
+		<div id="rank" style="top:460px;">12</div>
+		<div id="rank" style="top:495px;">13</div>
+		<div id="rank" style="top:530px;">14</div>
+		<div id="rank" style="top:565px;">15</div>
+		<div id="rank" style="top:600px;">16</div>
+		<div id="rank" style="top:635px;">17</div>
+		<div id="rank" style="top:670px;">18</div>
+		<div id="rank" style="top:705px;">19</div>
+		<div id="rank" style="top:740px;">20</div>
+
+		<i id="p1" class="fas fa-circle"><span class="names" id="names1"></br>Driver1</span></i>
+		<i id="p2" class="fas fa-dot-circle"><span class="names" id="names2"></br>Driver2</span></i>
+		<i id="p3" class="fas fa-circle"><span class="names" id="names3"></br>Driver3</span></i>
+		<i id="p4" class="fas fa-dot-circle"><span class="names" id="names4"></br>Driver4</span></i>
+		<i id="p5" class="fas fa-circle"><span class="names" id="names5"></br>Driver5</span></i>
+		<i id="p6" class="fas fa-dot-circle"><span class="names" id="names6"></br>Driver6</span></i>
+		<i id="p7" class="fas fa-circle"><span class="names" id="names7"></br>Driver7</span></i>
+		<i id="p8" class="fas fa-dot-circle"><span class="names" id="names8"></br>Driver8</span></i>
+		<i id="p9" class="fas fa-circle"><span class="names" id="names9"></br>Driver9</span></i>
+		<i id="p10" class="fas fa-dot-circle"><span class="names" id="names10"></br>Driver10</span></i>
+		<i id="p11" class="fas fa-circle"><span class="names" id="names11"></br>Driver11</span></i>
+		<i id="p12" class="fas fa-dot-circle"><span class="names" id="names12"></br>Driver12</span></i>
+		<i id="p13" class="fas fa-circle"><span class="names" id="names13"></br>Driver13</span></i>
+		<i id="p14" class="fas fa-dot-circle"><span class="names" id="names14"></br>Driver14</span></i>
+		<i id="p15" class="fas fa-circle"><span class="names" id="names15"></br>Driver15</span></i>
+		<i id="p16" class="fas fa-dot-circle"><span class="names" id="names16"></br>Driver16</span></i>
+		<i id="p17" class="fas fa-circle"><span class="names" id="names17"></br>Driver17</span></i>
+		<i id="p18" class="fas fa-dot-circle"><span class="names" id="names18"></br>Driver18</span></i>
+		<i id="p19" class="fas fa-circle"><span class="names" id="names19"></br>Driver19</span></i>
+		<i id="p20" class="fas fa-dot-circle"><span class="names" id="names20"></br>Driver20</span></i>
+
+
+		<div id="pX1"> HAM </div>
+		<div id="pX2"> RUS </div>
+		<div id="pX3"> VER </div>
+		<div id="pX4"> PER </div>
+		<div id="pX5"> STR </div>
+		<div id="pX6"> ALO </div>
+		<div id="pX7"> OCO </div>
+		<div id="pX8"> GAS </div>
+		<div id="pX9"> NOR </div>
+		<div id="pX10"> PIA </div>
+		<div id="pX11"> LEC </div>
+		<div id="pX12"> SAI </div>
+		<div id="pX13"> TSU </div>
+		<div id="pX14"> RIC </div>
+		<div id="pX15"> BOT </div>
+		<div id="pX16"> ZHO </div>
+		<div id="pX17"> HUL </div>
+		<div id="pX18"> MAG </div>
+		<div id="pX19"> ALB </div>
+		<div id="pX20"> SAR </div>
+
+		<div id="pL1"> <img style="height: 35px; width: auto;" height=auto src="img/cars/MER24.png" /> </div>
+		<div id="pL2"> <img style="height: 35px; width: auto;" height=auto src="img/cars/MER24.png" /> </div>
+		<div id="pL3"> <img style="height: 35px; width: auto;" height=auto src="img/cars/RBR24.png" /> </div>
+		<div id="pL4"> <img style="height: 35px; width: auto;" height=auto src="img/cars/RBR24.png" /> </div>
+		<div id="pL5"> <img style="height: 35px; width: auto;" height=auto src="img/cars/AMR24.png" /> </div>
+		<div id="pL6"> <img style="height: 35px; width: auto;" height=auto src="img/cars/AMR24.png" /> </div>
+		<div id="pL7"> <img style="height: 35px; width: auto;" height=auto src="img/cars/ALP24.png" /> </div>
+		<div id="pL8"> <img style="height: 35px; width: auto;" height=auto src="img/cars/ALP24.png" /> </div>
+		<div id="pL9"> <img style="height: 35px; width: auto;" height=auto src="img/cars/MCL24.png" /> </div>
+		<div id="pL10"> <img style="height: 35px; width: auto;" height=auto src="img/cars/MCL24.png" /> </div>
+		<div id="pL11"> <img style="height: 35px; width: auto;" height=auto src="img/cars/FER24.png" /> </div>
+		<div id="pL12"> <img style="height: 35px; width: auto;" height=auto src="img/cars/FER24.png" /> </div>
+		<div id="pL13"> <img style="height: 35px; width: auto;" height=auto src="img/cars/VRB24.png" /> </div>
+		<div id="pL14"> <img style="height: 35px; width: auto;" height=auto src="img/cars/VRB24.png" /> </div>
+		<div id="pL15"> <img style="height: 35px; width: auto;" height=auto src="img/cars/SAU24.png" /> </div>
+		<div id="pL16"> <img style="height: 35px; width: auto;" height=auto src="img/cars/SAU24.png" /> </div>
+		<div id="pL17"> <img style="height: 35px; width: auto;" height=auto src="img/cars/HAA24.png" /> </div>
+		<div id="pL18"> <img style="height: 35px; width: auto;" height=auto src="img/cars/HAA24.png" /> </div>
+		<div id="pL19"> <img style="height: 35px; width: auto;" height=auto src="img/cars/WIL24.png" /> </div>
+		<div id="pL20"> <img style="height: 35px; width: auto;" height=auto src="img/cars/WIL24.png" /> </div>
+
+		<div class="time" id="t1"></div>
+		<div class="time" id="t2"></div>
+		<div class="time" id="t3"></div>
+		<div class="time" id="t4"></div>
+		<div class="time" id="t5"></div>
+		<div class="time" id="t6"></div>
+		<div class="time" id="t7"></div>
+		<div class="time" id="t8"></div>
+		<div class="time" id="t9"></div>
+		<div class="time" id="t10"></div>
+		<div class="time" id="t11"></div>
+		<div class="time" id="t12"></div>
+		<div class="time" id="t13"></div>
+		<div class="time" id="t14"></div>
+		<div class="time" id="t15"></div>
+		<div class="time" id="t16"></div>
+		<div class="time" id="t17"></div>
+		<div class="time" id="t18"></div>
+		<div class="time" id="t19"></div>
+		<div class="time" id="t20"></div>
+
+		<div class="tyre" id="ty1"></div>
+		<div class="tyre" id="ty2"></div>
+		<div class="tyre" id="ty3"></div>
+		<div class="tyre" id="ty4"></div>
+		<div class="tyre" id="ty5"></div>
+		<div class="tyre" id="ty6"></div>
+		<div class="tyre" id="ty7"></div>
+		<div class="tyre" id="ty8"></div>
+		<div class="tyre" id="ty9"></div>
+		<div class="tyre" id="ty10"></div>
+		<div class="tyre" id="ty11"></div>
+		<div class="tyre" id="ty12"></div>
+		<div class="tyre" id="ty13"></div>
+		<div class="tyre" id="ty14"></div>
+		<div class="tyre" id="ty15"></div>
+		<div class="tyre" id="ty16"></div>
+		<div class="tyre" id="ty17"></div>
+		<div class="tyre" id="ty18"></div>
+		<div class="tyre" id="ty19"></div>
+		<div class="tyre" id="ty20"></div>
+
+	</div>
+	<canvas id="myCanvas" width="1200" height="800"
+		style="position:absolute;left:-350px;top:-195px;z-index:-1000;overflow:hidden;"></canvas>
+
+</body>
+</html>

@@ -1,0 +1,102 @@
+@font-face {
+    font-family: 'Pixel Operator';
+    src: url('fonts/PixelOperator.ttf') format('ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    background-color: black;
+    color: white;
+    font-family: Pixel Operator, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    text-align: center;
+    width: 50%;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+
+    flex-wrap: wrap;
+}
+
+.box {
+    flex: 0 0 50%;
+    box-sizing: border-box;
+}
+
+#GPFlag {
+    height: 50px;
+}
+
+table {
+    border-collapse: collapse;
+    margin: auto;
+}
+
+th, td {
+    padding: 10px;
+    /*border: 1px solid white;*/
+}
+
+th {
+    background-color: #333;
+}
+
+/* Styles pour le tableau de classement */
+#ranking-table {
+    width: 100%; /* Largeur totale du tableau */
+    border-collapse: collapse; /* Fusionner les bordures de tableau */
+}
+
+#ranking-table th,
+#ranking-table td {
+    padding: 5px; /* Espacement intérieur des cellules */
+    text-align: left; /* Alignement du texte à gauche */
+    border-top: 5px solid rgba(0,0,0,0);
+    border-bottom: 5px solid rgba(0,0,0,0);
+}
+
+#ranking-table th {
+    background-color: #f2f2f2; /* Couleur de fond des en-têtes */
+}
+
+#ranking-table .eliminated {
+    background-color: rgb(24, 24, 24);
+    color: grey;
+}
+
+#ranking-table td:nth-child(2) {
+    /* Définir la largeur de la colonne avec le nom des pilotes */
+    width: 50%; /* Par exemple, vous pouvez ajuster la valeur en fonction de vos besoins */
+}
+
+#raceButton {
+    display: none; /* Masquer le bouton initialement */
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-family: Pixel Operator;
+}
+#raceButton:hover {
+    background-color: white;
+    color: red
+}

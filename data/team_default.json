@@ -1,0 +1,102 @@
+[
+    {
+        "team_id": 1,
+        "team": "Red Bull",
+        "teamSPD": 90,
+        "teamFS": 92,
+        "teamSS": 88,
+        "teamFB": 90,
+        "color": "#392F90",
+        "image": "RBR25"
+    },
+    {
+        "team_id": 2,
+        "team": "McLaren",
+        "teamSPD": 93,
+        "teamFS": 93,
+        "teamSS": 94,
+        "teamFB": 95,
+        "color": "#ffaa55",
+        "image": "MCL25"
+    },
+    {
+        "team_id": 3,
+        "team": "Ferrari",
+        "teamSPD": 89,
+        "teamFS": 90,
+        "teamSS": 88,
+        "teamFB": 95,
+        "color": "#E62B2B",
+        "image": "FER25"
+    },
+    {
+        "team_id": 4,
+        "team": "Mercedes",
+        "teamSPD": 92,
+        "teamFS": 92,
+        "teamSS": 91,
+        "teamFB": 95,
+        "color": "#1BE3B5",
+        "image": "MER25"
+    },
+    {
+        "team_id": 5,
+        "team": "Haas",
+        "teamSPD": 86,
+        "teamFS": 83,
+        "teamSS": 82,
+        "teamFB": 95,
+        "color": "#bdbdbd",
+        "image": "HAA25"
+    },
+    {
+        "team_id": 6,
+        "team": "Alpine",
+        "teamSPD": 87,
+        "teamFS": 89,
+        "teamSS": 85,
+        "teamFB": 90,
+        "color": "#ff7ec9",
+        "image": "ALP25"
+    },
+    {
+        "team_id": 7,
+        "team": "Aston Martin",
+        "teamSPD": 86,
+        "teamFS": 84,
+        "teamSS": 85,
+        "teamFB": 85,
+        "color": "#2d7955",
+        "image": "AMR25"
+    },
+    {
+        "team_id": 8,
+        "team": "Racing Bulls",
+        "teamSPD": 91,
+        "teamFS": 90,
+        "teamSS": 89,
+        "teamFB": 90,
+        "color": "#3700ff",
+        "image": "VRB25"
+    },
+    {
+        "team_id": 9,
+        "team": "Williams",
+        "teamSPD": 92,
+        "teamFS": 89,
+        "teamSS": 88,
+        "teamFB": 90,
+        "color": "#46A0EA",
+        "image": "WIL25"
+    },
+    {
+        "team_id": 10,
+        "team": "Sauber",
+        "teamSPD": 83,
+        "teamFS": 83,
+        "teamSS": 83,
+        "teamFB": 90,
+        "color": "#15ff00",
+        "image": "SAU25"
+    }
+]

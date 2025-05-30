@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        #animate {
+            width: 50px;
+            height: 50px;
+            background-color: red;
+            position: absolute;
+            left: 0;
+            top: 0; /* Initialiser la position verticale */
+        }
+    </style>
+</head>
+<body>
+
+<div id="animate"></div>
+
+<script>
+let elem = document.getElementById("animate"); // L'élément à animer
+let pos = 0; // Position horizontale de départ
+let topPos = 0; // Position verticale de départ
+const duration = 1000; // Durée de l'animation en millisecondes
+const fps = 60; // Images par seconde
+const frames = duration / (1000 / fps); // Nombre total d'images
+let currentFrame = 0; // Compteur d'images
+let repeatCount = 0; // Compteur de répétition
+const maxRepeats = 5; // Nombre maximum de répétitions
+
+function move() {
+    currentFrame = 0;
+    pos = 0;
+    let interval = setInterval(function() {
+        frame(interval);
+    }, 1000 / fps);
+}
+
+function frame(interval) {
+    if (currentFrame >= frames) {
+        clearInterval(interval);
+        repeatCount++;
+        if (repeatCount < maxRepeats) {
+            topPos += 50; // Descend l'élément de 50 pixels à chaque répétition
+            elem.style.top = topPos + 'px';
+            move(); // Relance l'animation
+        }
+    } else {
+        pos += 5; // Ajustez cette valeur pour changer la vitesse de déplacement horizontal
+        elem.style.left = pos + 'px';
+        currentFrame++;
+    }
+}
+
+// Démarrer l'animation
+move();
+</script>
+
+</body>
+</html>

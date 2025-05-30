@@ -1,0 +1,171 @@
+@font-face {
+    font-family: 'Pixel Operator';
+    src: url('fonts/PixelOperator.ttf') format('ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Style pour la liste des circuits */
+body {
+    background-color: black;
+    color: white;
+    font-family: Pixel Operator, 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.accordion {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding-bottom: 10%;
+}
+
+.accordion-item {
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+}
+
+.accordion-header {
+    background-color: #444;
+    color: white;
+    padding: 15px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.accordion-content {
+    display: none;
+    background-color: #333;
+    padding: 15px;
+}
+
+.accordion-item.active .accordion-content {
+    display: block;
+}
+
+.circuit-list {
+    list-style-type: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.circuit-list-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.circuit-list-item img {
+    height: 15px;
+    margin-right: 10px;
+}
+
+.circuit-list-item:hover {
+    background-color: #3f3f3f;
+}
+
+.selected {
+    background-color: #e0e0e0;
+    color:black;
+}
+
+.validate-btn {
+    background-color: white;
+    color: red;
+    font-size: larger;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+}
+
+.validate-btn:hover {
+    font-weight: bolder;
+    background-color: red;
+    color: white;
+}
+
+#goToNextPage {
+    position: fixed;
+    z-index: 100;
+    bottom: 0;
+    width: 100%;
+    background-color: white;
+    color: red;
+    font-size: larger;
+    height: 5%;
+    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+#goToNextPage:hover {
+    font-weight: bolder;
+    background-color: red;
+    color: white;
+    cursor: pointer;
+}
+
+/* Style pour les tableaux */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th, td {
+    text-align: left;
+}
+
+input[type="text"], input[type="number"], input[type="color"] {
+    width: 100%;
+    box-sizing: border-box;
+    background: black;
+    color: white;
+    font-family: Pixel Operator;
+    font-size: large;
+}
+
+select {
+    width: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+    background: black;
+    color: white;
+}
+
+/* Style to select cars picture*/
+.team-image {
+    width: 62px;
+}
+
+.team-image:hover {
+    cursor: pointer;
+}
+
+.image-dropdown {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.image-dropdown img {
+    display: block;
+    width: 100%;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.image-dropdown img:hover {
+    background-color: #f0f0f0;
+}
+
+#overviewCanvas {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}

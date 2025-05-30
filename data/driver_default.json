@@ -1,0 +1,122 @@
+[
+    {
+        "name": "Max Verstappen",
+        "code": "VER",
+        "team_id": 1,
+        "driverLevel": 93
+    },
+    {
+        "name": "Yuki Tsunoda",
+        "code": "TSU",
+        "team_id": 1,
+        "driverLevel": 86
+    },
+    {
+        "name": "Lando Norris",
+        "code": "NOR",
+        "team_id": 2,
+        "driverLevel": 91
+    },
+    {
+        "name": "Oscar Piastri",
+        "code": "PIA",
+        "team_id": 2,
+        "driverLevel": 92
+    },
+    {
+        "name": "Charles Leclerc",
+        "code": "LEC",
+        "team_id": 3,
+        "driverLevel": 92
+    },
+    {
+        "name": "Lewis Hamilton",
+        "code": "HAM",
+        "team_id": 3,
+        "driverLevel": 90
+    },
+    {
+        "name": "Kimi Antonelli",
+        "code": "ANT",
+        "team_id": 4,
+        "driverLevel": 87
+    },
+    {
+        "name": "George Russell",
+        "code": "RUS",
+        "team_id": 4,
+        "driverLevel": 91
+    },
+    {
+        "name": "Esteban Ocon",
+        "code": "OCO",
+        "team_id": 5,
+        "driverLevel": 88
+    },
+    {
+        "name": "Oliver Bearman",
+        "code": "BEA",
+        "team_id": 5,
+        "driverLevel": 86
+    },
+    {
+        "name": "Franco Colapinto",
+        "code": "COL",
+        "team_id": 6,
+        "driverLevel": 85
+    },
+    {
+        "name": "Pierre Gasly",
+        "code": "GAS",
+        "team_id": 6,
+        "driverLevel": 88
+    },
+    {
+        "name": "Lance Stroll",
+        "code": "STR",
+        "team_id": 7,
+        "driverLevel": 86
+    },
+    {
+        "name": "Fernando Alonso",
+        "code": "ALO",
+        "team_id": 7,
+        "driverLevel": 89
+    },
+    {
+        "name": "Liam Lawson",
+        "code": "LAW",
+        "team_id": 8,
+        "driverLevel": 84
+    },
+    {
+        "name": "Isack Hadjar",
+        "code": "HAD",
+        "team_id": 8,
+        "driverLevel": 87
+    },
+    {
+        "name": "Alexander Albon",
+        "code": "ALB",
+        "team_id": 9,
+        "driverLevel": 88
+    },
+    {
+        "name": "Carlos Sainz",
+        "code": "SAI",
+        "team_id": 9,
+        "driverLevel": 87
+    },
+    {
+        "name": "Nico H\u00fclkenberg",
+        "code": "HUL",
+        "team_id": 10,
+        "driverLevel": 88
+    },
+    {
+        "name": "Gabriel Bortoleto",
+        "code": "BOR",
+        "team_id": 10,
+        "driverLevel": 85
+    }
+]

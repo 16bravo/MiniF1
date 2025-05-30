@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Qualifying</title>
+    <link rel="stylesheet" href="css/quali.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="box"><img id="GPFlag" src="../img/flags/Fiji.png" alt="GP flag"></div>
+            <div class="box" id="GPName">Grand Prix Name</div>
+            <div class="box" id="session-info">Q1</div>
+            <div class="box" id="timer">18:00</div>
+        </div>
+        <div id="weather-info" style="font-weight: bold; margin-top: 10px;">Rain Intensity: 0%</div>
+        <div id="flag-message" style="display: block; text-align: center; margin-top: 10px; visibility: hidden">
+            <table style="margin: 0 auto; border-collapse: collapse;">
+                <tr>
+                    <td id="flag-color" style="width: 20px; height: 20px;"></td>
+                    <td id="flag-text" style="padding-left: 10px; font-weight: bold;"></td>
+                </tr>
+            </table>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Position</th>
+                    <th style="width: 30%;">Driver</th>
+                    <th style="width: 30%;">Team</th>
+                    <th> </th> <!-- Tire -->
+                    <th style="width: 4%;"> </th> <!-- State -->
+                    <th>Last Lap</th>
+                    <th>Best Lap</th>
+                    <th>Laps</th>
+                </tr>
+            </thead>
+            <tbody id="ranking-table">
+                <!-- Les lignes du tableau seront insérées par JavaScript -->
+            </tbody>
+        </table>
+    </div>
+    <script src="js/quali.js"></script>
+</body>
+</html>
