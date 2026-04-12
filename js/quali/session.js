@@ -96,7 +96,8 @@ function updateTimer() {
         document.getElementById('timer').innerText = formatSessionTime(Math.max(0, timer));
         
         // Update track grip based on rain
-        grip = Math.max(0, Math.min(1, grip - ((rainCurve[currentFrame] ** 3) * 0.02)));
+        const rainEffect = Math.max(0, rainCurve[currentFrame]);
+        grip = Math.max(0, Math.min(1, grip - ((rainEffect ** 3) * 0.02)));
 
         // Update weather
         updateWeather();

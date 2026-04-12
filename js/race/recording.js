@@ -50,7 +50,7 @@ function showChampionshipResultsButton() {
             // Replace the result at the current race index
             championshipResults[currentRaceIndex] = drivers;
             localStorage.setItem('championshipResults', JSON.stringify(championshipResults));
-            window.location.href = 'results.html';
+            window.location.href = 'gp_select.html';
         };
         document.body.appendChild(btn);
     }

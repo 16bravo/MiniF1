@@ -170,6 +170,7 @@ document.getElementById('reset-championship-btn').onclick = function() {
     localStorage.removeItem('championshipActive');
     console.log(localStorage.getItem('drivers'));
     localStorage.removeItem('drivers');
+    localStorage.removeItem('teams');
     console.log(localStorage.getItem('drivers'));
     // Si tu utilises d'autres clés pour la grille, supprime-les aussi :
     Object.keys(localStorage).forEach(key => {
@@ -184,6 +185,7 @@ document.getElementById('start-championship-btn').onclick = function() {
     localStorage.setItem('championshipCurrentRace', '0');
     localStorage.setItem('championshipResults', JSON.stringify([])); // Vide au départ
     localStorage.setItem('championshipActive', 'true');
+    localStorage.removeItem('teams'); // Force reload from default JSON on first GP
     // Rediriger vers la sélection des pilotes/équipes pour la première course
     window.location.href = 'gp_select.html';
 };

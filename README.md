@@ -47,11 +47,11 @@ The simulation will chain:
 
 ## 📸 Screenshots
 
-![alt text](ezgif-6e5730231b1b47.gif)
+![alt text](img/reference/ezgif-6e5730231b1b47.gif)
 
-![alt text](ezgif-689ecc814c5749.gif)
+![alt text](img/reference/ezgif-689ecc814c5749.gif)
 
-![alt text](ezgif-60ebca438effc1.gif)
+![alt text](img/reference/ezgif-60ebca438effc1.gif)
 
 ---
 

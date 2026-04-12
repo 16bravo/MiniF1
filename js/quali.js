@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // WEATHER AND TRACK INITIALIZATION
     // =====================================================
     [rainCurve, trackWaterCurve] = generateRainCurve(rain);
-    grip = 0.75 - rainCurve[0] * 0.75; // Initial grip value
+    grip = 0.66 - Math.max(0, rainCurve[0]) * 0.66; // Initial grip value
     trackState = "green"; // Initial track state
 
     // =====================================================

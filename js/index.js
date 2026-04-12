@@ -9,7 +9,9 @@ async function loadCircuits() {
         const circuitList = document.getElementById('circuitList');
 
         // In non-championship mode, open circuit tab directly (user must select one)
-        activateTab('step1');
+        if (localStorage.getItem('championshipActive') !== 'true') {
+            activateTab('step1');
+        }
 
         // Fill the grid with circuits
         circuits.forEach(circuit => {
@@ -52,19 +54,33 @@ async function loadCircuits() {
 // Function to load teams from JSON file
 async function loadTeams() {
     try {
-        const response = await fetch('./data/team_default.json');
-        const teams = await response.json();
+        const isChampionship = localStorage.getItem('championshipActive') === 'true';
+        let teams;
+        const savedTeams = localStorage.getItem('teams');
+        if (isChampionship && savedTeams) {
+            teams = JSON.parse(savedTeams);
+        } else {
+            const response = await fetch('./data/team_default.json');
+            teams = await response.json();
+        }
 
         const teamTableBody = document.getElementById('teamTable').querySelector('tbody');
         const imageList = ["ALP1","ALP24","ALP25","AMR24","AMR25","ARR1","ARR201","ARR21","ARR31","AST1","BEL1","BEN1","BRA1","FER1","FER201","FER21","FER24","FER25","FRA1","GBR1","GER1","HAA1","HAA201","HAA21","HAA24","HAA25","HAA31","HAA41","HAA51","HON1","JAG1","JAG21","LOT1","LOT21","LOT31","MCL1","MCL201","MCL21","MCL24","MCL25","MCL31","MCL41","MER1","MER201","MER21","MER24","MER25","MER31","MERBLM1","PET1","PEU1","PEU2","POR1","POR21","POR31","POR41","RBR1","RBR201","RBR21","RBR24","RBR25","REN1","REN201","REN21","REN31","RENT201","RPT1","RPT201","RPT21","RPT31","SAT201","SAT21","SAU24","SAU25","STR1","VRB24","VRB25","WIL1","WIL201","WIL21","WIL24","WIL25","WIL31","WIL41","WILT201"];
 
         // Fill the table with teams
         teams.forEach(team => {
+            // Normalize: JSON default uses {team_id, team}, localStorage uses {id, name}
+            const teamId   = team.team_id ?? team.id;
+            const teamName = team.team    ?? team.name;
+            // Normalize image: localStorage stores full path like "img/cars/RBR1.png"
+            const teamImage = team.image
+                ? team.image.replace(/^img\/cars\//, '').replace(/\.png$/, '')
+                : '';
             const row = document.createElement('tr');
             row.classList.add('team-row');
 
             row.innerHTML = `
-                <td><input type="text" id="${team.team_id}" value="${team.team}" class="team-name team-data" /></td>
+                <td><input type="text" id="${teamId}" value="${teamName}" class="team-name team-data" /></td>
                 <td><input type="number" value="${team.teamSPD}" class="team-data" /></td>
                 <td><input type="number" value="${team.teamFS}" class="team-data" /></td>
                 <td><input type="number" value="${team.teamSS}" class="team-data" /></td>
@@ -72,34 +88,54 @@ async function loadTeams() {
                 <td><input type="color" value="${team.color}" class="team-data" /></td>
                 <td>
                     <div class="image-container">
-                        <img src="img/cars/${team.image}.png" alt="${team.team}" class="team-image" />
-                        <div class="image-dropdown"></div>
+                        <img src="img/cars/${teamImage}.png" alt="${teamName}" class="team-image" />
                     </div>
                 </td>
             `;
 
-            const imageDropdown = row.querySelector('.image-dropdown');
+            const imageDropdown = document.createElement('div');
+            imageDropdown.className = 'image-dropdown';
+            document.body.appendChild(imageDropdown);
 
             imageList.forEach(imageName => {
                 const imageOption = document.createElement('img');
                 imageOption.src = `img/cars/${imageName}.png`;
                 imageOption.alt = imageName;
-                imageOption.style.width = "70px"
-                imageOption.addEventListener('click', () => {
+                imageOption.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     const imgElement = row.querySelector('.team-image');
-                    imgElement.src = imageOption.src;
+                    imgElement.setAttribute('src', `img/cars/${imageOption.alt}.png`);
                     imgElement.alt = imageOption.alt;
                     imageDropdown.style.display = 'none';
+                    updateDriverTeamOptions();
                 });
                 imageDropdown.appendChild(imageOption);
             });
 
             const imgElement = row.querySelector('.team-image');
-            imgElement.addEventListener('click', () => {
-                imageDropdown.style.display = 'block';
+            imgElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Close any other open dropdowns
+                document.querySelectorAll('.image-dropdown').forEach(d => {
+                    if (d !== imageDropdown) d.style.display = 'none';
+                });
+                const rect = imgElement.getBoundingClientRect();
+                imageDropdown.style.display = 'flex';
+                // Position below the image, stay within viewport
+                let top = rect.bottom + 6;
+                let left = rect.left;
+                const dropW = 340;
+                if (left + dropW > window.innerWidth - 8) left = window.innerWidth - dropW - 8;
+                imageDropdown.style.top = top + 'px';
+                imageDropdown.style.left = left + 'px';
             });
 
             teamTableBody.appendChild(row);
+        });
+
+        // Close image dropdown when clicking outside
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.image-dropdown').forEach(d => d.style.display = 'none');
         });
 
         // Add event managers to update drivers when teams change
@@ -141,7 +177,11 @@ function updateDriverTeamOptions() {
     });
 
     teamNames = dataArray;
-    //console.log(teamNames);
+
+    // Persist teams in championship mode
+    if (localStorage.getItem('championshipActive') === 'true') {
+        localStorage.setItem('teams', JSON.stringify(dataArray));
+    }
 
     const cells = document.querySelectorAll('#teamNameDriver')
     
@@ -251,7 +291,23 @@ function showOverview() {
     overviewDiv.innerHTML = ""; // Reset
 
     // --- Circuit ---
-    const circuit = JSON.parse(localStorage.getItem('selectedCircuit'));
+    // In championship mode, always read directly from the championship race list
+    let circuit;
+    const isChampionship = localStorage.getItem('championshipActive') === 'true';
+    if (isChampionship) {
+        const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
+        const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
+        const championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
+        const raceJustPlayed = Array.isArray(championshipResults[currentRaceIndex]);
+        const displayIndex = raceJustPlayed
+            ? Math.min(currentRaceIndex + 1, races.length - 1)
+            : currentRaceIndex;
+        circuit = races[displayIndex];
+        // Also keep selectedCircuit in sync
+        if (circuit) localStorage.setItem('selectedCircuit', JSON.stringify(circuit));
+    } else {
+        circuit = JSON.parse(localStorage.getItem('selectedCircuit'));
+    }
     if (circuit) {
         overviewDiv.innerHTML += `
             <h2>Selected Circuit</h2>
@@ -313,6 +369,77 @@ function activateTab(stepId) {
     const btn = document.querySelector(`.gp-tab-btn[data-target="${stepId}"]`);
     if (btn) btn.classList.add('active');
     if (stepId === 'step4') showOverview();
+    if (stepId === 'step-standings-drivers' || stepId === 'step-standings-constructors') renderChampionshipStandings();
+}
+
+// Render championship standings into the two standings tab panels
+function renderChampionshipStandings() {
+    const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+    let championshipResults, races;
+    try {
+        championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
+        races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
+    } catch(e) { championshipResults = []; races = []; }
+    if (!Array.isArray(championshipResults)) championshipResults = [];
+    if (!Array.isArray(races)) races = [];
+
+    const validPairs = races
+        .map((r, i) => ({ race: r, result: championshipResults[i], i }))
+        .filter(({ race, result }) => race != null && (result == null || Array.isArray(result)));
+    races = validPairs.map(p => p.race);
+    championshipResults = validPairs.map(p => p.result ?? []);
+
+    let allDrivers = {}, allTeams = {};
+    championshipResults.forEach(race => {
+        race.forEach(d => {
+            allDrivers[d.code] = d.name;
+            if (!allTeams[d.team]) allTeams[d.team] = d.team;
+        });
+    });
+
+    let driverPointsTable = {}, teamPointsTable = {};
+    races.forEach((race, raceIdx) => {
+        const results = championshipResults[raceIdx] || [];
+        results.filter(d => d.state !== 'out').sort((a, b) => b.totalLength - a.totalLength)
+            .forEach((driver, idx) => {
+                if (!driverPointsTable[driver.code]) driverPointsTable[driver.code] = Array(races.length).fill(0);
+                driverPointsTable[driver.code][raceIdx] = POINTS[idx] || 0;
+            });
+        Object.values(allTeams).forEach(team => {
+            if (!teamPointsTable[team]) teamPointsTable[team] = Array(races.length).fill(0);
+        });
+        results.filter(d => d.state !== 'out').sort((a, b) => b.totalLength - a.totalLength)
+            .forEach((driver, idx) => { teamPointsTable[driver.team][raceIdx] += POINTS[idx] || 0; });
+    });
+
+    let driverTable = `<table><thead><tr><th>#</th><th>Driver</th>`;
+    races.forEach(r => driverTable += `<th>${r.circuit}</th>`);
+    driverTable += `<th>Total</th></tr></thead><tbody>`;
+    Object.entries(driverPointsTable)
+        .sort((a, b) => b[1].reduce((x,y)=>x+y,0) - a[1].reduce((x,y)=>x+y,0))
+        .forEach(([code, ptsArr], idx) => {
+            driverTable += `<tr><td>${idx+1}</td><td>${allDrivers[code]||code}</td>`;
+            ptsArr.forEach(pts => driverTable += `<td${pts===0?' class="no-points"':''}>${pts===0?'-':pts}</td>`);
+            driverTable += `<td><b>${ptsArr.reduce((x,y)=>x+y,0)}</b></td></tr>`;
+        });
+    driverTable += `</tbody></table>`;
+
+    let teamTable = `<table><thead><tr><th>#</th><th>Constructor</th>`;
+    races.forEach(r => teamTable += `<th>${r.circuit}</th>`);
+    teamTable += `<th>Total</th></tr></thead><tbody>`;
+    Object.entries(teamPointsTable)
+        .sort((a, b) => b[1].reduce((x,y)=>x+y,0) - a[1].reduce((x,y)=>x+y,0))
+        .forEach(([team, ptsArr], idx) => {
+            teamTable += `<tr><td>${idx+1}</td><td>${team}</td>`;
+            ptsArr.forEach(pts => teamTable += `<td${pts===0?' class="no-points"':''}>${pts===0?'-':pts}</td>`);
+            teamTable += `<td><b>${ptsArr.reduce((x,y)=>x+y,0)}</b></td></tr>`;
+        });
+    teamTable += `</tbody></table>`;
+
+    const driversPanel = document.getElementById('tab-drivers');
+    const constructorsPanel = document.getElementById('tab-constructors');
+    if (driversPanel) driversPanel.innerHTML = driverTable;
+    if (constructorsPanel) constructorsPanel.innerHTML = teamTable;
 }
 
 // Tab button click handlers
@@ -339,6 +466,10 @@ window.onload = async () => {
     await loadCircuits();
     await loadTeams();
     await loadDrivers();
+    // Render overview if it is the currently active tab
+    if (document.getElementById('step4')?.classList.contains('active')) {
+        showOverview();
+    }
 };
 
 document.getElementById('goToNextPage').addEventListener('click', () => {
@@ -361,6 +492,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const circuitTabBtn = document.querySelector('.gp-tab-btn[data-target="step1"]');
         if (circuitTabBtn) circuitTabBtn.style.display = 'none';
 
+        // Show championship standings tabs
+        document.querySelectorAll('.championship-only').forEach(el => el.style.display = '');
+
         // Charger le circuit de la course en cours
         const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
         const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
@@ -368,6 +502,44 @@ document.addEventListener('DOMContentLoaded', function() {
         if (selectedCircuit) {
             localStorage.setItem('selectedCircuit', JSON.stringify(selectedCircuit));
         }
+
+        // Check if the current race was just played (has saved results)
+        const championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
+        const raceJustPlayed = Array.isArray(championshipResults[currentRaceIndex]);
+
+        // If coming from a completed race, switch directly to standings
+        if (raceJustPlayed) {
+            activateTab('step-standings-drivers');
+        }
+
+        // Override the header button depending on state
+        const nextBtn = document.getElementById('goToNextPage');
+        if (raceJustPlayed) {
+            if (currentRaceIndex >= races.length - 1) {
+                // Last race was just played → championship over, hide non-standings tabs
+                ['step4', 'step2', 'step3'].forEach(id => {
+                    const tabBtn = document.querySelector(`.gp-tab-btn[data-target="${id}"]`);
+                    if (tabBtn) tabBtn.style.display = 'none';
+                });
+                nextBtn.textContent = 'End Championship';
+                nextBtn.onclick = (e) => {
+                    e.stopImmediatePropagation();
+                    localStorage.setItem('championshipActive', 'false');
+                    if (confirm('End the championship?')) window.location.href = 'index.html';
+                };
+            } else {
+                // Race played, more remain → advance to next race on click
+                nextBtn.textContent = 'Next Race →';
+                nextBtn.onclick = (e) => {
+                    e.stopImmediatePropagation();
+                    const nextIndex = currentRaceIndex + 1;
+                    localStorage.setItem('championshipCurrentRace', nextIndex.toString());
+                    localStorage.setItem('selectedCircuit', JSON.stringify(races[nextIndex]));
+                    window.location.href = 'quali.html';
+                };
+            }
+        }
+        // else: race not yet played → "Go to Qualifying" with default listener
     } else {
         // Afficher la sélection du circuit normalement
         if (circuitSection) circuitSection.style.display = '';

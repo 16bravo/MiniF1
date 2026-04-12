@@ -31,7 +31,7 @@ function getGripFactor(currentTire) {
     const tireFactor = Math.min(1, Math.max(0, tireInfluence[0] + tireInfluence[1] * currentTrackWater)) * 0.25 + 0.75;
     
     // Calculate overall grip factor from track grip and tire performance
-    const gripFactor = (1 / (1 + Math.exp(-10 * (grip - 0.5))) * 0.2) + 0.8;
+    const gripFactor = Math.pow(grip, 2) * 0.07 + 0.93;
     
     return gripFactor * tireFactor;
 }

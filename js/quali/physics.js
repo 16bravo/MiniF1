@@ -23,7 +23,7 @@ function getDriverRank(targetDriver) {
 // Function to determine whether the driver should exit the pit
 function shouldExitPit(driver) {
     const timeRemaining = timer; // Time remaining in session
-    const criticalTime = baseLapTime * 1.25; // Critical time to exit
+    const criticalTime = baseLapTime * 1.75; // Critical time to exit
 
     if (trackState === 'red') {
         return false; // Don't exit if red flag is displayed
@@ -153,6 +153,7 @@ function updateDriverStates() {
                     driver.sessionLaps++;
                     driver.runLaps++;
                     grip += 0.003; // Increase grip after each lap (track cleanup)
+                    console.log(grip);
                     updateTable();
 
                     // Switch to in-lap

@@ -11,7 +11,7 @@
     <div id="gp-header">
         <div id="gp-title">
             <span class="logo-bar"></span>
-            Select a Grand Prix
+            Grand Prix Overview
         </div>
         <div id="gp-header-actions">
             <button id="goToNextPage">Go to Qualifying</button>
@@ -19,10 +19,12 @@
     </div>
 
     <div class="gp-tabs" id="gp-tabs">
-        <button class="gp-tab-btn" data-target="step1">Circuit</button>
-        <button class="gp-tab-btn" data-target="step2">Teams</button>
-        <button class="gp-tab-btn" data-target="step3">Drivers</button>
         <button class="gp-tab-btn active" data-target="step4">Overview</button>
+        <button class="gp-tab-btn" data-target="step1">Circuit</button>
+        <button class="gp-tab-btn" data-target="step2">Team Edit</button>
+        <button class="gp-tab-btn" data-target="step3">Driver Edit</button>
+        <button class="gp-tab-btn championship-only" data-target="step-standings-drivers" style="display:none;">Driver Standings</button>
+        <button class="gp-tab-btn championship-only" data-target="step-standings-constructors" style="display:none;">Constructor Standings</button>
     </div>
 
     <div class="accordion">
@@ -70,6 +72,14 @@
         <div class="accordion-item active" id="step4">
             <div class="accordion-header">4. Overview</div>
             <div class="accordion-content"></div>
+        </div>
+        <div class="accordion-item championship-only" id="step-standings-drivers" style="display:none;">
+            <div class="accordion-header"></div>
+            <div class="accordion-content" id="tab-drivers"></div>
+        </div>
+        <div class="accordion-item championship-only" id="step-standings-constructors" style="display:none;">
+            <div class="accordion-header"></div>
+            <div class="accordion-content" id="tab-constructors"></div>
         </div>
     </div>
 
