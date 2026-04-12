@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>MiniF1 - Championship Results</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/results.css">
+</head>
+<body>
+    <div id="page-header">
+        <h1>Championship Results</h1>
+        <div id="header-actions">
+            <button id="nextRaceBtn">Next Race</button>
+            <button id="endChampionshipBtn" style="display:none;">End Championship</button>
+        </div>
+    </div>
+    <div id="race-results">
+        <!-- Résultats de la course en cours -->
+    </div>
+    <div id="championship-standings">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="drivers">Drivers</button>
+            <button class="tab-btn" data-tab="constructors">Constructors</button>
+        </div>
+        <div id="tab-drivers" class="tab-panel active"></div>
+        <div id="tab-constructors" class="tab-panel"></div>
+    </div>
+    <script src="js/results.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Option Select</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/gp_select.css">
+</head>
+<body>
+    <div id="gp-header">
+        <div id="gp-title">
+            <span class="logo-bar"></span>
+            Select a Grand Prix
+        </div>
+        <div id="gp-header-actions">
+            <button id="goToNextPage">Go to Qualifying</button>
+        </div>
+    </div>
+
+    <div class="gp-tabs" id="gp-tabs">
+        <button class="gp-tab-btn" data-target="step1">Circuit</button>
+        <button class="gp-tab-btn" data-target="step2">Teams</button>
+        <button class="gp-tab-btn" data-target="step3">Drivers</button>
+        <button class="gp-tab-btn active" data-target="step4">Overview</button>
+    </div>
+
+    <div class="accordion">
+        <div class="accordion-item" id="step1">
+            <div class="accordion-header">1. Select a Circuit</div>
+            <div class="accordion-content">
+                <ul id="circuitList" class="circuit-list"></ul>
+            </div>
+        </div>
+        <div class="accordion-item" id="step2">
+            <div class="accordion-header">2. Edit Teams</div>
+            <div class="accordion-content">
+                <table id="teamTable">
+                    <thead>
+                        <tr>
+                            <th>Team</th>
+                            <th title="Speed">SP</th>
+                            <th title="Fast Corners">FC</th>
+                            <th title="Slow Corners">SC</th>
+                            <th title="Reliability">Rel</th>
+                            <th title="Color">Clr</th>
+                            <th title="Car Picture">Picture</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="accordion-item" id="step3">
+            <div class="accordion-header">3. Edit Drivers</div>
+            <div class="accordion-content">
+                <table id="driverTable">
+                    <thead>
+                        <tr>
+                            <th width="40%">Name</th>
+                            <th width="7%">Code</th>
+                            <th width="7%">Level</th>
+                            <th width="40%">Team</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="accordion-item active" id="step4">
+            <div class="accordion-header">4. Overview</div>
+            <div class="accordion-content"></div>
+        </div>
+    </div>
+
+    <script src="js/index.js"></script>
+</body>
+</html>

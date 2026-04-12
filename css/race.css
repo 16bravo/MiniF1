@@ -1,6 +1,8 @@
 @font-face {
     font-family: 'Pixel Operator';
-    src: url('fonts/PixelOperator.ttf') format('ttf');
+    src: url('../fonts/PixelOperator.ttf') format('ttf'),
+         url('../fonts/PixelOperator.woff2') format('woff2'),
+         url('../fonts/PixelOperator.woff') format('woff');
     font-weight: normal;
     font-style: normal;
 }
@@ -613,4 +615,25 @@ i,
     z-index: 100;
     bottom: 5%;
     right: 50px;
+}
+
+#championshipResultsBtn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    font-size: 1.2em;
+    padding: 15px 40px;
+    background: #e00;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    z-index: 9999;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: background 0.2s;
+}
+
+#championshipResultsBtn:hover {
+    background: #fff;
+    color: #e00;
 }

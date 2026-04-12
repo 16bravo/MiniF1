@@ -229029,9 +229029,9 @@
         "rain": 10,
         "overtaking": 0,
         "difficulty": 90,
-        "fastSpeed": 70,
-        "fastCorners": 75,
-        "slowCorners": 95,
+        "fastSpeed": 10,
+        "fastCorners": 20,
+        "slowCorners": 99,
         "coor": [
             [
                 829,

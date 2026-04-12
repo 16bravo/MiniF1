@@ -1,6 +1,8 @@
 @font-face {
     font-family: 'Pixel Operator';
-    src: url('fonts/PixelOperator.ttf') format('ttf');
+    src: url('../fonts/PixelOperator.ttf') format('ttf'),
+         url('../fonts/PixelOperator.woff2') format('woff2'),
+         url('../fonts/PixelOperator.woff') format('woff');
     font-weight: normal;
     font-style: normal;
 }

@@ -2,64 +2,42 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Option Select</title>
+    <title>MiniF1 - Mode Select</title>
     <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/index_home.css">
 </head>
 <body>
-    <h1>Select a Grand Prix</h1>
-
-    <div class="accordion">
-        <div class="accordion-item" id="step1">
-            <div class="accordion-header">1. Select a Circuit</div>
-            <div class="accordion-content">
-                <ul id="circuitList" class="circuit-list"></ul>
-            </div>
+    <div id="home-header">
+        <div id="home-logo">
+            <span class="logo-bar"></span>
+            MiniF1
         </div>
-        <div class="accordion-item" id="step2">
-            <div class="accordion-header">2. Edit Teams</div>
-            <div class="accordion-content">
-                <table id="teamTable">
-                    <thead>
-                        <tr>
-                            <th>Team</th>
-                            <th title="Speed">SP</th>
-                            <th title="Fast Corners">FC</th>
-                            <th title="Slow Corners">SC</th>
-                            <th title="Reliability">Rel</th>
-                            <th title="Color">Clr</th>
-                            <th title="Car Picture">Picture</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="accordion-item" id="step3">
-            <div class="accordion-header">3. Edit Drivers</div>
-            <div class="accordion-content">
-                <table id="driverTable">
-                    <thead>
-                        <tr>
-                            <th width="40%">Name</th>
-                            <th width="7%">Code</th>
-                            <th width="7%">Level</th>
-                            <th width="40%">Team</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="accordion-item" id="step4">
-            <div class="accordion-header">4. Overview</div>
-            <div class="accordion-content">
-            </div>
-        </div>
+        <div id="home-subtitle">Select a game mode</div>
     </div>
-
-    <button id="goToNextPage">Go to the qualifying session</button>
-
-    <script src="js/index.js"></script>
+    <div id="home-menu">
+        <button class="home-btn" id="singleRaceBtn">
+            <span class="btn-icon">&#9655;</span>
+            <span class="btn-label">Simple GP</span>
+            <span class="btn-desc">Single race, no championship</span>
+        </button>
+        <button class="home-btn" id="championshipBtn">
+            <span class="btn-icon">&#9671;</span>
+            <span class="btn-label">Championship</span>
+            <span class="btn-desc">Full season across multiple circuits</span>
+        </button>
+        <button class="home-btn" id="replayBtn">
+            <span class="btn-icon">&#9654;</span>
+            <span class="btn-label">Replay Race</span>
+            <span class="btn-desc">Watch a recorded race</span>
+        </button>
+    </div>
+    <script>
+        document.getElementById('singleRaceBtn').onclick = () => {
+            localStorage.setItem('championshipActive', 'false');
+            window.location.href = 'gp_select.html';
+        };
+        document.getElementById('championshipBtn').onclick = () => window.location.href = 'championship_setup.html';
+        document.getElementById('replayBtn').onclick = () => window.location.href = 'replay.html';
+    </script>
 </body>
 </html>

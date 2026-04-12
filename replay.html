@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>F1 - Race Replay & Debug</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/replay.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/state_mappings.js"></script>
+    <script src="js/replay/race_replay.js"></script>
+    <script src="js/replay/replay_animation.js"></script>
+    <script src="js/replay/replay_ui.js"></script>
+</head>
+<body>
+    <div id="mainContainer">
+        <!-- File Upload -->
+        <div id="uploadSection" style="text-align:center;padding:30px;">
+            <input type="file" id="fileInput" accept=".json" />
+            <button onclick="loadReplay()">Load Race Record</button>
+        </div>
+
+        <!-- Replay Container (hidden until file loaded) -->
+        <div id="replayContainer" style="display:none;">
+            
+            <!-- Driver Panel (Left) -->
+            <div id="driverPanel" class="driver-panel">
+                <h3>Driver Stats</h3>
+                <div id="driverListSection" style="margin-bottom:10px;">
+                    <p style="font-size:0.9em;color:#aaa;margin-bottom:5px;">Select Driver</p>
+                    <div id="driverList" style="max-height:120px;overflow-y:auto;"></div>
+                </div>
+                <div id="driverStatsSection" style="display:none;">
+                    <h4 id="selectedDriverName" style="margin-bottom:8px;">—</h4>
+                    <select id="driverStatSelect" onchange="updateDriverStat()" style="width:100%;padding:6px;background:#1a1a1a;color:#4CAF50;border:1px solid #4CAF50;border-radius:4px;cursor:pointer;font-size:0.85em;margin-bottom:8px;">
+                        <option value="">-- Choose --</option>
+                    </select>
+                    <div id="driverStatValue" class="stat-value" style="min-height:40px;margin-bottom:8px;">—</div>
+                </div>
+                <canvas id="driverStatChart" class="stat-chart"></canvas>
+            </div>
+            
+            <!-- Screen (Center) -->
+            <div id="screen" style="position:relative; flex:1; background:#0a0a0a; border: 1px solid #4CAF50; margin:0 10px; height:75vh;">
+                <div id="ind" style="position:absolute;top:20px;left:20px;font-size:1.5em;color:#fff;">Frame 0</div>
+                
+                <!-- DRIVERS -->
+                <div style="position:absolute;left:0;top:75px;width:100%;height:calc(100% - 75px);overflow:visible;">
+                    <!-- Drivers 1-20 with 30px cars -->
+                    <div id="pL1" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX1" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t1" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty1" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL2" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX2" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t2" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty2" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL3" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX3" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t3" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty3" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL4" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX4" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t4" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty4" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL5" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX5" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t5" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty5" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL6" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX6" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t6" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty6" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL7" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX7" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t7" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty7" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL8" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX8" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t8" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty8" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL9" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX9" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t9" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty9" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL10" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX10" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t10" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty10" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL11" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX11" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t11" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty11" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL12" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX12" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t12" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty12" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL13" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX13" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t13" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty13" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL14" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX14" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t14" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty14" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL15" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX15" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t15" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty15" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL16" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX16" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t16" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty16" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL17" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX17" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t17" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty17" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL18" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX18" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t18" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty18" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL19" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX19" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t19" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty19" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                    
+                    <div id="pL20" style="position:absolute;width:60px;height:20px;overflow:hidden;"><img style="width:100%;height:100%;object-fit:cover;"/></div>
+                    <div id="pX20" style="position:absolute;left:35px;width:100px;color:#fff;font-weight:bold;"></div>
+                    <div id="t20" style="position:absolute;left:140px;width:80px;color:#fff;"></div>
+                    <div id="ty20" style="position:absolute;left:80px;width:30px;color:#fff;font-weight:bold;"></div>
+                </div>
+            </div>
+            
+            <!-- Debug Panel (Right) -->
+            <div id="debugPanel" class="debug-panel">
+                <h3>Race Stats</h3>
+                <div id="raceStatsSection" style="margin-bottom:10px;">
+                    <label style="font-size:0.9em;color:#aaa;margin-bottom:5px;display:block;">Select Stat</label>
+                    <select id="raceStatSelect" onchange="updateRaceStat()" style="width:100%;padding:6px;background:#1a1a1a;color:#4CAF50;border:1px solid #4CAF50;border-radius:4px;cursor:pointer;font-size:0.85em;">
+                        <option value="">-- Choose --</option>
+                        <option value="grip">Grip</option>
+                        <option value="flagState">Flag State</option>
+                        <option value="currentRain">Rain</option>
+                        <option value="currentTrackWater">Track Water</option>
+                        <option value="drsEnabled">DRS</option>
+                    </select>
+                </div>
+                <div id="raceStatValue" class="stat-value" style="min-height:40px;">—</div>
+                <canvas id="raceStatChart" class="stat-chart"></canvas>
+            </div>
+            
+            <!-- Replay Controls (Bottom - Fixed) -->
+            <div id="replayControls" class="replay-controls">
+                <div class="controls-row">
+                    <button id="prevBtn" onclick="previousFrame()">⏮ Prev Frame</button>
+                    <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+                    <button id="nextBtn" onclick="nextFrame()">Next Frame ⏯</button>
+                </div>
+                <div class="slider-row">
+                    <span id="frameLabel">Frame: 0 / 0</span>
+                    <input type="range" id="frameSlider" min="0" max="100" value="0" oninput="seekFrame(this.value)" class="frame-slider" />
+                </div>
+                <div class="speed-row">
+                    <label style="margin:0;font-size:0.9em;color:#aaa;">Playback FPS:</label>
+                    <input type="number" id="fpsInput" value="60" min="1" max="240" onchange="setPlaybackFPS(this.value)" style="width:60px;padding:4px;background:#1a1a1a;color:#4CAF50;border:1px solid #4CAF50;border-radius:4px;cursor:pointer;font-size:0.85em;margin-left:5px;"/>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

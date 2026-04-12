@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>MiniF1 - Championship Setup</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/championship_setup.css">
+</head>
+<body>
+    <div id="setup-header">
+        <div id="setup-title">
+            <span class="logo-bar"></span>
+            Championship Setup
+        </div>
+        <div id="setup-header-actions">
+            <span id="race-count-badge">0 races</span>
+            <button id="start-championship-btn">Start Championship</button>
+        </div>
+    </div>
+
+    <div id="setup-body">
+        <ul id="selected-races"></ul>
+    </div>
+
+    <div id="setup-footer">
+        <div id="footer-add">
+            <select id="race-select"></select>
+            <button id="add-race-btn" class="btn-add">+ Add</button>
+        </div>
+        <button id="reset-championship-btn" class="btn-reinit" title="Reset all championship data">&#9888; Reinit</button>
+    </div>
+
+    <script src="js/championship_setup.js"></script>
+</body>
+</html>

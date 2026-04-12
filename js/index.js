@@ -8,7 +8,8 @@ async function loadCircuits() {
 
         const circuitList = document.getElementById('circuitList');
 
-        document.getElementById('step1').classList.add('active');
+        // In non-championship mode, open circuit tab directly (user must select one)
+        activateTab('step1');
 
         // Fill the grid with circuits
         circuits.forEach(circuit => {
@@ -192,8 +193,24 @@ function updateDriverTeamOptions() {
 // Function to load drivers from JSON file
 async function loadDrivers() {
     try {
-        const response = await fetch('./data/driver_default.json');
-        const drivers = await response.json();
+        const isChampionship = localStorage.getItem('championshipActive') === 'true';
+        let drivers = [];
+
+        if (isChampionship) {
+            const savedDrivers = localStorage.getItem('drivers');
+            if (savedDrivers) {
+                drivers = JSON.parse(savedDrivers);
+                // Tri par team_id pour garder l'ordre des équipes
+                drivers.sort((a, b) => (a.team_id || 0) - (b.team_id || 0));
+            } else {
+                const response = await fetch('./data/driver_default.json');
+                drivers = await response.json();
+            }
+        } else {
+            // Mode simple GP
+            const response = await fetch('./data/driver_default.json');
+            drivers = await response.json();
+        }
 
         const driverTableBody = document.getElementById('driverTable').querySelector('tbody');
 
@@ -287,22 +304,32 @@ function showOverview() {
     }
 }
 
+// Activate a tab panel and update the tab button highlight
+function activateTab(stepId) {
+    document.querySelectorAll('.accordion-item').forEach(item => item.classList.remove('active'));
+    document.querySelectorAll('.gp-tab-btn').forEach(btn => btn.classList.remove('active'));
+    const panel = document.getElementById(stepId);
+    if (panel) panel.classList.add('active');
+    const btn = document.querySelector(`.gp-tab-btn[data-target="${stepId}"]`);
+    if (btn) btn.classList.add('active');
+    if (stepId === 'step4') showOverview();
+}
+
+// Tab button click handlers
+document.querySelectorAll('.gp-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => activateTab(btn.dataset.target));
+});
+
 // Call showOverview when the overview is open
 document.querySelector('#step4 .accordion-header').addEventListener('click', showOverview);
 
-// Manage shrink-box display
+// Manage shrink-box display — kept for JS compatibility but visually replaced by tabs
 document.querySelectorAll('.accordion-header').forEach(header => {
     header.addEventListener('click', () => {
         const accordionItem = header.parentElement;
-
-        // Retract all other boxes
         document.querySelectorAll('.accordion-item').forEach(item => {
-            if (item !== accordionItem) {
-                item.classList.remove('active');
-            }
+            if (item !== accordionItem) item.classList.remove('active');
         });
-
-        // Extend or retract the current box
         accordionItem.classList.toggle('active');
     });
 });
@@ -321,5 +348,28 @@ document.getElementById('goToNextPage').addEventListener('click', () => {
         window.location.href = 'quali.html';
     } else {
         alert('Select a Grand Prix.');
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const isChampionship = localStorage.getItem('championshipActive') === 'true';
+    const circuitSection = document.getElementById('step1'); // Le bloc de sélection du circuit
+
+    if (isChampionship) {
+        // Hide the circuit selection tab (circuit is pre-selected from championship)
+        if (circuitSection) circuitSection.style.display = 'none';
+        const circuitTabBtn = document.querySelector('.gp-tab-btn[data-target="step1"]');
+        if (circuitTabBtn) circuitTabBtn.style.display = 'none';
+
+        // Charger le circuit de la course en cours
+        const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
+        const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
+        const selectedCircuit = races[currentRaceIndex];
+        if (selectedCircuit) {
+            localStorage.setItem('selectedCircuit', JSON.stringify(selectedCircuit));
+        }
+    } else {
+        // Afficher la sélection du circuit normalement
+        if (circuitSection) circuitSection.style.display = '';
     }
 });

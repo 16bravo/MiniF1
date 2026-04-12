@@ -1,0 +1,240 @@
+/* ============================================================
+   RESULTS.CSS
+   Championship results page — dark F1-style theme
+   ============================================================ */
+
+/* ---- Page layout ---- */
+body {
+    background: #0d0d0d;
+    color: #e8e8e8;
+    font-family: 'Pixel Operator', 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+    margin: 0;
+    padding: 0 0 80px 0;
+    min-height: 100vh;
+}
+
+/* ---- Top header bar ---- */
+#page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 40px;
+    border-bottom: 3px solid #e10600;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+}
+
+h1 {
+    margin: 0;
+    font-size: 2.2em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #ffffff;
+}
+
+h1::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 1em;
+    background: #e10600;
+    margin-right: 16px;
+    vertical-align: middle;
+    border-radius: 2px;
+}
+
+#header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* ---- Main content container ---- */
+#race-results,
+#championship-standings {
+    max-width: 1100px;
+    margin: 32px auto;
+    padding: 0 24px;
+}
+
+/* ---- Tabs ---- */
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin: 32px 0 0 0;
+    border-bottom: 2px solid #e10600;
+}
+
+.tab-btn {
+    padding: 10px 36px;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+    font-size: 0.85em;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: #1a1a1a;
+    color: #888;
+    border: none;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+    bottom: -2px;
+}
+
+.tab-btn:hover {
+    background: #252525;
+    color: #ccc;
+}
+
+.tab-btn.active {
+    background: #0d0d0d;
+    color: #ffffff;
+    border: 2px solid #e10600;
+    border-bottom-color: #0d0d0d;
+    font-weight: bold;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* ---- Tables ---- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 40px;
+    font-size: 0.95em;
+    background: #111111;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Header row */
+table thead tr,
+table tr:first-child {
+    background: #1e1e1e;
+}
+
+th {
+    padding: 12px 14px;
+    text-align: center;
+    font-size: 0.8em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #999999;
+    border-bottom: 2px solid #e10600;
+    white-space: nowrap;
+}
+
+/* Name column left-aligned */
+th:nth-child(2) {
+    text-align: left;
+}
+
+/* Data cells */
+td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #1e1e1e;
+    color: #cccccc;
+    white-space: nowrap;
+}
+
+/* Name column left-aligned */
+td:nth-child(2) {
+    text-align: left;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+/* Total points column */
+td:last-child {
+    color: #ffffff;
+    font-weight: bold;
+    background: rgba(225, 6, 0, 0.08);
+}
+
+th:last-child {
+    color: #e10600;
+}
+
+/* Row hover */
+tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Alternating row shading */
+tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.02);
+}
+tbody tr:nth-child(even):hover td {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* -- Podium rows -- */
+tbody tr:nth-child(1) td:first-child {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+tbody tr:nth-child(2) td:first-child {
+    color: #c0c0c0;
+    font-weight: bold;
+    font-size: 1.05em;
+}
+tbody tr:nth-child(3) td:first-child {
+    color: #cd7f32;
+    font-weight: bold;
+}
+
+/* Rank column */
+td:first-child, th:first-child {
+    width: 44px;
+    text-align: center;
+}
+
+/* Zero-point cells styled subtly */
+td.no-points {
+    color: #444;
+}
+
+/* ---- Action buttons ---- */
+#nextRaceBtn,
+#endChampionshipBtn {
+    padding: 10px 28px;
+    font-size: 0.85em;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+#nextRaceBtn {
+    background: #e10600;
+    color: #ffffff;
+}
+
+#nextRaceBtn:hover {
+    background: #ff1a0e;
+    transform: translateY(-2px);
+}
+
+#endChampionshipBtn {
+    background: #1e1e1e;
+    color: #e10600;
+    border: 2px solid #e10600;
+}
+
+#endChampionshipBtn:hover {
+    background: #e10600;
+    color: #ffffff;
+    transform: translateY(-2px);
+}
