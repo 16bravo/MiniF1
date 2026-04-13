@@ -120,6 +120,12 @@ const RaceRecorder = (() => {
 
         // Record driver states (minified) - Convert state, tire, mode to numeric values
         drivers.forEach((driver, idx) => {
+            // Safety check: ensure recording entry exists for this driver index
+            if (!recording.dv[idx]) {
+                console.warn(`Recording entry missing for driver ${idx} - skipping frame data`);
+                return;
+            }
+            
             const minifiedDriver = {
                 s: driver.speed,
                 tl: driver.totalLength,

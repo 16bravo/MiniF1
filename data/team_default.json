@@ -1,102 +1,102 @@
 [
     {
         "team_id": 1,
-        "team": "Red Bull",
-        "teamSPD": 93,
-        "teamFS": 78,
-        "teamSS": 76,
-        "teamFB": 90,
-        "color": "#392F90",
-        "image": "RBR25"
+        "team": "McLaren",
+        "teamSPD": 88,
+        "teamFS": 94,
+        "teamSS": 89,
+        "teamFB": 75,
+        "color": "#ffaa55",
+        "image": "MCL26"
     },
     {
         "team_id": 2,
-        "team": "McLaren",
-        "teamSPD": 89,
-        "teamFS": 83,
-        "teamSS": 88,
+        "team": "Mercedes",
+        "teamSPD": 94,
+        "teamFS": 99,
+        "teamSS": 98,
         "teamFB": 95,
-        "color": "#ffaa55",
-        "image": "MCL25"
+        "color": "#1BE3B5",
+        "image": "MER26"
     },
     {
         "team_id": 3,
-        "team": "Ferrari",
-        "teamSPD": 81,
-        "teamFS": 92,
-        "teamSS": 77,
-        "teamFB": 95,
-        "color": "#E62B2B",
-        "image": "FER25"
+        "team": "Red Bull",
+        "teamSPD": 91,
+        "teamFS": 84,
+        "teamSS": 86,
+        "teamFB": 90,
+        "color": "#392F90",
+        "image": "RBR26"
     },
     {
         "team_id": 4,
-        "team": "Mercedes",
-        "teamSPD": 80,
-        "teamFS": 89,
-        "teamSS": 91,
+        "team": "Ferrari",
+        "teamSPD": 99,
+        "teamFS": 88,
+        "teamSS": 90,
         "teamFB": 95,
-        "color": "#1BE3B5",
-        "image": "MER25"
+        "color": "#E62B2B",
+        "image": "FER26"
     },
     {
         "team_id": 5,
-        "team": "Haas",
-        "teamSPD": 94,
-        "teamFS": 73,
-        "teamSS": 71,
+        "team": "Williams",
+        "teamSPD": 78,
+        "teamFS": 79,
+        "teamSS": 81,
         "teamFB": 95,
-        "color": "#bdbdbd",
-        "image": "HAA25"
+        "color": "#46A0EA",
+        "image": "WIL26"
     },
     {
         "team_id": 6,
-        "team": "Alpine",
-        "teamSPD": 97,
-        "teamFS": 79,
-        "teamSS": 70,
+        "team": "Racing Bulls",
+        "teamSPD": 93,
+        "teamFS": 83,
+        "teamSS": 86,
         "teamFB": 90,
-        "color": "#ff7ec9",
-        "image": "ALP25"
+        "color": "#3700ff",
+        "image": "VRB26"
     },
     {
         "team_id": 7,
         "team": "Aston Martin",
-        "teamSPD": 85,
-        "teamFS": 79,
-        "teamSS": 83,
-        "teamFB": 85,
+        "teamSPD": 66,
+        "teamFS": 69,
+        "teamSS": 73,
+        "teamFB": 60,
         "color": "#2d7955",
-        "image": "AMR25"
+        "image": "AST26"
     },
     {
         "team_id": 8,
-        "team": "Racing Bulls",
-        "teamSPD": 96,
-        "teamFS": 73,
-        "teamSS": 82,
+        "team": "Haas",
+        "teamSPD": 81,
+        "teamFS": 79,
+        "teamSS": 96,
         "teamFB": 90,
-        "color": "#3700ff",
-        "image": "VRB25"
+        "color": "#bdbdbd",
+        "image": "HAA26"
     },
     {
         "team_id": 9,
-        "team": "Williams",
-        "teamSPD": 86,
-        "teamFS": 91,
-        "teamSS": 72,
-        "teamFB": 90,
-        "color": "#46A0EA",
-        "image": "WIL25"
+        "team": "Audi",
+        "teamSPD": 96,
+        "teamFS": 87,
+        "teamSS": 80,
+        "teamFB": 95,
+        "color": "#f00",
+        "image": "AUD26"
     },
     {
         "team_id": 10,
-        "team": "Sauber",
-        "teamSPD": 93,
-        "teamFS": 79,
-        "teamSS": 75,
-        "teamFB": 90,
-        "color": "#15ff00",
-        "image": "SAU25"
+        "team": "Alpine",
+        "teamSPD": 88,
+        "teamFS": 89,
+        "teamSS": 84,
+        "teamFB": 95,
+        "color": "#ff7ec9",
+        "image": "ALP26"
     }
 ]

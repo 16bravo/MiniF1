@@ -72,8 +72,19 @@ async function loadCircuitData(circuit) {
         countryNameHTML.innerText = "#" + circuit.toUpperCase() + "GP";
         countryFlagHTML.src = "img/flags/" + country.toLowerCase().replace(/ /g, "_") + ".png";
 
-        // Generate weather curves
-        [rainCurve, trackWaterCurve] = generateRainCurve(rain);
+        // Load weather curves from localStorage (pre-generated in gp_select)
+        const storedWeather = localStorage.getItem('weatherRace');
+        if (storedWeather) {
+            const w = JSON.parse(storedWeather);
+            rainCurve = w.rainCurve;
+            trackWaterCurve = w.trackWaterCurve;
+            console.log('Weather curves loaded from localStorage (race)');
+        } else {
+            // Fallback: generate if not pre-computed
+            [rainCurve, trackWaterCurve] = generateRainCurve(rain, 12600);
+            console.warn('Weather curves not found in localStorage, generated as fallback');
+        }
+        computeWeatherForecast(); // Pre-compute 600-frame rolling forecast used by strategy
         console.log("Circuit data loaded for:", circuit);
         console.log("Race length:", raceLength, "meters");
         console.log("Total laps:", laps);

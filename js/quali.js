@@ -95,7 +95,17 @@ document.addEventListener("DOMContentLoaded", function() {
     // =====================================================
     // WEATHER AND TRACK INITIALIZATION
     // =====================================================
-    [rainCurve, trackWaterCurve] = generateRainCurve(rain);
+    const storedWeather = localStorage.getItem('weatherQuali');
+    if (storedWeather) {
+        const w = JSON.parse(storedWeather);
+        rainCurve = w.rainCurve;
+        trackWaterCurve = w.trackWaterCurve;
+        console.log('Weather curves loaded from localStorage (quali)');
+    } else {
+        // Fallback: generate if not pre-computed
+        [rainCurve, trackWaterCurve] = generateRainCurve(rain, 5000);
+        console.warn('Weather curves not found in localStorage, generated as fallback');
+    }
     grip = 0.66 - Math.max(0, rainCurve[0]) * 0.66; // Initial grip value
     trackState = "green"; // Initial track state
 

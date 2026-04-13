@@ -47,8 +47,9 @@ function showChampionshipResultsButton() {
         btn.onclick = () => {
             let championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
             const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
-            // Replace the result at the current race index
-            championshipResults[currentRaceIndex] = drivers;
+            // Sort drivers by totalLength (descending) before saving to match displayed order
+            const sortedDrivers = [...drivers].sort((a, b) => b.totalLength - a.totalLength);
+            championshipResults[currentRaceIndex] = sortedDrivers;
             localStorage.setItem('championshipResults', JSON.stringify(championshipResults));
             window.location.href = 'gp_select.html';
         };

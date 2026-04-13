@@ -14,27 +14,23 @@ const TIRES = {
 const dryChoices = ["S", "M", "H"];
 
 // Function to choose the next tire based on track conditions and race distance
-// Considers rain level, remaining fuel/distance, number of pit stops already made
+// Dry rule: first pit must use a compound different from starting tire (2-compound rule)
+// End of race: always prefer S (fastest); never use H unless no choice
 function chooseNextTire(driver, currentTrackWater, distanceLeftKm) {
-    // Wet conditions: must switch to wet/intermediate tires
-    if (currentTrackWater > 0.8) return "W"; // Heavy water → Wet tires
-    if (currentTrackWater > 0.3) return "I"; // Light water → Intermediate
+    // Wet/intermediate conditions take absolute priority
+    if (currentTrackWater > 0.8) return "W";
+    if (currentTrackWater > 0.3) return "I";
 
-    // First pit stop strategy: alternate between Soft and Medium
+    // First pit stop: randomly pick any compound except the one used at race start
+    // This guarantees the 2-compound rule is satisfied
     if (driver.pitStops < 1) {
-        if (driver.tire === "S") return "M";
-        if (driver.tire === "M") return "S";
-        return (Math.random() < 0.5) ? "S" : "M";
+        const options = dryChoices.filter(t => t !== driver.startingTire);
+        return options[Math.floor(Math.random() * options.length)];
     }
 
-    // Last quarter of race: aggressive strategy with Soft tires only
+    // End of race (< 50km): always go with Soft for maximum pace
     if (distanceLeftKm < 50) return "S";
 
-    // Mid-race (150km+ remaining): avoid Hard if planning more stops
-    if (distanceLeftKm < 150) {
-        return (Math.random() < 0.5) ? "S" : "M"; // Random between S and M
-    }
-
-    // Start/middle of race: random choice between S, M, H
-    return dryChoices[Math.floor(Math.random() * dryChoices.length)];
+    // Mid-race: S or M only, never Hard (too slow, illogical)
+    return Math.random() < 0.5 ? "S" : "M";
 }

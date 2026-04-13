@@ -86,17 +86,19 @@ function frame(interval) {
                 // Yellow/Safety car ended: return to green
                 flagState = "green";
                 showFlagBanner("green");
-            } else if (flagState === "red" && currentRain < 0.2) {
-                // Red flag ended and weather is ok: return to green
-                console.log("End of red flag");
-                flagState = "green";
-                showFlagBanner("green");
-                // Resume all drivers from red flag classification
-                for (let pos = 0; pos < redFlagClassification.length; pos++) {
-                    let idx = redFlagClassification[pos];
-                    drivers[idx].state = "racing";
-                }
             }
+        }
+    }
+
+    // RED FLAG RESTART CHECK: After 300 frames minimum, restart when rain clears
+    if (flagState === "red" && flagTimer < 0 && currentRain < 0.2) {
+        console.log("End of red flag - conditions met for restart");
+        flagState = "green";
+        showFlagBanner("green");
+        // Resume all drivers from red flag classification
+        for (let pos = 0; pos < redFlagClassification.length; pos++) {
+            let idx = redFlagClassification[pos];
+            drivers[idx].state = "racing";
         }
     }
 
@@ -112,9 +114,9 @@ function frame(interval) {
         
         // Filter on racing drivers only
         let racing_indices = sorted_indices.filter(idx => 
-            drivers[idx].state === "racing" || drivers[idx].state === "box"
+            (drivers[idx].state === "racing" || drivers[idx].state === "box") && drivers[idx].carState > 0.7 && drivers[idx].tireState > 0.5
         );
-        let leaderIndex = sorted_indices[0];
+        let leaderIndex = racing_indices[0];
         
         // Build driver ranking array
         let driver_ranking = new Array(nb_driver);
@@ -128,10 +130,14 @@ function frame(interval) {
         // Get gaps to front in rankings
         const frontIndicesRanking = computeGapsFrontInRanking(drivers, driver_ranking);
 
+        let frontDriverLength = 0; // To track the length of the driver in front for gap calculations
+
         // ===== UPDATE EACH DRIVER =====
         // Process drivers in race order (fastest first)
         for (let pos = 0; pos < sorted_indices.length; pos++) {
-            let i = sorted_indices[pos];
+            let i = sorted_indices[pos]; // Driver index in original array
+            let isLeader = (i === leaderIndex); // Check if this driver is the current leader on track
+            let driverLengthBefore = drivers[i].totalLength; // Store length before update for gap calculations
             const driver = drivers[i];
             
             // ===== CAR PERFORMANCE =====
@@ -197,49 +203,8 @@ function frame(interval) {
                 // RED FLAG PIT: Driver stopped in pit grid position
                 driver.speed = 0;
                 driver.totalLength = (Math.ceil(leader_total_length / circuitLength)) * circuitLength - 
-                                    redFlagClassification.indexOf(i) * 14;
-                
-            } else if (flagState === "safetycar" || flagState === "yellow") {
-                // SAFETY CAR / YELLOW FLAG CONDITIONS
-                let flagFactor = (flagState === "safetycar") ? 
-                                ((i === leaderIndex) ? 0.5 : 0.8) : 0.9;
-                
-                let expected_length = (generateNormalRandom(baseSpeed*9 + driver.level*10, 6)/30) * 
-                                     gripFactor * driver.tirePerf * driver.carPerf * flagFactor;
-                
-                let total_driver_length_expected = driver.totalLength + expected_length;
-                let total_driver_length_front = (drivers[frontIndicesRanking[i]].totalLength < driver.totalLength ? 
-                                               drivers[frontIndicesRanking[i]].totalLength + circuitLength : 
-                                               drivers[frontIndicesRanking[i]].totalLength) - 5;
-                
-                let gapSecondsRanking = (total_driver_length_front - driver.totalLength) / (driver.speed || 1);
-                let distanceFactor = Math.max(0, Math.min(1, (5 - gapSecondsRanking)/5));
+                                    redFlagClassification.indexOf(i) * 14; 
 
-                // CORRECTED LOGIC: Preserve lap count, adjust track position
-                const frontDriver = drivers[frontIndicesRanking[i]];
-                const currentLaps = Math.floor(driver.totalLength / circuitLength);
-                const currentCircuitPos = driver.totalLength % circuitLength;
-                const frontCircuitPos = frontDriver.totalLength % circuitLength;
-
-                let target_totalLength;
-
-                if (i === leaderIndex) {
-                    // Leader: no bunching target, just advance at reduced speed
-                    driver.totalLength = total_driver_length_expected;
-                } else if (frontDriver.totalLength >= driver.totalLength) {
-                    // Front driver is ahead: position just behind them, preserving laps
-                    target_totalLength = frontDriver.totalLength + 20;
-                } else if (frontCircuitPos > currentCircuitPos) {
-                    // Front driver is on the same lap but ahead on track: position just behind them
-                    target_totalLength = (currentLaps * circuitLength) + frontCircuitPos + 20;
-                } else {
-                    // Front driver is on the same lap but behind on track: preserve current position
-                    target_totalLength = ((currentLaps + 1) * circuitLength) + frontCircuitPos + 20;
-                }
-
-                driver.totalLength = distanceFactor * target_totalLength + 
-                                    (1 - distanceFactor) * total_driver_length_expected;
-                
             } else {
                 // NORMAL RACING CONDITIONS
                 // Check for crash
@@ -268,19 +233,63 @@ function frame(interval) {
                     let frontAggression = (drivers[frontIndex].aggression * 
                                          ((drivers[frontIndex].mode == "agressive") ? 1 : 0.5) * 
                                          (sameLap ? 1 : 0.1)) * 0.005 + 0.5;
-                    let defenseFactor = ((gapSecondsTrack < 5) ? 
-                                        ((5 - gapSecondsTrack) / 5) * frontAggression : 0) * 0.5 + 
-                                       ((overtaking)/100) * 0.5;
-
-                    driver.speed = defenseFactor * Math.min(expected_speed, drivers[frontIndex].speed*0.999) + 
-                                  (1 - defenseFactor) * driver.speed;
+                    
+                    // OVERTAKING PROBABILITY SYSTEM
+                    // Base probability: 90% on easy circuits (overtaking=0), 10% on hard circuits (overtaking=100)
+                    let passProbability = 0.9 - (overtaking / 100) * 0.8; // 0.9 to 0.1
+                    
+                    // Adjust by driver level advantage (high level driver passes more often)
+                    let levelAdvantage = (driver.level - drivers[frontIndex].level) / 10;
+                    passProbability += levelAdvantage * 0.15; // ±0.15 based on level difference
+                    passProbability = Math.max(0.05, Math.min(0.95, passProbability)); // Clamp to 5%-95%
+                    
+                    // Reduce probability by leader's defensive aggression (max 40% reduction)
+                    passProbability *= (1 - frontAggression * 0.4);
+                    
+                    // Speed difference factor: need at least 0.5% speed advantage for meaningful pass attempt
+                    let speedDifference = (expected_speed - drivers[frontIndex].speed) / drivers[frontIndex].speed;
+                    if (speedDifference < 0.005) {
+                        passProbability *= 0.1; // Very low chance if not faster
+                    }
+                    
+                    // Check if this frame is a passing opportunity
+                    let isPassingFrame = Math.random() < passProbability;
+                    
+                    if (isPassingFrame && speedDifference > 0.005) {
+                        // Allow the driver to go at expected speed to overtake
+                        driver.speed = expected_speed;
+                    } else {
+                        // Otherwise, stay near the leader with reduced speed
+                        let defenseFactor = ((gapSecondsTrack < 5) ? 
+                                            ((5 - gapSecondsTrack) / 5) * frontAggression : 0) * 0.3;
+                        driver.speed = defenseFactor * (drivers[frontIndex].speed * 0.98) + 
+                                      (1 - defenseFactor) * driver.speed;
+                    }
+                    
                     driver.totalLength += driver.speed * 4000/180;
+
                 } else {
                     // No dirty air: full speed
                     driver.speed = expected_speed;
                     driver.totalLength += driver.speed * 4000/180;
+                    
                 }
             }
+            
+            // ===== YELLOW FLAG OR SAFETY CAR: Enforce no overtaking and speed limits =====
+            if ((flagState === "yellow" || flagState === "safetycar") && driver.state === "racing") {
+                // Maximum speed allowed : 80% of normal speed under yellow, 70% under safety car, 50% if the driver is the leader under safety car
+                const maxAllowedSpeed = (flagState === "yellow") ? 0.8 : 0.7 * driver.speed * (isLeader ? 0.7 : 1);
+                driver.speed = Math.min(driver.speed, maxAllowedSpeed);
+                driver.totalLength += driver.speed * 4000/180;
+                // The driver must not overtake the front driver
+                if (!isLeader) {
+                    driver.totalLength = Math.min(driver.totalLength, Math.max(driverLengthBefore, frontDriverLength - 5));
+                }
+            }
+
+            // Record driver total length
+            frontDriverLength = (driver.state === "racing" || driver.state === "box") && driver.carState > 0.7 && driver.tireState > 0.5 ? driver.totalLength : frontDriverLength;
 
             // ===== PIT STOP MANAGEMENT =====
             managePitStops(driver, i);

@@ -9,9 +9,9 @@
         "rain": 1,
         "overtaking": 20,
         "difficulty": 20,
-        "fastSpeed": 77,
-        "fastCorners": 90,
-        "slowCorners": 72,
+        "fastSpeed": 85,
+        "fastCorners": 65,
+        "slowCorners": 82,
         "coor": [
             [
                 602,
@@ -4173,9 +4173,9 @@
         "rain": 1,
         "overtaking": 20,
         "difficulty": 50,
-        "fastSpeed": 88,
-        "fastCorners": 85,
-        "slowCorners": 50,
+        "fastSpeed": 95,
+        "fastCorners": 95,
+        "slowCorners": 15,
         "coor": [
             [
                 1578,
@@ -8337,9 +8337,9 @@
         "rain": 20,
         "overtaking": 70,
         "difficulty": 50,
-        "fastSpeed": 79,
-        "fastCorners": 61,
-        "slowCorners": 70,
+        "fastSpeed": 80,
+        "fastCorners": 75,
+        "slowCorners": 60,
         "coor": [
             [
                 1403,
@@ -12502,8 +12502,8 @@
         "overtaking": 0,
         "difficulty": 60,
         "fastSpeed": 82,
-        "fastCorners": 79,
-        "slowCorners": 67,
+        "fastCorners": 98,
+        "slowCorners": 35,
         "coor": [
             [
                 971,
@@ -16665,9 +16665,9 @@
         "rain": 30,
         "overtaking": 77,
         "difficulty": 40,
-        "fastSpeed": 79,
-        "fastCorners": 84,
-        "slowCorners": 70,
+        "fastSpeed": 90,
+        "fastCorners": 70,
+        "slowCorners": 75,
         "coor": [
             [
                 365,
@@ -20829,9 +20829,9 @@
         "rain": 30,
         "overtaking": 80,
         "difficulty": 50,
-        "fastSpeed": 80,
-        "fastCorners": 85,
-        "slowCorners": 90,
+        "fastSpeed": 88,
+        "fastCorners": 65,
+        "slowCorners": 85,
         "coor": [
             [
                 876,
@@ -24993,9 +24993,9 @@
         "rain": 25,
         "overtaking": 30,
         "difficulty": 65,
-        "fastSpeed": 57,
-        "fastCorners": 90,
-        "slowCorners": 92,
+        "fastSpeed": 80,
+        "fastCorners": 85,
+        "slowCorners": 40,
         "coor": [
             [
                 401,
@@ -29157,8 +29157,8 @@
         "rain": 15,
         "overtaking": 100,
         "difficulty": 80,
-        "fastSpeed": 50,
-        "fastCorners": 74,
+        "fastSpeed": 20,
+        "fastCorners": 15,
         "slowCorners": 99,
         "coor": [
             [
@@ -33321,9 +33321,9 @@
         "rain": 35,
         "overtaking": 27,
         "difficulty": 60,
-        "fastSpeed": 75,
-        "fastCorners": 62,
-        "slowCorners": 74,
+        "fastSpeed": 92,
+        "fastCorners": 30,
+        "slowCorners": 90,
         "coor": [
             [
                 222,
@@ -37485,9 +37485,9 @@
         "rain": 15,
         "overtaking": 85,
         "difficulty": 20,
-        "fastSpeed": 72,
-        "fastCorners": 80,
-        "slowCorners": 77,
+        "fastSpeed": 75,
+        "fastCorners": 90,
+        "slowCorners": 45,
         "coor": [
             [
                 1154,
@@ -41649,9 +41649,9 @@
         "rain": 55,
         "overtaking": 52,
         "difficulty": 5,
-        "fastSpeed": 88,
-        "fastCorners": 80,
-        "slowCorners": 61,
+        "fastSpeed": 95,
+        "fastCorners": 70,
+        "slowCorners": 55,
         "coor": [
             [
                 1597,
@@ -45814,8 +45814,8 @@
         "overtaking": 6,
         "difficulty": 55,
         "fastSpeed": 85,
-        "fastCorners": 82,
-        "slowCorners": 64,
+        "fastCorners": 99,
+        "slowCorners": 25,
         "coor": [
             [
                 -115,
@@ -49977,9 +49977,9 @@
         "rain": 20,
         "overtaking": 64,
         "difficulty": 55,
-        "fastSpeed": 62,
-        "fastCorners": 84,
-        "slowCorners": 87,
+        "fastSpeed": 40,
+        "fastCorners": 70,
+        "slowCorners": 92,
         "coor": [
             [
                 546,
@@ -54141,9 +54141,9 @@
         "rain": 35,
         "overtaking": 3,
         "difficulty": 65,
-        "fastSpeed": 93,
-        "fastCorners": 59,
-        "slowCorners": 56,
+        "fastSpeed": 98,
+        "fastCorners": 98,
+        "slowCorners": 35,
         "coor": [
             [
                 -58,
@@ -58305,9 +58305,9 @@
         "rain": 35,
         "overtaking": 70,
         "difficulty": 50,
-        "fastSpeed": 82,
+        "fastSpeed": 50,
         "fastCorners": 85,
-        "slowCorners": 85,
+        "slowCorners": 70,
         "coor": [
             [
                 721,
@@ -62470,8 +62470,8 @@
         "overtaking": 22,
         "difficulty": 5,
         "fastSpeed": 99,
-        "fastCorners": 68,
-        "slowCorners": 50,
+        "fastCorners": 50,
+        "slowCorners": 65,
         "coor": [
             [
                 1163,
@@ -66633,9 +66633,9 @@
         "rain": 5,
         "overtaking": 50,
         "difficulty": 70,
-        "fastSpeed": 80,
-        "fastCorners": 52,
-        "slowCorners": 69,
+        "fastSpeed": 99,
+        "fastCorners": 20,
+        "slowCorners": 90,
         "coor": [
             [
                 230,
@@ -70797,9 +70797,9 @@
         "rain": 35,
         "overtaking": 58,
         "difficulty": 70,
-        "fastSpeed": 63,
-        "fastCorners": 77,
-        "slowCorners": 86,
+        "fastSpeed": 60,
+        "fastCorners": 45,
+        "slowCorners": 95,
         "coor": [
             [
                 1687,
@@ -74961,9 +74961,9 @@
         "rain": 20,
         "overtaking": 10,
         "difficulty": 50,
-        "fastSpeed": 77,
-        "fastCorners": 84,
-        "slowCorners": 72,
+        "fastSpeed": 85,
+        "fastCorners": 85,
+        "slowCorners": 70,
         "coor": [
             [
                 661,
@@ -79125,9 +79125,9 @@
         "rain": 20,
         "overtaking": 41,
         "difficulty": 50,
-        "fastSpeed": 73,
-        "fastCorners": 57,
-        "slowCorners": 76,
+        "fastSpeed": 92,
+        "fastCorners": 45,
+        "slowCorners": 88,
         "coor": [
             [
                 238,
@@ -83289,9 +83289,9 @@
         "rain": 30,
         "overtaking": 14,
         "difficulty": 40,
-        "fastSpeed": 92,
+        "fastSpeed": 88,
         "fastCorners": 75,
-        "slowCorners": 57,
+        "slowCorners": 60,
         "coor": [
             [
                 23,
@@ -87453,8 +87453,8 @@
         "rain": 5,
         "overtaking": 20,
         "difficulty": 80,
-        "fastSpeed": 90,
-        "fastCorners": 60,
+        "fastSpeed": 99,
+        "fastCorners": 30,
         "slowCorners": 85,
         "coor": [
             [
@@ -91618,8 +91618,8 @@
         "overtaking": 66,
         "difficulty": 75,
         "fastSpeed": 75,
-        "fastCorners": 75,
-        "slowCorners": 75,
+        "fastCorners": 95,
+        "slowCorners": 30,
         "coor": [
             [
                 696,
@@ -95781,9 +95781,9 @@
         "rain": 1,
         "overtaking": 95,
         "difficulty": 10,
-        "fastSpeed": 72,
-        "fastCorners": 76,
-        "slowCorners": 77,
+        "fastSpeed": 85,
+        "fastCorners": 65,
+        "slowCorners": 80,
         "coor": [
             [
                 353,
@@ -99945,9 +99945,9 @@
         "rain": 15,
         "overtaking": 92,
         "difficulty": 5,
-        "fastSpeed": 73,
-        "fastCorners": 50,
-        "slowCorners": 76,
+        "fastSpeed": 88,
+        "fastCorners": 82,
+        "slowCorners": 60,
         "coor": [
             [
                 790,
@@ -104109,9 +104109,9 @@
         "rain": 15,
         "overtaking": 40,
         "difficulty": 50,
-        "fastSpeed": 72,
-        "fastCorners": 90,
-        "slowCorners": 77,
+        "fastSpeed": 85,
+        "fastCorners": 95,
+        "slowCorners": 60,
         "coor": [
             [
                 374,
@@ -108273,9 +108273,9 @@
         "rain": 30,
         "overtaking": 95,
         "difficulty": 20,
-        "fastSpeed": 80,
-        "fastCorners": 76,
-        "slowCorners": 69,
+        "fastSpeed": 85,
+        "fastCorners": 40,
+        "slowCorners": 90,
         "coor": [
             [
                 1372,
@@ -112437,9 +112437,9 @@
         "rain": 30,
         "overtaking": 40,
         "difficulty": 60,
-        "fastSpeed": 88,
-        "fastCorners": 82,
-        "slowCorners": 87,
+        "fastSpeed": 85,
+        "fastCorners": 85,
+        "slowCorners": 65,
         "coor": [
             [
                 1252,
@@ -116601,9 +116601,9 @@
         "rain": 1,
         "overtaking": 25,
         "difficulty": 0,
-        "fastSpeed": 87,
-        "fastCorners": 77,
-        "slowCorners": 62,
+        "fastSpeed": 99,
+        "fastCorners": 70,
+        "slowCorners": 30,
         "coor": [
             [
                 80,
@@ -120765,9 +120765,9 @@
         "rain": 30,
         "overtaking": 46,
         "difficulty": 60,
-        "fastSpeed": 82,
-        "fastCorners": 99,
-        "slowCorners": 67,
+        "fastSpeed": 75,
+        "fastCorners": 75,
+        "slowCorners": 70,
         "coor": [
             [
                 946,
@@ -124929,9 +124929,9 @@
         "rain": 20,
         "overtaking": 50,
         "difficulty": 65,
-        "fastSpeed": 92,
-        "fastCorners": 90,
-        "slowCorners": 90,
+        "fastSpeed": 85,
+        "fastCorners": 99,
+        "slowCorners": 15,
         "coor": [
             [
                 572,
@@ -129093,9 +129093,9 @@
         "rain": 25,
         "overtaking": 50,
         "difficulty": 50,
-        "fastSpeed": 95,
-        "fastCorners": 82,
-        "slowCorners": 85,
+        "fastSpeed": 92,
+        "fastCorners": 50,
+        "slowCorners": 90,
         "coor": [
             [
                 683,
@@ -133257,7 +133257,7 @@
         "rain": 35,
         "overtaking": 50,
         "difficulty": 50,
-        "fastSpeed": 65,
+        "fastSpeed": 80,
         "fastCorners": 65,
         "slowCorners": 85,
         "coor": [
@@ -137421,9 +137421,9 @@
         "rain": 60,
         "overtaking": 20,
         "difficulty": 60,
-        "fastSpeed": 71,
-        "fastCorners": 86,
-        "slowCorners": 78,
+        "fastSpeed": 90,
+        "fastCorners": 75,
+        "slowCorners": 70,
         "coor": [
             [
                 419,
@@ -141585,9 +141585,9 @@
         "rain": 1,
         "overtaking": 80,
         "difficulty": 40,
-        "fastSpeed": 55,
-        "fastCorners": 86,
-        "slowCorners": 94,
+        "fastSpeed": 92,
+        "fastCorners": 80,
+        "slowCorners": 65,
         "coor": [
             [
                 822,
@@ -145749,8 +145749,8 @@
         "rain": 20,
         "overtaking": 70,
         "difficulty": 40,
-        "fastSpeed": 64,
-        "fastCorners": 93,
+        "fastSpeed": 85,
+        "fastCorners": 70,
         "slowCorners": 85,
         "coor": [
             [
@@ -149913,9 +149913,9 @@
         "rain": 15,
         "overtaking": 70,
         "difficulty": 65,
-        "fastSpeed": 67,
-        "fastCorners": 58,
-        "slowCorners": 82,
+        "fastSpeed": 85,
+        "fastCorners": 40,
+        "slowCorners": 90,
         "coor": [
             [
                 1680,
@@ -154077,9 +154077,9 @@
         "rain": 40,
         "overtaking": 50,
         "difficulty": 60,
-        "fastSpeed": 80,
-        "fastCorners": 75,
-        "slowCorners": 60,
+        "fastSpeed": 95,
+        "fastCorners": 65,
+        "slowCorners": 80,
         "coor": [
             [
                 -470,
@@ -158241,9 +158241,9 @@
         "rain": 25,
         "overtaking": 20,
         "difficulty": 60,
-        "fastSpeed": 71,
-        "fastCorners": 86,
-        "slowCorners": 78,
+        "fastSpeed": 75,
+        "fastCorners": 85,
+        "slowCorners": 65,
         "coor": [
             [
                 1313,
@@ -162405,9 +162405,9 @@
         "rain": 25,
         "overtaking": 90,
         "difficulty": 60,
-        "fastSpeed": 90,
-        "fastCorners": 80,
-        "slowCorners": 70,
+        "fastSpeed": 95,
+        "fastCorners": 60,
+        "slowCorners": 75,
         "coor": [
             [
                 274,
@@ -166569,9 +166569,9 @@
         "rain": 15,
         "overtaking": 30,
         "difficulty": 50,
-        "fastSpeed": 85,
+        "fastSpeed": 65,
         "fastCorners": 85,
-        "slowCorners": 87,
+        "slowCorners": 70,
         "coor": [
             [
                 915,
@@ -179061,9 +179061,9 @@
         "rain": 20,
         "overtaking": 70,
         "difficulty": 50,
-        "fastSpeed": 82,
-        "fastCorners": 93,
-        "slowCorners": 67,
+        "fastSpeed": 80,
+        "fastCorners": 90,
+        "slowCorners": 55,
         "coor": [
             [
                 1155,
@@ -195717,9 +195717,9 @@
         "rain": 40,
         "overtaking": 0,
         "difficulty": 100,
-        "fastSpeed": 95,
+        "fastSpeed": 90,
         "fastCorners": 95,
-        "slowCorners": 95,
+        "slowCorners": 45,
         "coor": [
             [
                 452,

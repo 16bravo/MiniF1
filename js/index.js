@@ -1,5 +1,60 @@
 let teamNames;
 
+// Function to update the GP flag on the button
+function updateButtonFlag() {
+    let circuitData = null;
+    
+    // In championship mode, use the same logic as showOverview()
+    const isChampionship = localStorage.getItem('championshipActive') === 'true';
+    if (isChampionship) {
+        const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
+        const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
+        const championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
+        const raceJustPlayed = Array.isArray(championshipResults[currentRaceIndex]);
+        const displayIndex = raceJustPlayed
+            ? Math.min(currentRaceIndex + 1, races.length - 1)
+            : currentRaceIndex;
+        circuitData = races[displayIndex];
+    } else {
+        // Non-championship: use selectedCircuit
+        const stored = localStorage.getItem('selectedCircuit');
+        if (stored) circuitData = JSON.parse(stored);
+    }
+    
+    if (circuitData) {
+        const flagImg = document.getElementById('buttonFlagImg');
+        const countryFile = circuitData.country.toLowerCase().replace(/ /g, "_");
+        flagImg.src = `img/flags/${countryFile}.png`;
+        flagImg.alt = circuitData.country;
+        flagImg.style.display = 'inline-block';
+    } else {
+        const flagImg = document.getElementById('buttonFlagImg');
+        flagImg.style.display = 'none';
+    }
+}
+
+// Generate and store weather curves for both quali and race
+function generateAndStoreWeather(rainProbability) {
+    const QUALI_FRAMES = 3600;
+    const RACE_FRAMES = 5400;
+    const mode = document.getElementById('weatherMode')?.value || 'default';
+
+    let qualiRain, qualiWater, raceRain, raceWater;
+    if (mode === 'dry') {
+        [qualiRain, qualiWater] = generateRainCurve(0, QUALI_FRAMES);
+        [raceRain, raceWater] = generateRainCurve(0, RACE_FRAMES);
+    } else if (mode === 'rain') {
+        [qualiRain, qualiWater] = generateRainCurve(100, QUALI_FRAMES);
+        [raceRain, raceWater] = generateRainCurve(100, RACE_FRAMES);
+    } else {
+        [qualiRain, qualiWater] = generateRainCurve(rainProbability, QUALI_FRAMES);
+        [raceRain, raceWater] = generateRainCurve(rainProbability, RACE_FRAMES);
+    }
+    localStorage.setItem('weatherQuali', JSON.stringify({ rainCurve: qualiRain, trackWaterCurve: qualiWater }));
+    localStorage.setItem('weatherRace', JSON.stringify({ rainCurve: raceRain, trackWaterCurve: raceWater }));
+    console.log('Weather curves generated, mode:', mode, ', rain probability:', rainProbability);
+}
+
 // Function to load circuits from JSON file
 async function loadCircuits() {
     try {
@@ -43,6 +98,8 @@ async function loadCircuits() {
                     slowCorners: circuit.slowCorners
                 };
                 localStorage.setItem('selectedCircuit', JSON.stringify(circuitData));
+                generateAndStoreWeather(circuit.rain);
+                updateButtonFlag(); // Update button flag when circuit is selected
             });
         });
     } catch (error) {
@@ -309,6 +366,27 @@ function showOverview() {
         circuit = JSON.parse(localStorage.getItem('selectedCircuit'));
     }
     if (circuit) {
+        // Weather preview
+        const storedQuali = localStorage.getItem('weatherQuali');
+        const storedRace = localStorage.getItem('weatherRace');
+        let weatherHTML = '';
+        if (storedQuali && storedRace) {
+            const qualiMax = Math.max(...JSON.parse(storedQuali).rainCurve);
+            const raceMax = Math.max(...JSON.parse(storedRace).rainCurve);
+            const qualiDesc = getWeatherDescription(qualiMax);
+            const raceDesc = getWeatherDescription(raceMax);
+            weatherHTML = `
+                <div style="display:flex;gap:12px;margin-bottom:14px;">
+                    <div style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:10px 14px;text-align:center;">
+                        <div style="font-size:0.75em;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Qualifying</div>
+                        <div style="font-size:1.2em;">${qualiDesc}</div>
+                    </div>
+                    <div style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:10px 14px;text-align:center;">
+                        <div style="font-size:0.75em;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Race</div>
+                        <div style="font-size:1.2em;">${raceDesc}</div>
+                    </div>
+                </div>`;
+        }
         overviewDiv.innerHTML += `
             <h2>Selected Circuit</h2>
             <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;">
@@ -318,6 +396,7 @@ function showOverview() {
                     Length : ${circuit.length} m
                 </p>
             </div>
+            ${weatherHTML}
             <canvas id="overviewCanvas" width="300" height="200" style="display:block;margin:10px auto;"></canvas>
         `;
         // Circuit design
@@ -466,16 +545,49 @@ window.onload = async () => {
     await loadCircuits();
     await loadTeams();
     await loadDrivers();
+
+    // Regenerate weather when mode changes, if a circuit is already selected
+    document.getElementById('weatherMode')?.addEventListener('change', () => {
+        const circuit = JSON.parse(localStorage.getItem('selectedCircuit'));
+        if (circuit) {
+            generateAndStoreWeather(circuit.rain);
+            if (document.getElementById('step4')?.classList.contains('active')) {
+                showOverview();
+            }
+        }
+    });
+
     // Render overview if it is the currently active tab
     if (document.getElementById('step4')?.classList.contains('active')) {
         showOverview();
     }
+
+    // Update button flag if a circuit is already selected
+    updateButtonFlag();
 };
 
 document.getElementById('goToNextPage').addEventListener('click', () => {
+    const isChamp = localStorage.getItem('championshipActive') === 'true';
+    if (isChamp) {
+        const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
+        const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
+        const championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
+        
+        const raceJustPlayed = Array.isArray(championshipResults[currentRaceIndex]);
+        
+        if (raceJustPlayed) {
+            // Current race is done, advance to next
+            if (currentRaceIndex < races.length - 1) {
+                const nextIndex = currentRaceIndex + 1;
+                localStorage.setItem('championshipCurrentRace', nextIndex.toString());
+                localStorage.setItem('selectedCircuit', JSON.stringify(races[nextIndex]));
+                generateAndStoreWeather(races[nextIndex].rain);
+            }
+        }
+    }
+    
     const selectedCircuit = localStorage.getItem('selectedCircuit');
     if (selectedCircuit) {
-        // Redirect to next page
         window.location.href = 'quali.html';
     } else {
         alert('Select a Grand Prix.');
@@ -501,6 +613,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedCircuit = races[currentRaceIndex];
         if (selectedCircuit) {
             localStorage.setItem('selectedCircuit', JSON.stringify(selectedCircuit));
+            generateAndStoreWeather(selectedCircuit.rain);
         }
 
         // Check if the current race was just played (has saved results)
@@ -511,35 +624,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (raceJustPlayed) {
             activateTab('step-standings-drivers');
         }
-
-        // Override the header button depending on state
-        const nextBtn = document.getElementById('goToNextPage');
-        if (raceJustPlayed) {
-            if (currentRaceIndex >= races.length - 1) {
-                // Last race was just played → championship over, hide non-standings tabs
-                ['step4', 'step2', 'step3'].forEach(id => {
-                    const tabBtn = document.querySelector(`.gp-tab-btn[data-target="${id}"]`);
-                    if (tabBtn) tabBtn.style.display = 'none';
-                });
-                nextBtn.textContent = 'End Championship';
-                nextBtn.onclick = (e) => {
-                    e.stopImmediatePropagation();
-                    localStorage.setItem('championshipActive', 'false');
-                    if (confirm('End the championship?')) window.location.href = 'index.html';
-                };
-            } else {
-                // Race played, more remain → advance to next race on click
-                nextBtn.textContent = 'Next Race →';
-                nextBtn.onclick = (e) => {
-                    e.stopImmediatePropagation();
-                    const nextIndex = currentRaceIndex + 1;
-                    localStorage.setItem('championshipCurrentRace', nextIndex.toString());
-                    localStorage.setItem('selectedCircuit', JSON.stringify(races[nextIndex]));
-                    window.location.href = 'quali.html';
-                };
-            }
-        }
-        // else: race not yet played → "Go to Qualifying" with default listener
     } else {
         // Afficher la sélection du circuit normalement
         if (circuitSection) circuitSection.style.display = '';

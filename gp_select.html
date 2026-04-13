@@ -14,7 +14,10 @@
             Grand Prix Overview
         </div>
         <div id="gp-header-actions">
-            <button id="goToNextPage">Go to Qualifying</button>
+            <button id="goToNextPage">
+                <img id="buttonFlagImg" src="" alt="" style="height:20px;margin-right:8px;display:none;">
+                Go to Qualifying
+            </button>
         </div>
     </div>
 
@@ -31,6 +34,14 @@
         <div class="accordion-item" id="step1">
             <div class="accordion-header">1. Select a Circuit</div>
             <div class="accordion-content">
+                <div style="margin-bottom:14px;">
+                    <label for="weatherMode" style="font-size:0.85em;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-right:10px;">Weather</label>
+                    <select id="weatherMode">
+                        <option value="default">Default (circuit data)</option>
+                        <option value="rain">Rain</option>
+                        <option value="dry">Dry</option>
+                    </select>
+                </div>
                 <ul id="circuitList" class="circuit-list"></ul>
             </div>
         </div>
@@ -83,6 +94,7 @@
         </div>
     </div>
 
+    <script src="js/weather.js"></script>
     <script src="js/index.js"></script>
 </body>
 </html>

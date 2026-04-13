@@ -43,3 +43,13 @@ function formatInterval(time, lap) {
         return "+ " + formatDriverTime(time);
     }
 }
+
+// Under Yellow or SC : Check if a driver can be followed (valid front driver)
+function isValidFrontDriver(driver) {
+    // Invalid if: out, in pit, critically damaged, tires shredded
+    return driver.state !== "out" && 
+           driver.state !== "in pit" && 
+           driver.state !== "in pit red flag" &&
+           driver.carState > 0.5 &&
+           driver.tireState > 0.5;
+}

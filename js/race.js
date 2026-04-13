@@ -30,6 +30,10 @@ let redFlagClassification = null; // Driver order saved under red flag for resta
 // DRS (Drag Reduction System)
 let drsEnabled = false; // DRS disabled by default
 
+// PIT STRATEGY
+const MANDATORY_PITS = 1; // Mandatory pit stops (0 if rainy race)
+let weatherForecast = []; // Pre-computed forecast {max, avg} per frame
+
 // CIRCUIT DATA
 const selectedCircuit = JSON.parse(localStorage.getItem('selectedCircuit'));
 let baseLapTime, country, grandPrix, circuit, overtaking, difficulty;
@@ -38,7 +42,7 @@ if (selectedCircuit) {
     country = selectedCircuit.country;
     grandPrix = selectedCircuit.grandPrix;
     circuit = selectedCircuit.circuit;
-    overtaking = selectedCircuit.overtaking/2 + 50; // Adjusted overtaking factor
+    overtaking = selectedCircuit.overtaking; // 0-100 scale: 0 = easy to overtake (90%), 100 = hard to overtake (10%)
     difficulty = selectedCircuit.difficulty; // Adjusted difficulty factor
     console.log('Selected Circuit:', selectedCircuit.circuit);
     console.log('Grand Prix:', grandPrix);
@@ -69,6 +73,7 @@ if (driversData) {
         crashProne: driver.crashProne || 50,
         state: 'racing',
         tire: dryChoices[Math.floor(Math.random() * dryChoices.length)],
+        startingTire: null, // Set below (same as tire)
         tireState: 1,
         carState: 1,
         fuel: 100 + Math.round(Math.random() * 10),
@@ -78,8 +83,11 @@ if (driversData) {
         crashRisk: 0,
         crossingLine: false,
         pitStops: 0,
-        pitTimer: 0
+        pitTimer: 0,
+        waitingForRain: false, // Strategy: waiting for rain to pit
+        rainTireTarget: null   // Strategy: target rain tire ('W' or 'I')
     }));
+    drivers.forEach(d => { d.startingTire = d.tire; }); // Track starting compound
     console.log("Drivers loaded:", drivers.length);
 
     // Update UI with driver images and colors when DOM is ready
