@@ -37,7 +37,6 @@ function downloadRaceRecording(recording) {
     RaceRecorder.downloadRecording(recording);
 }
 
-// Function to show the championship button and save results
 function showChampionshipResultsButton() {
     if (localStorage.getItem('championshipActive') === 'true') {
         const btn = document.createElement('button');
@@ -51,6 +50,12 @@ function showChampionshipResultsButton() {
             const sortedDrivers = [...drivers].sort((a, b) => b.totalLength - a.totalLength);
             championshipResults[currentRaceIndex] = sortedDrivers;
             localStorage.setItem('championshipResults', JSON.stringify(championshipResults));
+            
+            // Auto-save championship if active
+            if (window.autoSaveChampionship) {
+                window.autoSaveChampionship();
+            }
+            
             window.location.href = 'gp_select.html';
         };
         document.body.appendChild(btn);

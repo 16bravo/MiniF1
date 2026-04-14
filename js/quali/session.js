@@ -51,6 +51,11 @@ function showRaceButton() {
     ranking.sort((a, b) => (a.bestTime || Infinity) - (b.bestTime || Infinity));
     localStorage.setItem('drivers', JSON.stringify(ranking));
 
+    // Auto-save championship if active
+    if (window.autoSaveChampionship) {
+        window.autoSaveChampionship();
+    }
+
     // Create button
     const button = document.createElement('button');
     button.id = 'raceButton';

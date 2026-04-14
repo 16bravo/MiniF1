@@ -2,6 +2,14 @@
 let allCircuits = [];
 let selectedRaces = [];
 
+// Auto-save races to slot if active
+function autoSaveRaces() {
+    localStorage.setItem('championshipRaces', JSON.stringify(selectedRaces));
+    if (window.autoSaveChampionship) {
+        window.autoSaveChampionship();
+    }
+}
+
 async function loadCircuits() {
     const response = await fetch('data/circuits.json');
     allCircuits = await response.json();
@@ -58,6 +66,7 @@ function renderSelectedRaces() {
             [selectedRaces[idx - 1], selectedRaces[idx]] = [selectedRaces[idx], selectedRaces[idx - 1]];
             renderSelectedRaces();
             renderRaceOptions();
+            autoSaveRaces();
         };
 
         // Bouton descendre
@@ -69,6 +78,7 @@ function renderSelectedRaces() {
             [selectedRaces[idx], selectedRaces[idx + 1]] = [selectedRaces[idx + 1], selectedRaces[idx]];
             renderSelectedRaces();
             renderRaceOptions();
+            autoSaveRaces();
         };
 
         // Bouton supprimer
@@ -79,6 +89,7 @@ function renderSelectedRaces() {
             selectedRaces.splice(idx, 1);
             renderSelectedRaces();
             renderRaceOptions();
+            autoSaveRaces();
         };
 
         // ---- Drag & drop events ----
@@ -117,6 +128,7 @@ function renderSelectedRaces() {
 
             renderSelectedRaces();
             renderRaceOptions();
+            autoSaveRaces();
         });
 
         actions.appendChild(upBtn);
@@ -158,6 +170,7 @@ document.getElementById('add-race-btn').onclick = function() {
         selectedRaces.push(circuitToAdd);
         renderSelectedRaces();
         renderRaceOptions();
+        autoSaveRaces();
     }
 };
 
@@ -186,6 +199,12 @@ document.getElementById('start-championship-btn').onclick = function() {
     localStorage.setItem('championshipResults', JSON.stringify([])); // Vide au départ
     localStorage.setItem('championshipActive', 'true');
     localStorage.removeItem('teams'); // Force reload from default JSON on first GP
+    
+    // Auto-save to slot if active
+    if (window.autoSaveChampionship) {
+        window.autoSaveChampionship();
+    }
+    
     // Rediriger vers la sélection des pilotes/équipes pour la première course
     window.location.href = 'gp_select.html';
 };

@@ -238,6 +238,11 @@ function updateDriverTeamOptions() {
     // Persist teams in championship mode
     if (localStorage.getItem('championshipActive') === 'true') {
         localStorage.setItem('teams', JSON.stringify(dataArray));
+        
+        // Auto-save championship if active
+        if (window.autoSaveChampionship) {
+            window.autoSaveChampionship();
+        }
     }
 
     const cells = document.querySelectorAll('#teamNameDriver')
@@ -285,6 +290,11 @@ function updateDriverTeamOptions() {
     // Save driver data in localStorage
     localStorage.setItem('selectedDrivers', JSON.stringify(driversData));
     console.log(JSON.parse(localStorage.getItem('selectedDrivers')));
+
+    // Auto-save championship if active
+    if (window.autoSaveChampionship) {
+        window.autoSaveChampionship();
+    }
 }
 
 // Function to load drivers from JSON file
@@ -566,6 +576,13 @@ window.onload = async () => {
     updateButtonFlag();
 };
 
+// Auto-save before leaving page
+window.addEventListener('beforeunload', () => {
+    if (window.autoSaveChampionship) {
+        window.autoSaveChampionship();
+    }
+});
+
 document.getElementById('goToNextPage').addEventListener('click', () => {
     const isChamp = localStorage.getItem('championshipActive') === 'true';
     if (isChamp) {
@@ -583,6 +600,11 @@ document.getElementById('goToNextPage').addEventListener('click', () => {
                 localStorage.setItem('selectedCircuit', JSON.stringify(races[nextIndex]));
                 generateAndStoreWeather(races[nextIndex].rain);
             }
+        }
+        
+        // Auto-save before leaving
+        if (window.autoSaveChampionship) {
+            window.autoSaveChampionship();
         }
     }
     
@@ -623,6 +645,50 @@ document.addEventListener('DOMContentLoaded', function() {
         // If coming from a completed race, switch directly to standings
         if (raceJustPlayed) {
             activateTab('step-standings-drivers');
+            
+            // If this is the LAST race, hide the unnecessary tabs
+            if (currentRaceIndex >= races.length - 1) {
+                document.querySelector('.gp-tab-btn[data-target="step1"]').style.display = 'none';
+                document.querySelector('.gp-tab-btn[data-target="step2"]').style.display = 'none';
+                document.querySelector('.gp-tab-btn[data-target="step3"]').style.display = 'none';
+                document.querySelector('.gp-tab-btn[data-target="step4"]').style.display = 'none';
+            }
+            
+            // Modify the button behavior for post-race navigation
+            const goBtn = document.getElementById('goToNextPage');
+            if (goBtn) {
+                if (currentRaceIndex < races.length - 1) {
+                    // Not the last race: show "Next Race" button
+                    goBtn.innerHTML = 'Next Race';
+                    goBtn.onclick = () => {
+                        const nextIndex = currentRaceIndex + 1;
+                        localStorage.setItem('championshipCurrentRace', nextIndex.toString());
+                        localStorage.setItem('selectedCircuit', JSON.stringify(races[nextIndex]));
+                        generateAndStoreWeather(races[nextIndex].rain);
+                        
+                        // Auto-save before leaving
+                        if (window.autoSaveChampionship) {
+                            window.autoSaveChampionship();
+                        }
+                        
+                        window.location.href = 'gp_select.html';
+                    };
+                } else {
+                    // Last race: show "End Championship" button
+                    goBtn.innerHTML = 'End Championship';
+                    goBtn.onclick = () => {
+                        localStorage.setItem('championshipActive', 'false');
+                        
+                        // Auto-save before ending
+                        if (window.autoSaveChampionship) {
+                            window.autoSaveChampionship();
+                        }
+                        
+                        alert('Championnat terminé !');
+                        window.location.href = 'index.html';
+                    };
+                }
+            }
         }
     } else {
         // Afficher la sélection du circuit normalement

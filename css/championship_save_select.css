@@ -1,0 +1,301 @@
+/* ============================================================
+   CHAMPIONSHIP_SAVE_SELECT.CSS
+   Save selection page — dark F1-style theme
+   ============================================================ */
+
+body {
+    background: #0d0d0d;
+    color: #e8e8e8;
+    font-family: 'Pixel Operator', 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---- Header ---- */
+#save-header {
+    padding: 36px 48px 28px 48px;
+    border-bottom: 3px solid #e10600;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+}
+
+#save-title {
+    font-size: 3em;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.logo-bar {
+    display: inline-block;
+    width: 8px;
+    height: 1em;
+    background: #e10600;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+#save-subtitle {
+    margin-top: 8px;
+    font-size: 0.85em;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #666;
+}
+
+/* ---- Menu ---- */
+#save-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex: 1;
+    padding: 60px 24px;
+}
+
+#slots-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 520px;
+}
+
+/* ---- Save Slot Button ---- */
+.save-slot {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 16px;
+    align-items: center;
+    padding: 20px 24px;
+    background: #111111;
+    border: 1px solid #222;
+    border-left: 4px solid #333;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+    transition: background 0.15s, border-left-color 0.15s, transform 0.1s;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+
+.save-slot:hover {
+    background: #1a1a1a;
+    border-left-color: #e10600;
+    transform: translateX(4px);
+}
+
+.save-slot.empty {
+    opacity: 0.6;
+}
+
+.save-slot.empty:hover {
+    opacity: 1;
+}
+
+/* ---- Slot Content ---- */
+.slot-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.slot-name {
+    font-size: 1.1em;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+}
+
+.slot-progress {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.slot-date {
+    font-size: 0.75em;
+    color: #555;
+}
+
+.save-slot.empty .slot-progress,
+.save-slot.empty .slot-date {
+    color: #666;
+}
+
+/* ---- Slot Actions ---- */
+.slot-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-play {
+    padding: 8px 16px;
+    background: #e10600;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    font-size: 0.85em;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+}
+
+.btn-play:hover {
+    background: #ff1a0f;
+}
+
+.btn-delete {
+    padding: 6px 10px;
+    background: #444;
+    color: #aaa;
+    border: 1px solid #555;
+    border-radius: 3px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+}
+
+.btn-delete:hover {
+    background: #e10600;
+    color: white;
+    border-color: #e10600;
+}
+
+.save-slot.empty .btn-play {
+    background: #333;
+    color: #666;
+    cursor: default;
+}
+
+.save-slot.empty .btn-play:hover {
+    background: #333;
+}
+
+/* ---- Footer ---- */
+#save-footer {
+    padding: 20px 48px 28px 48px;
+    border-top: 1px solid #222;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-back {
+    padding: 12px 24px;
+    background: #222;
+    color: #888;
+    border: 1px solid #333;
+    border-radius: 4px;
+    font-size: 0.9em;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+    transition: background 0.15s, color 0.15s;
+}
+
+.btn-back:hover {
+    background: #333;
+    color: #ccc;
+}
+
+/* ---- Rename Modal ---- */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.modal-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 16px;
+    color: #ffffff;
+    letter-spacing: 0.08em;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 3px;
+    color: #e8e8e8;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+    font-size: 0.9em;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+}
+
+.modal-input:focus {
+    outline: none;
+    border-color: #e10600;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 3px;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+}
+
+.modal-btn.confirm {
+    background: #e10600;
+    color: white;
+}
+
+.modal-btn.confirm:hover {
+    background: #ff1a0f;
+}
+
+.modal-btn.cancel {
+    background: #333;
+    color: #aaa;
+}
+
+.modal-btn.cancel:hover {
+    background: #444;
+    color: #ccc;
+}

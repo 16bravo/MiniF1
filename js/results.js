@@ -110,6 +110,12 @@ document.addEventListener('DOMContentLoaded', function() {
         endBtn.style.display = 'none';
         nextBtn.onclick = function() {
             localStorage.setItem('championshipCurrentRace', (currentRaceIndex + 1).toString());
+            
+            // Auto-save championship before leaving
+            if (window.autoSaveChampionship) {
+                window.autoSaveChampionship();
+            }
+            
             window.location.href = 'gp_select.html';
         };
     } else {
@@ -117,6 +123,12 @@ document.addEventListener('DOMContentLoaded', function() {
         endBtn.style.display = 'inline-block';
         endBtn.onclick = function() {
             localStorage.setItem('championshipActive', 'false');
+            
+            // Auto-save championship before ending
+            if (window.autoSaveChampionship) {
+                window.autoSaveChampionship();
+            }
+            
             alert('Championnat terminé !');
             window.location.href = 'index.html';
         };
