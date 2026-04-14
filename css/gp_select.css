@@ -220,12 +220,13 @@ body {
 }
 
 /* Column sizing for drivers table */
-#driverTable th:nth-child(1), #driverTable td:nth-child(1) { width: 40%; }
-#driverTable th:nth-child(2), #driverTable td:nth-child(2) { width: 10%; }
-#driverTable th:nth-child(2) input { text-align: center; letter-spacing: 0.1em; text-transform: uppercase; }
-#driverTable th:nth-child(3), #driverTable td:nth-child(3) { width: 8%; }
-#driverTable td:nth-child(3) input { text-align: center; }
-#driverTable th:nth-child(4), #driverTable td:nth-child(4) { width: 42%; color: #666; font-size: 0.85em; }
+#driverTable th:nth-child(1), #driverTable td:nth-child(1) { width: 35px; min-width: 35px; } /* Handle column */
+#driverTable th:nth-child(2), #driverTable td:nth-child(2) { width: 40%; }
+#driverTable th:nth-child(3), #driverTable td:nth-child(3) { width: 10%; }
+#driverTable th:nth-child(3) input { text-align: center; letter-spacing: 0.1em; text-transform: uppercase; }
+#driverTable th:nth-child(4), #driverTable td:nth-child(4) { width: 8%; }
+#driverTable td:nth-child(4) input { text-align: center; }
+#driverTable th:nth-child(5), #driverTable td:nth-child(5) { width: 42%; color: #666; font-size: 0.85em; }
 
 /* Row striping for readability */
 #teamTable tbody tr:nth-child(even) td,
@@ -488,4 +489,49 @@ tr:hover td {
 /* Zero-points cells */
 .no-points {
     color: #444;
+}
+
+/* ---- Driver drag and drop ---- */
+.driver-row {
+    transition: background-color 0.2s, opacity 0.2s;
+}
+
+.driver-row[draggable="true"] {
+    user-select: none;
+}
+
+.driver-row[draggable="true"]:hover {
+    background-color: rgba(225, 6, 0, 0.1);
+    cursor: grab;
+}
+
+.driver-row[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* Drag handle styling */
+.driver-handle {
+    width: 35px !important;
+    min-width: 35px !important;
+    max-width: 35px !important;
+    padding: 6px 6px !important;
+    text-align: center;
+    color: #555;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 0.8em;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    user-select: none;
+    cursor: grab;
+    transition: color 0.15s;
+    background: rgba(255, 255, 255, 0.01);
+    border-right: 1px solid #1e1e1e;
+}
+
+.driver-handle:hover {
+    color: #e10600;
+}
+
+.driver-row[draggable="true"]:active .driver-handle {
+    cursor: grabbing;
 }

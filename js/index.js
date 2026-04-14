@@ -209,6 +209,75 @@ async function loadTeams() {
     return;
 }
 
+// Setup drag and drop for driver rows
+let draggedDriverRow = null;
+
+function setupDriverDragDrop() {
+    const driverRows = document.querySelectorAll('.driver-row');
+    
+    driverRows.forEach(row => {
+        row.addEventListener('dragstart', (e) => {
+            draggedDriverRow = row;
+            row.style.opacity = '0.5';
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        row.addEventListener('dragend', (e) => {
+            row.style.opacity = '1';
+            draggedDriverRow = null;
+        });
+
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (row !== draggedDriverRow) {
+                row.style.backgroundColor = '#333';
+            }
+        });
+
+        row.addEventListener('dragleave', (e) => {
+            row.style.backgroundColor = '';
+        });
+
+        row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            row.style.backgroundColor = '';
+            
+            if (row !== draggedDriverRow && draggedDriverRow) {
+                // Swap the rows
+                swapDriverRows(draggedDriverRow, row);
+            }
+        });
+    });
+}
+
+// Swap two driver rows and update data
+function swapDriverRows(row1, row2) {
+    // Get input values from row1 (skip first column which is the handle)
+    const row1Inputs = row1.querySelectorAll('input[type="text"], input[type="number"]');
+    const row1Name = row1Inputs[0].value;
+    const row1Code = row1Inputs[1].value;
+    const row1Level = row1Inputs[2].value;
+    
+    // Get input values from row2 (skip first column which is the handle)
+    const row2Inputs = row2.querySelectorAll('input[type="text"], input[type="number"]');
+    const row2Name = row2Inputs[0].value;
+    const row2Code = row2Inputs[1].value;
+    const row2Level = row2Inputs[2].value;
+    
+    // Swap the values
+    row1Inputs[0].value = row2Name;
+    row1Inputs[1].value = row2Code;
+    row1Inputs[2].value = row2Level;
+    
+    row2Inputs[0].value = row1Name;
+    row2Inputs[1].value = row1Code;
+    row2Inputs[2].value = row1Level;
+    
+    // Update the data in storage
+    updateDriverTeamOptions();
+}
+
 // Function to update driver team options
 function updateDriverTeamOptions() {
     const rows = document.querySelectorAll('.team-row');
@@ -261,10 +330,11 @@ function updateDriverTeamOptions() {
         //console.log(cells);
     
         // Create an object to store data for the current line
+        // Note: cells[0] is now the drag handle, so inputs are at indices 1, 2, 3
         const rowData = {
-            name: cells[0].querySelector('input[type="text"]').value, 
-            code: cells[1].querySelector('input[type="text"]').value,
-            level: cells[2].querySelector('input[type="number"]').value,
+            name: cells[1].querySelector('input[type="text"]').value, 
+            code: cells[2].querySelector('input[type="text"]').value,
+            level: cells[3].querySelector('input[type="number"]').value,
             team_id: Math.ceil((index+1)/2),
         };
     
@@ -322,11 +392,15 @@ async function loadDrivers() {
         const driverTableBody = document.getElementById('driverTable').querySelector('tbody');
 
         // Fill the table with drivers
-        drivers.forEach(driver => {
+        drivers.forEach((driver, index) => {
             const row = document.createElement('tr');
             row.classList.add('driver-row');
+            row.draggable = true;
+            row.dataset.driverIndex = index;
+            row.style.cursor = 'grab';
 
             row.innerHTML = `
+                <td class="driver-handle">⋮⋮</td>
                 <td><input type="text" value="${driver.name}" class="team-data" /></td>
                 <td><input type="text" value="${driver.code}" class="team-data" /></td>
                 <td><input type="number" value="${driver.driverLevel}" class="team-data" /></td>
@@ -336,6 +410,9 @@ async function loadDrivers() {
 
             driverTableBody.appendChild(row);
         });
+
+        // Setup drag and drop for drivers
+        setupDriverDragDrop();
 
         // Add event managers to update drivers when teams change
         //console.log(document.querySelectorAll('.team-data'));
