@@ -16,37 +16,34 @@ body {
 
 /* ---- Header ---- */
 #save-header {
-    padding: 36px 48px 28px 48px;
+    display: flex;
+    align-items: center;
+    padding: 24px 40px;
     border-bottom: 3px solid #e10600;
     background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 #save-title {
-    font-size: 3em;
+    font-size: 1.8em;
     font-weight: bold;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
 }
 
 .logo-bar {
     display: inline-block;
-    width: 8px;
+    width: 6px;
     height: 1em;
     background: #e10600;
     border-radius: 2px;
     flex-shrink: 0;
-}
-
-#save-subtitle {
-    margin-top: 8px;
-    font-size: 0.85em;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: #666;
 }
 
 /* ---- Menu ---- */

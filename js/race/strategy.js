@@ -8,6 +8,136 @@
 // =====================================================
 
 /**
+ * Determines the target rain tire based on weather forecast
+ * @param {number} forecastRef - Weather forecast reference value (0-1)
+ * @returns {string|null} "W" (wet), "I" (intermediate), or null (no rain)
+ */
+function getRainTargetTire(forecastRef) {
+    if (forecastRef > 0.8) return "W";
+    if (forecastRef > 0.3) return "I";
+    return null;
+}
+
+// Tire choice options for dry races
+const dryChoices = ["S", "M", "H"];
+
+/**
+ * Chooses the next tire based on track conditions and race distance
+ * Dry rule: first pit must use a compound different from starting tire (2-compound rule)
+ * End of race: always prefer S (fastest); never use H unless no choice
+ * @param {Object} driver - Driver object
+ * @param {number} currentTrackWater - Current track water level (0-1)
+ * @param {number} distanceLeftKm - Distance remaining (km)
+ * @returns {string} Tire type letter
+ */
+function chooseNextTire(driver, currentTrackWater, distanceLeftKm, rainTargetTire) {
+    // Wet/intermediate conditions take absolute priority (using shared logic)
+    if (rainTargetTire !== null) return rainTargetTire;
+
+    // First pit stop: randomly pick any compound except the one used at race start
+    // This guarantees the 2-compound rule is satisfied
+    if (driver.pitStops < 1) {
+        const options = dryChoices.filter(t => t !== driver.startingTire);
+        return options[Math.floor(Math.random() * options.length)];
+    }
+
+    // End of race (< 50km): always go with Soft for maximum pace
+    if (distanceLeftKm < 50) return "S";
+
+    // Mid-race: S or M only, never Hard (too slow, illogical)
+    return Math.random() < 0.5 ? "S" : "M";
+}
+
+/**
+ * Main pit decision function.
+ * Handles: rain strategy, 2-compound rule, mandatory stop ramp, end-of-race veto.
+ * @param {Object} driver
+ * @param {number} driverIndex - index in drivers[] (used for rank)
+ * @param {number} currentTrackWater - current track water level (0-1)
+ * @param {number} leaderDistanceLeft - distance leader has left in meters
+ * @param {number} forecastRef - Reference value from weather forecast
+ * @param {string|null} rainTargetTire - Target rain tire type
+ * @returns {boolean} true if driver should box
+ */
+function evaluatePitDecision(driver, driverIndex, currentTrackWater, leaderDistanceLeft, forecastRef, rainTargetTire) {
+    if (driver.state !== "racing") return false;
+
+    const effectiveMandatoryPits = rainyRace ? 0 : MANDATORY_PITS;
+
+    // ─── DAMAGE: always pit if car is damaged but not destroyed ───
+    if (driver.carState < 0.75 && driver.carState > 0.5) return true;
+
+    // ─── RAIN MODE: rain detected in the next 600 frames ───
+    if (rainTargetTire !== null) {
+        driver.rainMode = true;
+        //driver.rainTireTarget = rainTargetTire;
+
+        // The driver already has the correct rain tire and it's not too worn: no need to pit
+        if (driver.tire === rainTargetTire && driver.tireState > 0.3) {
+            return false;
+        }
+
+        // Pit before rain gets too bad: if forecast is good for rain and track is already wet, pit now to be ready
+        const mountThreshold = rainTargetTire === "W" ? 0.6 : 0.2;
+        if (currentTrackWater >= mountThreshold) return true;
+
+        // If tire is already very worn, pit anyway to avoid disaster in rain (even if track not yet wet)
+        if (driver.tireState < 0.1) return true;
+
+        return false; // Wait for rain to mount or tire to wear more before pitting
+    }
+
+    // ─── RETURN TO DRY: rain has passed ───
+    if (driver.tire === "W" || driver.tire === "I") {
+        if (forecastRef < 0.1 && currentTrackWater < 0.2) {
+            driver.rainMode = false;
+            //driver.rainTireTarget = null;
+            return true; // Pit to switch back to dry tires
+        }
+        return false; // Still wet, wait
+    }
+
+    // ─── DRY MODE ───
+
+    // Wrong tire for dry track: mandatory pit
+    if (currentTrackWater === 0 && (driver.tire === "W" || driver.tire === "I")) return true;
+
+    // End-of-race veto: if mandatory stop fulfilled, do not pit in the last 30 km
+    if (driver.pitStops >= effectiveMandatoryPits && leaderDistanceLeft < 30000) return false;
+
+    // Base tolerance according to flag
+    let toleranceBase;
+    if      (flagState === "safetycar") toleranceBase = 0.66;
+    else if (flagState === "yellow")    toleranceBase = 0.60;
+    else                                toleranceBase = 0.50;
+
+    // Mandatory stop ramp: if mandatory stop not done, tolerance gradually increases to 1.0
+    // Starts at 100km from leader, reaches 1.0 at 0km → forces a stop before the end
+    let tolerance;
+    if (driver.pitStops < effectiveMandatoryPits) {
+        const progression = Math.max(0, 1 - (leaderDistanceLeft / 100000)); // 0 à 100km → 1 à 0km
+        tolerance = Math.max(toleranceBase, progression);
+    } else {
+        tolerance = toleranceBase;
+    }
+
+    // Check if we really need to pit
+    const decidedToBoxBasedOnTire = driver.tireState < tolerance;
+    
+    if (decidedToBoxBasedOnTire) {
+        // Which tire will we choose?
+        const nextTire = chooseNextTire(driver, currentTrackWater, (raceLength - driver.totalLength) / 1000, rainTargetTire);
+        
+        // If it's the SAME tire and it's not critical, do not pit
+        if (nextTire === driver.tire && driver.tireState > 0.3) {
+            return false; // No stop needed, tire does not change
+        }
+    }
+    
+    return decidedToBoxBasedOnTire;
+}
+
+/**
  * Pre-computes a 600-frame rolling weather forecast for every frame of the race.
  * Called once after trackWaterCurve is loaded (in animation.js).
  * Result stored in global weatherForecast[].
@@ -279,11 +409,13 @@ function getLastStrategyDecision(driverIndex) {
  * @param {Object} driver - Driver object
  * @param {number} currentTrackWater - Current track water level
  * @param {number} leaderDistanceLeft - Distance leader has remaining (m)
+ * @param {number} forecastRef - Reference value from weather forecast
+ * @param {string|null} rainTargetTire - Target rain tire type
  * @returns {Object} Decision with reason and confidence
  */
-function makeStrategyAwarePitDecision(driver, currentTrackWater, leaderDistanceLeft) {
-    const basePitNeeded = evaluatePitDecision(driver, currentTrackWater, leaderDistanceLeft);
+function makeStrategyAwarePitDecision(driver, currentTrackWater, leaderDistanceLeft, forecastRef, rainTargetTire) {
     const driverIndex = drivers.indexOf(driver);
+    const basePitNeeded = evaluatePitDecision(driver, driverIndex, currentTrackWater, leaderDistanceLeft, forecastRef, rainTargetTire);
     const pitWindow = analyzePitWindow(driver, driverIndex);
     
     return {
@@ -294,32 +426,6 @@ function makeStrategyAwarePitDecision(driver, currentTrackWater, leaderDistanceL
             (pitWindow.isSafeWindow ? 'Pit needed, safe window' : 'Pit needed, risky window') :
             'No pit needed'
     };
-}
-
-/**
- * Determines next tire based on strategy and remaining race distance
- * Enhanced version of chooseNextTire() with strategic context
- * @param {Object} driver - Driver object
- * @param {number} currentTrackWater - Current track water level
- * @param {number} distanceLeftKm - Distance remaining (km)
- * @param {boolean} considerChampionship - Adjust for championship position (optional)
- * @returns {string} Recommended tire type
- */
-function chooseStrategicTire(driver, currentTrackWater, distanceLeftKm, considerChampionship = false) {
-    // Use base tire choice function logic
-    const baseTire = chooseNextTire(driver, currentTrackWater, distanceLeftKm);
-    
-    // Strategic adjustment: if driver is in championship contention and ahead
-    // -> use harder, longer-lasting tire even if softer is faster
-    if (considerChampionship) {
-        const position = analyzeDriverPosition(driver, drivers.indexOf(driver));
-        if (position.rank <= 3 && distanceLeftKm > 100) {
-            // Already leading: longer stints with more durable tire
-            if (baseTire === 'S' && distanceLeftKm > 150) return 'M';
-        }
-    }
-    
-    return baseTire;
 }
 
 // =====================================================

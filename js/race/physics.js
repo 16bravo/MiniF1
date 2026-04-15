@@ -10,7 +10,7 @@ function computeCarPerf(carState) {
 
 // Function for calculating the probability of a crash and applying consequences
 // Considers driver skill, car state, grip, water, difficulty, and proximity to other drivers
-function checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk) {
+function checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk, rainTargetTire) {
     const driver = drivers[i];
     if (driver.state !== "racing") return; // Only racing drivers can crash
 
@@ -23,7 +23,7 @@ function checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk
         drivers[i].speed = 0;
         drivers[i].totalLength = drivers[i].totalLength;
         console.log(`${driver.name} retires due to mechanical problems!`);
-        triggerFlag('yellow', i); // mechanical failure = yellow flag
+        triggerFlag('yellow', i, rainTargetTire); // mechanical failure = yellow flag
         return;
     }
 
@@ -61,15 +61,15 @@ function checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk
             // Severe crash: car is out
             driver.state = "out";
             if (currentRain > 0.5) {
-                triggerFlag('red', i); // Heavy rain + severe crash = red flag
+                triggerFlag('red', i, rainTargetTire); // Heavy rain + severe crash = red flag
             } else {
-                triggerFlag('safetycar', i); // Normal crash = safety car
+                triggerFlag('safetycar', i, rainTargetTire); // Normal crash = safety car
             }
         } else if (driver.carState < 0.75) {
             // Minor crash: must pit for repairs
             driver.state = "box";
             driver.carPerf = computeCarPerf(driver.carState);
-            triggerFlag('yellow', i);
+            triggerFlag('yellow', i, rainTargetTire); // Crash with moderate damage = yellow flag
         }
 
         // ===== CHAIN CRASH: Propagate risk to nearby drivers =====

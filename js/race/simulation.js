@@ -150,6 +150,14 @@ function frame(interval) {
             const tireProps = TIRES[driver.tire];
             const tireManagement = driver.tireManagement || 85;
 
+            // ===== WEATHER FORECAST FOR STRATEGY =====
+            const forecastFrame = Math.min(raceFrame, weatherForecast.length - 1);
+            const forecast = weatherForecast[forecastFrame] || { max: 0, avg: 0 };
+            // For Rain Strategy : Rank: rank ≤ 10 → conservative (avg), rank > 10 → aggressive (max)
+            const forecastRef = pos <= 10 ? forecast.avg : forecast.max;
+            // Determine target rain tire from forecast (centralized logic)
+            const rainTargetTire = getRainTargetTire(forecastRef);
+
             // Wear factor according to control mode
             let modeFactor = 1;
             if (driver.mode === "agressive") modeFactor = 1.02;
@@ -208,7 +216,7 @@ function frame(interval) {
             } else {
                 // NORMAL RACING CONDITIONS
                 // Check for crash
-                checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk);
+                checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk, rainTargetTire);
 
                 // Gap to front on track
                 let gapSecondsTrack = gapMetersTrack / driver.speed;
@@ -292,7 +300,7 @@ function frame(interval) {
             frontDriverLength = (driver.state === "racing" || driver.state === "box") && driver.carState > 0.7 && driver.tireState > 0.5 ? driver.totalLength : frontDriverLength;
 
             // ===== PIT STOP MANAGEMENT =====
-            managePitStops(driver, i);
+            managePitStops(driver, i, forecastRef, rainTargetTire);
 
             // ===== ANIMATION UI UPDATE =====
             // Update driver positions on minimap and ranking display

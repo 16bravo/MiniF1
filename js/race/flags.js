@@ -45,7 +45,7 @@ function showFlagBanner(flag) {
 
 // Function to trigger race flags and manage all state transitions
 // Handles flag effects (DRS disabled, driver pit stops, etc.)
-function triggerFlag(type, driverIndex) {
+function triggerFlag(type, driverIndex, rainTargetTire) {
     console.log(`${type} triggered by ${drivers[driverIndex]?.name || "?"}`);
     flagState = type;
     showFlagBanner(type);
@@ -68,7 +68,7 @@ function triggerFlag(type, driverIndex) {
                 drivers[i].state = "in pit red flag";
                 drivers[i].carState = 1; // Repair car
                 drivers[i].tireState = 1; // Fresh tires
-                drivers[i].tire = chooseNextTire(drivers[i], 0, (raceLength - drivers[i].totalLength) / 1000);
+                drivers[i].tire = chooseNextTire(drivers[i], 0, (raceLength - drivers[i].totalLength) / 1000, rainTargetTire);
                 drivers[i].pitStops = (drivers[i].pitStops || 0) + 1;
                 drivers[i].speed = 0;
             }
