@@ -223,6 +223,51 @@ body {
     border-color: #e10600;
 }
 
+/* ---- Sprint Toggle (small version for race-actions) ---- */
+.sprint-toggle-small {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.sprint-toggle-small input {
+    display: none;
+}
+
+.toggle-slider-small {
+    width: 40px;
+    height: 20px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    position: relative;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.toggle-slider-small::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    background: #666;
+    border-radius: 50%;
+    position: absolute;
+    left: 2px;
+    transition: all 0.3s ease;
+}
+
+.sprint-toggle-small input:checked + .toggle-slider-small {
+    background: #e10600;
+    border-color: #ff1a0e;
+}
+
+.sprint-toggle-small input:checked + .toggle-slider-small::before {
+    background: #fff;
+    left: 22px;
+}
+
 /* ---- Fixed footer bar ---- */
 #setup-footer {
     position: fixed;

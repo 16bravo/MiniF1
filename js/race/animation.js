@@ -23,6 +23,13 @@ async function loadCircuitData(circuit) {
         country = circuitData.country;
         grandPrix = circuitData.grandPrix;
 
+        // Apply sprint mode divisor if activated
+        const isSprint = localStorage.getItem('isSprint') === 'true';
+        if (isSprint) {
+            raceLength = Math.ceil(raceLength / 3);
+            console.log('Sprint mode active - race distance:', raceLength, 'meters (~' + Math.ceil(raceLength / 1000) + 'km)');
+        }
+
         // Get rain probability from selected circuit or default to 30%
         let rain = selectedCircuit && selectedCircuit.rain ? selectedCircuit.rain : 30;
 
@@ -42,7 +49,8 @@ async function loadCircuitData(circuit) {
                 driversCount: nb_driver,
                 circuitLength: circuitLength,
                 raceLength: raceLength,
-                baseSpeed: baseSpeed
+                baseSpeed: baseSpeed,
+                isSprint: isSprint
             });
             recorderMetadataSet = true;
         }

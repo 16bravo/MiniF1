@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     championshipResults = validPairs.map(p => p.result ?? []);
 
     const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+    const POINTS_SPRINT = [8, 7, 6, 5, 4, 3, 2, 1];
 
     // Liste des pilotes et équipes
     let allDrivers = {};
@@ -41,13 +42,16 @@ document.addEventListener('DOMContentLoaded', function() {
     let teamPointsTable = {};
     races.forEach((race, raceIdx) => {
         const results = championshipResults[raceIdx] || [];
+        // Determine if this race is sprint or normal
+        const pointsScale = race.isSprintRace ? POINTS_SPRINT : POINTS;
+        
         // Pilotes
         results
             .filter(d => d.state !== "out")
             .sort((a, b) => b.totalLength - a.totalLength)
             .forEach((driver, idx) => {
                 if (!driverPointsTable[driver.code]) driverPointsTable[driver.code] = Array(races.length).fill(0);
-                driverPointsTable[driver.code][raceIdx] = POINTS[idx] || 0;
+                driverPointsTable[driver.code][raceIdx] = pointsScale[idx] || 0;
             });
         // Constructeurs
         Object.values(allTeams).forEach(team => {
@@ -57,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .filter(d => d.state !== "out")
             .sort((a, b) => b.totalLength - a.totalLength)
             .forEach((driver, idx) => {
-                teamPointsTable[driver.team][raceIdx] += POINTS[idx] || 0;
+                teamPointsTable[driver.team][raceIdx] += pointsScale[idx] || 0;
             });
     });
 

@@ -22,7 +22,8 @@ let trackWaterCurve = [];
 let maxLapsPerSession = 3;
 let baseSpeed = 230;
 let intervalId = null;
-let sessionDurations = [18, 15, 12];
+let sessionDurations = [18, 15, 13];
+let isSprint = false;
 
 // =====================================================
 // QUALIFICATION THRESHOLDS (parametrable configuration)
@@ -78,6 +79,15 @@ function loadQualiConfiguration() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+    // =====================================================
+    // SPRINT MODE CHECK
+    // =====================================================
+    isSprint = localStorage.getItem('isSprint') === 'true';
+    if (isSprint) {
+        sessionDurations = [12, 10, 8];
+        console.log('Sprint mode active - session durations:', sessionDurations);
+    }
+
     // =====================================================
     // CIRCUIT DATA INITIALIZATION
     // =====================================================

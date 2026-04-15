@@ -98,6 +98,7 @@ async function loadCircuits() {
                     slowCorners: circuit.slowCorners
                 };
                 localStorage.setItem('selectedCircuit', JSON.stringify(circuitData));
+                localStorage.setItem('isSprint', document.getElementById('sprintMode').checked.toString());
                 generateAndStoreWeather(circuit.rain);
                 updateButtonFlag(); // Update button flag when circuit is selected
             });
@@ -448,7 +449,11 @@ function showOverview() {
             : currentRaceIndex;
         circuit = races[displayIndex];
         // Also keep selectedCircuit in sync
-        if (circuit) localStorage.setItem('selectedCircuit', JSON.stringify(circuit));
+        if (circuit) {
+            localStorage.setItem('selectedCircuit', JSON.stringify(circuit));
+            // Synchronize isSprint flag with championship race config
+            localStorage.setItem('isSprint', (circuit.isSprintRace || false).toString());
+        }
     } else {
         circuit = JSON.parse(localStorage.getItem('selectedCircuit'));
     }
@@ -480,7 +485,8 @@ function showOverview() {
                 <img src="img/flags/${circuit.country.toLowerCase().replace(/ /g, "_")}.png" alt="${circuit.country}" style="height:32px;">
                 <p style="margin:0;">
                     <strong>${circuit.grandPrix}</strong> (${circuit.country})<br>
-                    Length : ${circuit.length} m
+                    Length : ${circuit.length} m<br>
+                    <span style="font-size:0.85em;color:#aaa;">${localStorage.getItem('isSprint') === 'true' ? '🏁 SPRINT MODE (100km)' : 'Normal Race (300km)'}</span>
                 </p>
             </div>
             ${weatherHTML}
@@ -541,6 +547,7 @@ function activateTab(stepId) {
 // Render championship standings into the two standings tab panels
 function renderChampionshipStandings() {
     const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+    const POINTS_SPRINT = [8, 7, 6, 5, 4, 3, 2, 1];
     let championshipResults, races;
     try {
         championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
@@ -566,16 +573,19 @@ function renderChampionshipStandings() {
     let driverPointsTable = {}, teamPointsTable = {};
     races.forEach((race, raceIdx) => {
         const results = championshipResults[raceIdx] || [];
+        // Determine if this race is sprint or normal
+        const pointsScale = race.isSprintRace ? POINTS_SPRINT : POINTS;
+        
         results.filter(d => d.state !== 'out').sort((a, b) => b.totalLength - a.totalLength)
             .forEach((driver, idx) => {
                 if (!driverPointsTable[driver.code]) driverPointsTable[driver.code] = Array(races.length).fill(0);
-                driverPointsTable[driver.code][raceIdx] = POINTS[idx] || 0;
+                driverPointsTable[driver.code][raceIdx] = pointsScale[idx] || 0;
             });
         Object.values(allTeams).forEach(team => {
             if (!teamPointsTable[team]) teamPointsTable[team] = Array(races.length).fill(0);
         });
         results.filter(d => d.state !== 'out').sort((a, b) => b.totalLength - a.totalLength)
-            .forEach((driver, idx) => { teamPointsTable[driver.team][raceIdx] += POINTS[idx] || 0; });
+            .forEach((driver, idx) => { teamPointsTable[driver.team][raceIdx] += pointsScale[idx] || 0; });
     });
 
     let driverTable = `<table><thead><tr><th>#</th><th>Driver</th>`;
@@ -675,6 +685,8 @@ document.getElementById('goToNextPage').addEventListener('click', () => {
                 const nextIndex = currentRaceIndex + 1;
                 localStorage.setItem('championshipCurrentRace', nextIndex.toString());
                 localStorage.setItem('selectedCircuit', JSON.stringify(races[nextIndex]));
+                // Synchronize isSprint flag with championship race config
+                localStorage.setItem('isSprint', (races[nextIndex].isSprintRace || false).toString());
                 generateAndStoreWeather(races[nextIndex].rain);
             }
         }
@@ -694,6 +706,23 @@ document.getElementById('goToNextPage').addEventListener('click', () => {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize sprint toggle from localStorage
+    const sprintModeCheckbox = document.getElementById('sprintMode');
+    if (sprintModeCheckbox) {
+        const isSprint = localStorage.getItem('isSprint') === 'true';
+        sprintModeCheckbox.checked = isSprint;
+        
+        // Add event listener to save and update overview when toggle changes
+        sprintModeCheckbox.addEventListener('change', function() {
+            localStorage.setItem('isSprint', this.checked.toString());
+            console.log('Sprint mode changed to:', this.checked);
+            // Update overview if it's currently active
+            if (document.getElementById('step4')?.classList.contains('active')) {
+                showOverview();
+            }
+        });
+    }
+
     const isChampionship = localStorage.getItem('championshipActive') === 'true';
     const circuitSection = document.getElementById('step1'); // Le bloc de sélection du circuit
 
@@ -712,6 +741,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedCircuit = races[currentRaceIndex];
         if (selectedCircuit) {
             localStorage.setItem('selectedCircuit', JSON.stringify(selectedCircuit));
+            // Synchronize isSprint flag with championship race config
+            localStorage.setItem('isSprint', (selectedCircuit.isSprintRace || false).toString());
             generateAndStoreWeather(selectedCircuit.rain);
         }
 
@@ -741,6 +772,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         const nextIndex = currentRaceIndex + 1;
                         localStorage.setItem('championshipCurrentRace', nextIndex.toString());
                         localStorage.setItem('selectedCircuit', JSON.stringify(races[nextIndex]));
+                        // Synchronize isSprint flag with championship race config
+                        localStorage.setItem('isSprint', (races[nextIndex].isSprintRace || false).toString());
                         generateAndStoreWeather(races[nextIndex].rain);
                         
                         // Auto-save before leaving

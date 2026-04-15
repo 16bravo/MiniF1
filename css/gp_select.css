@@ -298,6 +298,60 @@ body {
     margin-bottom: 0;
 }
 
+/* ---- Sprint Toggle ---- */
+.sprint-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.sprint-toggle input {
+    display: none;
+}
+
+.toggle-slider {
+    width: 48px;
+    height: 24px;
+    background: #444;
+    border: 2px solid #666;
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-slider::before {
+    content: '';
+    width: 18px;
+    height: 18px;
+    background: #888;
+    border-radius: 50%;
+    position: absolute;
+    left: 2px;
+    transition: all 0.3s ease;
+}
+
+.sprint-toggle input:checked + .toggle-slider {
+    background: #e10600;
+    border-color: #ff1a0e;
+}
+
+.sprint-toggle input:checked + .toggle-slider::before {
+    background: #fff;
+    left: 26px;
+}
+
+.toggle-label {
+    font-size: 0.8em;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+    min-width: 40px;
+}
+
 /* Show only the active panel */
 .accordion-item.active {
     display: block;

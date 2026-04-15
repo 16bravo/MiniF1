@@ -46,7 +46,9 @@ function renderSelectedRaces() {
 
         const name = document.createElement('span');
         name.className = 'race-name';
-        name.textContent = `${circuit.grandPrix}`;
+        // Add sprint badge if applicable
+        const sprintBadge = circuit.isSprintRace ? ' 🏁 SPRINT' : '';
+        name.textContent = `${circuit.grandPrix}${sprintBadge}`;
 
         const country = document.createElement('img');
         country.className = 'race-country';
@@ -92,6 +94,40 @@ function renderSelectedRaces() {
             autoSaveRaces();
         };
 
+        // ---- Sprint toggle ----
+        // Only show sprint toggle for non-sprint races (so user can convert to sprint)
+        if (!circuit.isSprintRace) {
+            const sprintToggleLabel = document.createElement('label');
+            sprintToggleLabel.className = 'sprint-toggle-small';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.title = 'Convert to sprint race (adds sprint weekend before this GP)';
+            checkbox.onchange = () => {
+                // When checked: insert sprint race before this one
+                if (checkbox.checked) {
+                    const sprintRace = JSON.parse(JSON.stringify(circuit));
+                    sprintRace.isSprintRace = true;
+                    selectedRaces.splice(idx, 0, sprintRace);
+                } else {
+                    // If unchecking, remove the sprint version that was added
+                    if (idx > 0 && selectedRaces[idx - 1].circuit === circuit.circuit && selectedRaces[idx - 1].isSprintRace) {
+                        selectedRaces.splice(idx - 1, 1);
+                    }
+                }
+                renderSelectedRaces();
+                renderRaceOptions();
+                autoSaveRaces();
+            };
+            
+            const toggleSlider = document.createElement('span');
+            toggleSlider.className = 'toggle-slider-small';
+            
+            sprintToggleLabel.appendChild(checkbox);
+            sprintToggleLabel.appendChild(toggleSlider);
+            actions.appendChild(sprintToggleLabel);
+        }
+
         // ---- Drag & drop events ----
         li.addEventListener('dragstart', (e) => {
             dragSrcIdx = idx;
@@ -133,6 +169,7 @@ function renderSelectedRaces() {
 
         actions.appendChild(upBtn);
         actions.appendChild(downBtn);
+        // Sprint toggle is appended before delete button in the code above
         actions.appendChild(delBtn);
         li.appendChild(handle);
         li.appendChild(num);
@@ -151,7 +188,9 @@ function renderRaceOptions() {
     const select = document.getElementById('race-select');
     select.innerHTML = '';
     allCircuits.forEach(circuit => {
-        if (!selectedRaces.some(r => r.circuit === circuit.circuit) && circuit.grandPrix && circuit.country) {
+        // Check if circuit is already added (as normal or sprint race)
+        const isAlreadyAdded = selectedRaces.some(r => r.circuit === circuit.circuit && !r.isSprintRace);
+        if (!isAlreadyAdded && circuit.grandPrix && circuit.country) {
             const option = document.createElement('option');
             option.value = circuit.circuit;
             option.textContent = `${circuit.grandPrix} (${circuit.country})`;
@@ -167,12 +206,15 @@ document.getElementById('add-race-btn').onclick = function() {
     const selectedCircuitId = select.value;
     const circuitToAdd = allCircuits.find(c => c.circuit === selectedCircuitId);
     if (circuitToAdd) {
-        selectedRaces.push(circuitToAdd);
+        // Add isSprintRace flag (default false) to distinguish sprint races
+        const raceToAdd = JSON.parse(JSON.stringify(circuitToAdd));
+        raceToAdd.isSprintRace = false;
+        selectedRaces.push(raceToAdd);
         renderSelectedRaces();
         renderRaceOptions();
         autoSaveRaces();
     }
-};
+;}
 
 document.getElementById('reset-championship-btn').onclick = function() {
     console.log('Resetting championship data...');
