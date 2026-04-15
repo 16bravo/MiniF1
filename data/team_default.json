@@ -98,5 +98,15 @@
         "teamFB": 95,
         "color": "#ff7ec9",
         "image": "ALP26"
+    },
+    {
+        "team_id": 11,
+        "team": "Cadillac",
+        "teamSPD": 67,
+        "teamFS": 66,
+        "teamSS": 67,
+        "teamFB": 95,
+        "color": "#fff",
+        "image": "CAD26"
     }
 ]

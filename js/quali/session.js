@@ -16,19 +16,21 @@ function resetQualifiers() {
 // Function to advance to the next qualifying session and eliminate drivers
 function advanceSession() {
     if (currentSession === 0) {
-        // Q1 to Q2: eliminate bottom 5 drivers
+        // Q1 to Q2: eliminate drivers below Q2 threshold
         ranking.sort((a, b) => (a.bestTime || Infinity) - (b.bestTime || Infinity));
-        for (let i = 15; i < 20; i++) {
+        for (let i = qualiConfig.q2Threshold; i < ranking.length; i++) {
             ranking[i].eliminated = true;
             ranking[i].bestTime += 2000;
         }
+        console.log(`Q1→Q2: Eliminated ${ranking.length - qualiConfig.q2Threshold} drivers (threshold: ${qualiConfig.q2Threshold})`);
     } else if (currentSession === 1) {
-        // Q2 to Q3: eliminate next 5 drivers
+        // Q2 to Q3: eliminate drivers below Q3 threshold
         ranking.sort((a, b) => (a.bestTime || Infinity) - (b.bestTime || Infinity));
-        for (let i = 10; i < 15; i++) {
+        for (let i = qualiConfig.q3Threshold; i < qualiConfig.q2Threshold; i++) {
             ranking[i].eliminated = true;
             ranking[i].bestTime += 1000;
         }
+        console.log(`Q2→Q3: Eliminated ${qualiConfig.q2Threshold - qualiConfig.q3Threshold} drivers (threshold: ${qualiConfig.q3Threshold})`);
     }
     
     if (currentSession < 2) {

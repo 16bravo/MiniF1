@@ -118,5 +118,17 @@
         "code": "COL",
         "team_id": 10,
         "driverLevel": 84
+    },
+    {
+        "name": "Valterri Bottas",
+        "code": "BOT",
+        "team_id": 11,
+        "driverLevel": 86
+    },
+    {
+        "name": "Sergio P\u00e9rez",
+        "code": "PER",
+        "team_id": 11,
+        "driverLevel": 86
     }
 ]

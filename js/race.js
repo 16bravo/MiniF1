@@ -55,7 +55,7 @@ if (selectedCircuit) {
 // DRIVERS DATA
 const driversData = JSON.parse(localStorage.getItem('drivers'));
 let drivers = [];
-let nb_driver = 20;
+let nb_driver; // Will be set after loading drivers
 
 if (driversData) {
     drivers = driversData.map(driver => ({
@@ -88,10 +88,21 @@ if (driversData) {
         rainTireTarget: null   // Strategy: target rain tire ('W' or 'I')
     }));
     drivers.forEach(d => { d.startingTire = d.tire; }); // Track starting compound
+    nb_driver = drivers.length; // Set nb_driver from actual driver count
     console.log("Drivers loaded:", drivers.length);
 
     // Update UI with driver images and colors when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
+        // Generate driver UI elements dynamically (must happen when DOM exists)
+        generateDriverUIElements();
+        
+        // Update dynamic container heights based on number of drivers
+        updateDynamicContainerHeights();
+        
+        // Initialize animation tracking arrays
+        initializeAnimationArrays();
+
+        // Update driver images and colors
         drivers.forEach((driver, index) => {
             const pLElement = document.getElementById("pL" + (index + 1));
             const pXElement = document.getElementById("pX" + (index + 1));
@@ -133,36 +144,60 @@ let laps; // Total laps in race
 let dist_per_pixel; // Distance in meters per pixel
 let pageWidth; // Page width for calculations
 
-// Driver tracking arrays for animation
+// Driver tracking arrays for animation (will be initialized after nb_driver is set)
 let leader_total_length = 0;
-drivers.forEach((driver, i) => {
-    driver.totalLength = -i * 14; // Grid positioning
-});
-
-let diff_driver_length = new Array(nb_driver).fill(0);
-let diff_driver_length_previous = new Array(nb_driver).fill(0);
-let diff_driver_time = new Array(nb_driver).fill(0);
-let driver_position = new Array(nb_driver).fill(0).map((_, i) => i * 35 + 75);
-let driver_position_previous = new Array(nb_driver).fill(0).map((_, i) => i * 35 + 75);
-let driver_position_X = new Array(nb_driver).fill(25);
-let driver_position_Y = new Array(nb_driver).fill(0).map((_, i) => i * 35 + 75);
-let extraCrashRisk = new Array(nb_driver).fill(0);
+let diff_driver_length = [];
+let diff_driver_length_previous = [];
+let diff_driver_time = [];
+let driver_position = [];
+let driver_position_previous = [];
+let driver_position_X = [];
+let driver_position_Y = [];
+let extraCrashRisk = [];
 
 // Minimap tracking
-let circuit_driver_position = new Array(nb_driver).fill(0);
-let circuit_minimap_position = new Array(nb_driver).fill(0);
-let circuit_minimap_position_previous = new Array(nb_driver).fill(0);
-let circuit_minimap_position_live = new Array(nb_driver).fill(0);
+let circuit_driver_position = [];
+let circuit_minimap_position = [];
+let circuit_minimap_position_previous = [];
+let circuit_minimap_position_live = [];
+
+// Function to initialize animation arrays after drivers are loaded
+function initializeAnimationArrays() {
+    // Grid positioning for drivers
+    drivers.forEach((driver, i) => {
+        driver.totalLength = -i * 14;
+    });
+
+    // Create arrays with correct size
+    diff_driver_length = new Array(nb_driver).fill(0);
+    diff_driver_length_previous = new Array(nb_driver).fill(0);
+    diff_driver_time = new Array(nb_driver).fill(0);
+    driver_position = new Array(nb_driver).fill(0).map((_, i) => i * 35 + 75);
+    driver_position_previous = new Array(nb_driver).fill(0).map((_, i) => i * 35 + 75);
+    driver_position_X = new Array(nb_driver).fill(25);
+    driver_position_Y = new Array(nb_driver).fill(0).map((_, i) => i * 35 + 75);
+    extraCrashRisk = new Array(nb_driver).fill(0);
+
+    // Minimap tracking arrays
+    circuit_driver_position = new Array(nb_driver).fill(0);
+    circuit_minimap_position = new Array(nb_driver).fill(0);
+    circuit_minimap_position_previous = new Array(nb_driver).fill(0);
+    circuit_minimap_position_live = new Array(nb_driver).fill(0);
+
+    console.log('Initialized animation arrays for', nb_driver, 'drivers');
+}
 
 // =====================================================
-// RECORDING INITIALIZATION
+// RECORDING INITIALIZATION (deferred to DOMContentLoaded)
 // =====================================================
 let recorderMetadataSet = false;
-initRaceRecorder();
 
 // =====================================================
 // START RACE
 // =====================================================
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize race recorder (now that nb_driver is set)
+    initRaceRecorder();
+    
     loadCircuitData(circuit);
 });

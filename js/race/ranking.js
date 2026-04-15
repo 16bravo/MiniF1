@@ -61,11 +61,11 @@ function computeGapsFrontInRanking(drivers, driver_ranking) {
 
     for (let i = 0; i < drivers.length; i++) {
         const myRank = driver_ranking[i];
-        const frontRank = (myRank - 1) % 20;
+        const frontRank = (myRank - 1) % drivers.length;
         let frontIndexRanking = driver_ranking.length - 1; // Default to last if no one ahead
 
         if (frontRank > 0) {
-            frontIndexRanking = driver_ranking.indexOf(frontRank) % 20;
+            frontIndexRanking = driver_ranking.indexOf(frontRank) % drivers.length;
         }
 
         frontIndices[i] = frontIndexRanking;

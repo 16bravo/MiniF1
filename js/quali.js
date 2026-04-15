@@ -24,6 +24,59 @@ let baseSpeed = 230;
 let intervalId = null;
 let sessionDurations = [18, 15, 12];
 
+// =====================================================
+// QUALIFICATION THRESHOLDS (parametrable configuration)
+// =====================================================
+// These define which drivers advance to next session
+let qualiConfig = {
+    q1Threshold: 20,   // All 20 drivers (no elimination in Q1)
+    q2Threshold: 15,   // Top 15 advance to Q2 (5 eliminated after Q1)
+    q3Threshold: 10    // Top 10 advance to Q3 (5 eliminated after Q2)
+};
+
+/**
+ * Automatically calculate qualification thresholds based on number of drivers
+ * Rules:
+ * - 20 drivers or less: Q3 (15 drivers) / Q2 (10 drivers) / Q1 (20 drivers)
+ * - 22+ drivers: Q3 (16 drivers) / Q2 (10 drivers) / Q1 (22+ drivers)
+ * @param {number} numDrivers - Total number of drivers
+ */
+function calculateQualiThresholds(numDrivers) {
+    if (numDrivers < 22) {
+        return {
+            q1Threshold: numDrivers,  // All drivers participate in Q1
+            q2Threshold: 15,          // Top 15 advance to Q2
+            q3Threshold: 10           // Top 10 advance to Q3
+        };
+    } else {
+        // 22+ drivers
+        return {
+            q1Threshold: numDrivers,  // All drivers participate in Q1
+            q2Threshold: 16,          // Top 16 advance to Q2
+            q3Threshold: 10           // Top 10 advance to Q3
+        };
+    }
+}
+
+/**
+ * Load or override qualification configuration from localStorage
+ * Allows custom thresholds and session durations
+ */
+function loadQualiConfiguration() {
+    const storedConfig = localStorage.getItem('qualiConfig');
+    if (storedConfig) {
+        const customConfig = JSON.parse(storedConfig);
+        qualiConfig = { ...qualiConfig, ...customConfig };
+        console.log('Custom qualification config loaded:', qualiConfig);
+    }
+    
+    const storedDurations = localStorage.getItem('sessionDurations');
+    if (storedDurations) {
+        sessionDurations = JSON.parse(storedDurations);
+        console.log('Custom session durations loaded:', sessionDurations);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     // =====================================================
     // CIRCUIT DATA INITIALIZATION
@@ -58,6 +111,12 @@ document.addEventListener("DOMContentLoaded", function() {
     // DRIVERS DATA INITIALIZATION
     // =====================================================
     drivers = JSON.parse(localStorage.getItem('selectedDrivers'));
+    
+    // Initialize qualification configuration based on number of drivers
+    qualiConfig = calculateQualiThresholds(drivers.length);
+    loadQualiConfiguration(); // Allow custom overrides from localStorage
+    console.log('Qualification configuration:', qualiConfig);
+    
     currentSession = 0;
     timer = sessionDurations[currentSession] * 60;
     ranking = drivers.map(driver => ({

@@ -638,3 +638,42 @@ i,
     background: #fff;
     color: #e00;
 }
+
+/* =====================================================
+   GENERIC STYLES FOR DYNAMICALLY GENERATED DRIVER ELEMENTS
+   ===================================================== */
+
+/* Driver icon container (all p1, p2, ..., p30+) */
+[id^="p"]:not([id^="pX"]):not([id^="pL"]) {
+    position: absolute;
+}
+
+/* Driver code container (all pX1, pX2, ..., pX30+) */
+[id^="pX"] {
+    border-left: 6px solid #ccc;
+    padding: 5px;
+    position: absolute;
+    left: 100px;
+    width: 50px;
+    z-index: 100;
+}
+
+/* Car image container (all pL1, pL2, ..., pL30+) */
+[id^="pL"] {
+    position: absolute;
+    width: 50px;
+}
+
+/* Generic rank display (all rank elements) */
+#rank {
+    background-color: white;
+    color: black;
+    padding: 5px;
+    position: absolute;
+    left: 70px;
+    width: 25px;
+    border-radius: 5px 0px 5px 0px;
+    z-index: 100;
+    text-align: center;
+    font-weight: bold;
+}

@@ -1,6 +1,21 @@
 // PHYSICS.JS
 // Driver physics, pit exit logic, crashes, and lap time calculations
 
+/**
+ * Calculate the minimum rank threshold for drivers to exit pit in current session
+ * Drivers below this threshold will wait in pit (as they will be eliminated)
+ */
+function getMinRankThresholdForCurrentSession() {
+    if (currentSession === 0) {
+        // Q1: drivers below Q2 threshold stay in pit
+        return qualiConfig.q2Threshold;
+    } else if (currentSession === 1) {
+        // Q2: drivers below Q3 threshold stay in pit
+        return qualiConfig.q3Threshold;
+    }
+    return 1; // Q3: everyone can go out
+}
+
 // Function to obtain driver ranking position
 function getDriverRank(targetDriver) {
     const sortedRanking = [...ranking].sort((a, b) => {
@@ -35,8 +50,8 @@ function shouldExitPit(driver) {
             otherDriver.currentState === "OUT"
         );
         return isWindowFree;
-    } else if (driver.sessionLaps < (maxLapsPerSession - 1) && getDriverRank(driver) > 10 - currentSession * 5) {
-        // Mid-session laps: wait for a free window
+    } else if (driver.sessionLaps < (maxLapsPerSession - 1) && getDriverRank(driver) > getMinRankThresholdForCurrentSession()) {
+        // Mid-session laps: wait for a free window (drivers likely to be eliminated don't bother)
         const isWindowFree = ranking.every(otherDriver => 
             (otherDriver.distance > 0.05 && otherDriver.distance < 0.95) || 
             otherDriver.currentState === "PIT" || 
