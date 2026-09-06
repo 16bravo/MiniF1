@@ -14,7 +14,7 @@
     { "circuit": "HUN", "name": "Hungary", "code": "HUN" },
     { "circuit": "NED", "name": "Netherlands", "code": "NED", "sprint": true },
     { "circuit": "ITA", "name": "Italy", "code": "ITA" },
-    { "circuit": "VAL", "name": "Spain", "code": "SPA" },
+    { "circuit": "MAD", "name": "Spain", "code": "SPA" },
     { "circuit": "AZE", "name": "Azerbaijan", "code": "AZE" },
     { "circuit": "MAL", "name": "Bahrain", "code": "BAH" },
     { "circuit": "SIN", "name": "Singapore", "code": "SIN", "sprint": true },
