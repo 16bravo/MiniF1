@@ -15,7 +15,7 @@ const RaceReplay = (() => {
         'fs': 'flagState', 'ft': 'flagTimer', 'drs': 'drsEnabled', 'rr': 'rainyRace',
         'g': 'grip', 'gf': 'gripFactor', 'cr': 'currentRain', 'ctw': 'currentTrackWater',
         's': 'speed', 'tl': 'totalLength', 'st': 'state', 'tr': 'tire', 'trS': 'tireState',
-        'cs': 'carState', 'fu': 'fuel', 'm': 'mode', 'ps': 'pitStops', 'pt': 'pitTimer',
+        'cs': 'carState', 'fu': 'fuel', 'ef': 'effort', 'm': 'mode', 'ps': 'pitStops', 'pt': 'pitTimer',
         'clg': 'crossingLine', 'cp': 'carPerf', 'tp': 'tirePerf'
     };
 
@@ -110,7 +110,7 @@ const RaceReplay = (() => {
     }
 
     function getAvailableDriverVariables() {
-        return ['speed', 'totalLength', 'state', 'tire', 'tireState', 'carState', 'fuel', 
+        return ['speed', 'totalLength', 'state', 'tire', 'tireState', 'carState', 'fuel', 'effort',
                 'mode', 'pitStops', 'pitTimer', 'crossingLine', 'carPerf', 'tirePerf'];
     }
 

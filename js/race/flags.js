@@ -46,6 +46,12 @@ function showFlagBanner(flag) {
 // Function to trigger race flags and manage all state transitions
 // Handles flag effects (DRS disabled, driver pit stops, etc.)
 function triggerFlag(type, driverIndex, rainTargetTire) {
+    // Don't stack cautions: a second incident during a caution doesn't add a new
+    // one. A yellow is a no-op while any caution is out; a safety car can still
+    // upgrade a yellow, but not re-trigger over itself or a red.
+    if (type === "yellow" && (flagState === "yellow" || flagState === "safetycar" || flagState === "red")) return;
+    if (type === "safetycar" && (flagState === "safetycar" || flagState === "red")) return;
+
     console.log(`${type} triggered by ${drivers[driverIndex]?.name || "?"}`);
     flagState = type;
     showFlagBanner(type);
