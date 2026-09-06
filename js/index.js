@@ -1,5 +1,13 @@
 let teamNames;
 
+// Team count bounds. A team always has exactly 2 drivers, so this also bounds
+// the field at 20-30 drivers.
+const MIN_TEAMS = 10;
+const MAX_TEAMS = 15;
+
+// Car pictures available for teams (used by the team editor).
+const TEAM_IMAGE_LIST = ["ALP1","ALP24","ALP25","AMR24","AMR25","ARR1","ARR201","ARR21","ARR31","AST1","BEL1","BEN1","BRA1","FER1","FER201","FER21","FER24","FER25","FRA1","GBR1","GER1","HAA1","HAA201","HAA21","HAA24","HAA25","HAA31","HAA41","HAA51","HON1","JAG1","JAG21","LOT1","LOT21","LOT31","MCL1","MCL201","MCL21","MCL24","MCL25","MCL31","MCL41","MER1","MER201","MER21","MER24","MER25","MER31","MERBLM1","PET1","PEU1","PEU2","POR1","POR21","POR31","POR41","RBR1","RBR201","RBR21","RBR24","RBR25","REN1","REN201","REN21","REN31","RENT201","RPT1","RPT201","RPT21","RPT31","SAT201","SAT21","SAU24","SAU25","STR1","VRB24","VRB25","WIL1","WIL201","WIL21","WIL24","WIL25","WIL31","WIL41","WILT201"];
+
 // Function to update the GP flag on the button
 function updateButtonFlag() {
     let circuitData = null;
@@ -109,6 +117,177 @@ async function loadCircuits() {
     return;
 }
 
+// ===================================================================
+// TEAM / DRIVER EDITOR - rows, add/remove, count bounds (10-15 teams)
+// A team always carries exactly 2 drivers; team_id is the row position.
+// ===================================================================
+
+function teamRowCount() {
+    return document.querySelectorAll('#teamTable .team-row').length;
+}
+
+// Re-number every team input id to its 1-based row position, so the two
+// lookups used elsewhere (by id, and teamNames[team_id-1]) always agree.
+function renumberTeamRows() {
+    document.querySelectorAll('#teamTable .team-name').forEach((input, i) => {
+        input.id = String(i + 1);
+    });
+}
+
+// Build one team <tr> (position = 1-based). Wires the car-image picker and
+// the "remove" button, and binds live updates.
+function makeTeamRow(team, position) {
+    const teamName  = team.team ?? team.name ?? `Team ${position}`;
+    const teamImage = (team.image || 'MER24').replace(/^img\/cars\//, '').replace(/\.png$/, '');
+    const row = document.createElement('tr');
+    row.classList.add('team-row');
+    row.innerHTML = `
+        <td>
+            <input type="text" id="${position}" value="${teamName}" class="team-name team-data" />
+            <button type="button" class="team-remove" title="Remove team">&times;</button>
+        </td>
+        <td><input type="number" value="${team.teamSPD ?? 70}" class="team-data" /></td>
+        <td><input type="number" value="${team.teamFS ?? 70}" class="team-data" /></td>
+        <td><input type="number" value="${team.teamSS ?? 70}" class="team-data" /></td>
+        <td><input type="number" value="${team.teamFB ?? 70}" class="team-data" /></td>
+        <td><input type="color" value="${team.color || '#888888'}" class="team-data" /></td>
+        <td>
+            <div class="image-container">
+                <img src="img/cars/${teamImage}.png" alt="${teamName}" class="team-image" />
+            </div>
+        </td>
+    `;
+
+    // Car-image dropdown
+    const imageDropdown = document.createElement('div');
+    imageDropdown.className = 'image-dropdown';
+    document.body.appendChild(imageDropdown);
+    row._imageDropdown = imageDropdown; // removed with the row
+    TEAM_IMAGE_LIST.forEach(imageName => {
+        const opt = document.createElement('img');
+        opt.src = `img/cars/${imageName}.png`;
+        opt.alt = imageName;
+        opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const img = row.querySelector('.team-image');
+            img.setAttribute('src', `img/cars/${imageName}.png`);
+            img.alt = imageName;
+            imageDropdown.style.display = 'none';
+            updateDriverTeamOptions();
+        });
+        imageDropdown.appendChild(opt);
+    });
+    const imgElement = row.querySelector('.team-image');
+    imgElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.image-dropdown').forEach(d => { if (d !== imageDropdown) d.style.display = 'none'; });
+        const rect = imgElement.getBoundingClientRect();
+        imageDropdown.style.display = 'flex';
+        let left = rect.left;
+        if (left + 340 > window.innerWidth - 8) left = window.innerWidth - 348;
+        imageDropdown.style.top = (rect.bottom + 6) + 'px';
+        imageDropdown.style.left = left + 'px';
+    });
+
+    row.querySelector('.team-remove').addEventListener('click', () => removeTeamAt(row));
+    row.querySelectorAll('.team-data').forEach(inp => inp.addEventListener('input', updateDriverTeamOptions));
+    return row;
+}
+
+// Build one driver <tr>. teamName is shown as-is; updateDriverTeamOptions()
+// keeps it in sync afterwards.
+function makeDriverRow(driver, index, teamName) {
+    const row = document.createElement('tr');
+    row.classList.add('driver-row');
+    row.draggable = true;
+    row.dataset.driverIndex = index;
+    row.style.cursor = 'grab';
+    const shownTeam = teamName
+        || (teamNames && teamNames[driver.team_id - 1] && teamNames[driver.team_id - 1].name)
+        || '';
+    row.innerHTML = `
+        <td class="driver-handle">&#8942;&#8942;</td>
+        <td><input type="text" value="${driver.name ?? ''}" class="team-data" /></td>
+        <td><input type="text" value="${driver.code ?? ''}" class="team-data" /></td>
+        <td><input type="number" value="${driver.driverLevel ?? 70}" class="team-data" /></td>
+        <td id="teamNameDriver">${shownTeam}</td>
+    `;
+    row.querySelectorAll('.team-data').forEach(inp => inp.addEventListener('input', updateDriverTeamOptions));
+    return row;
+}
+
+// A generic team + its two generic drivers (used by the "add team" button).
+function genericTeam(position) {
+    const img = TEAM_IMAGE_LIST[(position * 7) % TEAM_IMAGE_LIST.length];
+    return {
+        team: `New Team ${position}`,
+        teamSPD: 70, teamFS: 70, teamSS: 70, teamFB: 70,
+        color: '#888888',
+        image: img
+    };
+}
+function genericDrivers(position) {
+    return [
+        { name: `Driver ${position * 2 - 1}`, code: `D${position * 2 - 1}`, driverLevel: 70 },
+        { name: `Driver ${position * 2}`,     code: `D${position * 2}`,     driverLevel: 70 }
+    ];
+}
+
+function addTeam() {
+    if (teamRowCount() >= MAX_TEAMS) return;
+    const pos = teamRowCount() + 1;
+    document.getElementById('teamTable').querySelector('tbody').appendChild(makeTeamRow(genericTeam(pos), pos));
+    renumberTeamRows();
+    updateDriverTeamOptions(); // rebuilds teamNames so the driver rows can show the name
+
+    const driverBody = document.getElementById('driverTable').querySelector('tbody');
+    genericDrivers(pos).forEach((d, k) => {
+        d.team_id = pos;
+        driverBody.appendChild(makeDriverRow(d, driverBody.children.length, `New Team ${pos}`));
+    });
+    setupDriverDragDrop();
+    refreshTeamCountControls();
+    updateDriverTeamOptions();
+}
+
+function removeTeamAt(teamRow) {
+    if (teamRowCount() <= MIN_TEAMS) return;
+    const rows = [...document.querySelectorAll('#teamTable .team-row')];
+    const pos = rows.indexOf(teamRow); // 0-based
+    if (pos < 0) return;
+    if (teamRow._imageDropdown) teamRow._imageDropdown.remove();
+    teamRow.remove();
+    // Drop that team's two drivers (rows pos*2 and pos*2+1)
+    const driverRows = [...document.querySelectorAll('#driverTable .driver-row')];
+    [driverRows[pos * 2 + 1], driverRows[pos * 2]].forEach(r => r && r.remove());
+    renumberTeamRows();
+    refreshTeamCountControls();
+    updateDriverTeamOptions();
+}
+
+// The "+ Add team" bar under the team table (created once).
+function installTeamCountControls() {
+    const content = document.querySelector('#step2 .accordion-content');
+    if (!content || content.querySelector('.team-count-bar')) return;
+    const bar = document.createElement('div');
+    bar.className = 'team-count-bar';
+    bar.innerHTML = `
+        <button type="button" id="add-team-btn" class="btn-add-team">+ Add team</button>
+        <span class="team-count-note"></span>
+    `;
+    content.appendChild(bar);
+    bar.querySelector('#add-team-btn').addEventListener('click', addTeam);
+}
+
+function refreshTeamCountControls() {
+    const n = teamRowCount();
+    const addBtn = document.getElementById('add-team-btn');
+    if (addBtn) addBtn.disabled = n >= MAX_TEAMS;
+    document.querySelectorAll('#teamTable .team-remove').forEach(b => { b.disabled = n <= MIN_TEAMS; });
+    const note = document.querySelector('.team-count-note');
+    if (note) note.textContent = `${n} teams · ${n * 2} drivers  (min ${MIN_TEAMS} / max ${MAX_TEAMS})`;
+}
+
 // Function to load teams from JSON file
 async function loadTeams() {
     try {
@@ -123,86 +302,28 @@ async function loadTeams() {
         }
 
         const teamTableBody = document.getElementById('teamTable').querySelector('tbody');
-        const imageList = ["ALP1","ALP24","ALP25","AMR24","AMR25","ARR1","ARR201","ARR21","ARR31","AST1","BEL1","BEN1","BRA1","FER1","FER201","FER21","FER24","FER25","FRA1","GBR1","GER1","HAA1","HAA201","HAA21","HAA24","HAA25","HAA31","HAA41","HAA51","HON1","JAG1","JAG21","LOT1","LOT21","LOT31","MCL1","MCL201","MCL21","MCL24","MCL25","MCL31","MCL41","MER1","MER201","MER21","MER24","MER25","MER31","MERBLM1","PET1","PEU1","PEU2","POR1","POR21","POR31","POR41","RBR1","RBR201","RBR21","RBR24","RBR25","REN1","REN201","REN21","REN31","RENT201","RPT1","RPT201","RPT21","RPT31","SAT201","SAT21","SAU24","SAU25","STR1","VRB24","VRB25","WIL1","WIL201","WIL21","WIL24","WIL25","WIL31","WIL41","WILT201"];
 
-        // Fill the table with teams
-        teams.forEach(team => {
-            // Normalize: JSON default uses {team_id, team}, localStorage uses {id, name}
-            const teamId   = team.team_id ?? team.id;
-            const teamName = team.team    ?? team.name;
-            // Normalize image: localStorage stores full path like "img/cars/RBR1.png"
-            const teamImage = team.image
-                ? team.image.replace(/^img\/cars\//, '').replace(/\.png$/, '')
-                : '';
-            const row = document.createElement('tr');
-            row.classList.add('team-row');
+        // Trim silently if a saved/edited config is over the max (a warning about
+        // out-of-range fields is surfaced at "Go to Qualifying").
+        if (Array.isArray(teams) && teams.length > MAX_TEAMS) {
+            console.warn(`Team list has ${teams.length} teams, keeping the first ${MAX_TEAMS}`);
+            teams = teams.slice(0, MAX_TEAMS);
+        }
 
-            row.innerHTML = `
-                <td><input type="text" id="${teamId}" value="${teamName}" class="team-name team-data" /></td>
-                <td><input type="number" value="${team.teamSPD}" class="team-data" /></td>
-                <td><input type="number" value="${team.teamFS}" class="team-data" /></td>
-                <td><input type="number" value="${team.teamSS}" class="team-data" /></td>
-                <td><input type="number" value="${team.teamFB}" class="team-data" /></td>
-                <td><input type="color" value="${team.color}" class="team-data" /></td>
-                <td>
-                    <div class="image-container">
-                        <img src="img/cars/${teamImage}.png" alt="${teamName}" class="team-image" />
-                    </div>
-                </td>
-            `;
+        // Fill the table with teams (position drives team_id)
+        teamTableBody.innerHTML = '';
+        teams.forEach((team, idx) => teamTableBody.appendChild(makeTeamRow(team, idx + 1)));
 
-            const imageDropdown = document.createElement('div');
-            imageDropdown.className = 'image-dropdown';
-            document.body.appendChild(imageDropdown);
-
-            imageList.forEach(imageName => {
-                const imageOption = document.createElement('img');
-                imageOption.src = `img/cars/${imageName}.png`;
-                imageOption.alt = imageName;
-                imageOption.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const imgElement = row.querySelector('.team-image');
-                    imgElement.setAttribute('src', `img/cars/${imageOption.alt}.png`);
-                    imgElement.alt = imageOption.alt;
-                    imageDropdown.style.display = 'none';
-                    updateDriverTeamOptions();
-                });
-                imageDropdown.appendChild(imageOption);
+        // Close image dropdown when clicking outside (bind once)
+        if (!document.body.dataset.teamDropdownBound) {
+            document.body.dataset.teamDropdownBound = '1';
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.image-dropdown').forEach(d => d.style.display = 'none');
             });
+        }
 
-            const imgElement = row.querySelector('.team-image');
-            imgElement.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Close any other open dropdowns
-                document.querySelectorAll('.image-dropdown').forEach(d => {
-                    if (d !== imageDropdown) d.style.display = 'none';
-                });
-                const rect = imgElement.getBoundingClientRect();
-                imageDropdown.style.display = 'flex';
-                // Position below the image, stay within viewport
-                let top = rect.bottom + 6;
-                let left = rect.left;
-                const dropW = 340;
-                if (left + dropW > window.innerWidth - 8) left = window.innerWidth - dropW - 8;
-                imageDropdown.style.top = top + 'px';
-                imageDropdown.style.left = left + 'px';
-            });
-
-            teamTableBody.appendChild(row);
-        });
-
-        // Close image dropdown when clicking outside
-        document.addEventListener('click', () => {
-            document.querySelectorAll('.image-dropdown').forEach(d => d.style.display = 'none');
-        });
-
-        // Add event managers to update drivers when teams change
-        //console.log(document.querySelectorAll('.team-data'));
-        document.querySelectorAll('.team-data').forEach(input => {
-            input.addEventListener('input', updateDriverTeamOptions);
-        });
-
-        // Update driver team options initially
+        installTeamCountControls();
+        refreshTeamCountControls();
         updateDriverTeamOptions();
     } catch (error) {
         console.error('Error while loading the teams:', error);
@@ -215,8 +336,10 @@ let draggedDriverRow = null;
 
 function setupDriverDragDrop() {
     const driverRows = document.querySelectorAll('.driver-row');
-    
+
     driverRows.forEach(row => {
+        if (row.dataset.dndBound) return; // don't double-bind rows added later
+        row.dataset.dndBound = '1';
         row.addEventListener('dragstart', (e) => {
             draggedDriverRow = row;
             row.style.opacity = '0.5';
@@ -318,9 +441,8 @@ function updateDriverTeamOptions() {
     const cells = document.querySelectorAll('#teamNameDriver')
     
     cells.forEach((cell, index) => {
-        //console.log(Math.ceil((index+1)/2));
         let team_index = Math.ceil((index+1)/2)-1;
-        cell.innerHTML = teamNames[team_index]['name'];
+        cell.innerHTML = (teamNames[team_index] && teamNames[team_index].name) || '';
     });
 
     const driversRows = document.querySelectorAll('.driver-row');
@@ -390,41 +512,16 @@ async function loadDrivers() {
             drivers = await response.json();
         }
 
+        // A team carries exactly 2 drivers, so cap the list at the team count.
+        const maxDrivers = teamRowCount() * 2 || (drivers.length);
+        if (drivers.length > maxDrivers) drivers = drivers.slice(0, maxDrivers);
+
         const driverTableBody = document.getElementById('driverTable').querySelector('tbody');
+        driverTableBody.innerHTML = '';
+        drivers.forEach((driver, index) => driverTableBody.appendChild(makeDriverRow(driver, index)));
 
-        // Fill the table with drivers
-        drivers.forEach((driver, index) => {
-            const row = document.createElement('tr');
-            row.classList.add('driver-row');
-            row.draggable = true;
-            row.dataset.driverIndex = index;
-            row.style.cursor = 'grab';
-
-            row.innerHTML = `
-                <td class="driver-handle">⋮⋮</td>
-                <td><input type="text" value="${driver.name}" class="team-data" /></td>
-                <td><input type="text" value="${driver.code}" class="team-data" /></td>
-                <td><input type="number" value="${driver.driverLevel}" class="team-data" /></td>
-                <td id="teamNameDriver">${teamNames[driver.team_id-1]["name"]}</td>
-                <!---<td><select data-team-id="${driver.team_id}">${teamNames[driver.team_id-1][`name`]}</select></td>--->
-            `;
-
-            driverTableBody.appendChild(row);
-        });
-
-        // Setup drag and drop for drivers
         setupDriverDragDrop();
-
-        // Add event managers to update drivers when teams change
-        //console.log(document.querySelectorAll('.team-data'));
-        document.querySelectorAll('.team-data').forEach(input => {
-            input.addEventListener('input', updateDriverTeamOptions);
-        });
-
-        // Update driver team options after loading
         updateDriverTeamOptions();
-
-        //console.log(teamNames);
     } catch (error) {
         console.error('Error while loading the drivers:', error);
     }
@@ -836,7 +933,17 @@ window.addEventListener('beforeunload', () => {
 document.getElementById('goToNextPage').addEventListener('click', () => {
     const isChamp = localStorage.getItem('championshipActive') === 'true';
     const skipQualifying = !isChamp && document.getElementById('skipQualifying')?.checked === true;
-    
+
+    // Safety net: the team editor already bounds the field at 10-15 teams, but a
+    // saved / hand-edited championship could be out of range.
+    if (isChamp) {
+        const n = (JSON.parse(localStorage.getItem('selectedDrivers') || '[]') || []).length;
+        if (n < MIN_TEAMS * 2 || n > MAX_TEAMS * 2) {
+            alert(`This championship has ${n} drivers. It must have between ${MIN_TEAMS * 2} and ${MAX_TEAMS * 2} (${MIN_TEAMS}-${MAX_TEAMS} teams). Fix it in the Team / Driver tabs.`);
+            return;
+        }
+    }
+
     if (isChamp) {
         const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
         const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
