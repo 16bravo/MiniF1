@@ -89,4 +89,9 @@ function updateDynamicContainerHeights() {
         indElement.style.height = indDynamicHeight + 'px';
         console.log('Set #ind height to', indDynamicHeight, 'px');
     }
+
+    // With a large field (26+ drivers / 13+ teams) the ranking board runs down
+    // into the GP logo - hide it to keep the display readable.
+    const logo = document.getElementById('logo');
+    if (logo) logo.style.display = nb_driver >= 26 ? 'none' : '';
 }
