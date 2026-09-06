@@ -18,14 +18,24 @@
 
         const clean = CC.sanitizePairs(races, results);
         points = CC.normalizePoints(points);
-        const { driverStandings, constructorStandings } =
+        let { driverStandings, constructorStandings } =
             CC.computeStandings(clean.races, clean.results, points);
 
         const totalRounds = clean.races.filter(r => !r.isSprintRace).length || clean.races.length;
         const roundsDone = clean.results.filter(r => Array.isArray(r) && r.length).length;
 
-        // Nothing to show before the first round is in the books.
-        if (roundsDone === 0 || !driverStandings.length) return;
+        // Before any round is scored, show the whole entry list on zero points.
+        if (!driverStandings.length) {
+            let field = [];
+            try { field = JSON.parse(localStorage.getItem('selectedDrivers') || '[]') || []; } catch (e) {}
+            if (!field.length) return; // no field to show either - bail
+            driverStandings = field.map(d => ({
+                code: d.code, name: d.name, team: d.team, color: d.color || '#888', total: 0
+            }));
+            const teams = {};
+            field.forEach(d => { if (d.team && !teams[d.team]) teams[d.team] = { team: d.team, color: d.color || '#888', total: 0 }; });
+            constructorStandings = Object.values(teams);
+        }
 
         const listHtml = (rows, nameFn) => {
             if (!rows.length) return `<div class="champ-hud-empty">No rounds completed yet.</div>`;
