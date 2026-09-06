@@ -1,0 +1,119 @@
+/* CHAMP_HUD.CSS
+   Hover popup showing the championship standings during quali / race.
+   Injected by js/championship_hud.js when championshipActive is true. */
+
+#champ-hud {
+    position: fixed;
+    right: 10px;
+    top: 10px;
+    z-index: 9999;
+    font-family: 'Pixel Operator', 'Gill Sans', Arial, sans-serif;
+}
+
+#champ-hud-icon {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background: rgba(10, 10, 10, 0.85);
+    color: #ffd54a;
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+#champ-hud-icon:hover,
+#champ-hud.pinned #champ-hud-icon {
+    border-color: #e10600;
+}
+
+#champ-hud-popup {
+    position: absolute;
+    right: 0;
+    top: 40px;
+    width: 300px;
+    max-height: 78vh;
+    overflow-y: auto;
+    background: #0d0d0d;
+    border: 1px solid #333;
+    border-top: 3px solid #e10600;
+    border-radius: 4px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+    padding: 10px 12px 12px;
+    color: #e8e8e8;
+}
+
+.champ-hud-head {
+    font-size: 0.72em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 8px;
+}
+
+.champ-hud-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+.champ-hud-tabs button {
+    flex: 1;
+    background: #161616;
+    color: #aaa;
+    border: 1px solid #2a2a2a;
+    border-radius: 3px;
+    padding: 4px 0;
+    font-family: inherit;
+    font-size: 0.8em;
+    cursor: pointer;
+}
+.champ-hud-tabs button.active {
+    background: #e10600;
+    color: #fff;
+    border-color: #e10600;
+}
+
+.champ-hud-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.champ-hud-list li {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 3px 2px;
+    font-size: 0.86em;
+    border-bottom: 1px solid #1c1c1c;
+}
+.champ-hud-list li:first-child .champ-hud-name { color: #ffd54a; font-weight: bold; }
+.champ-hud-pos {
+    width: 18px;
+    text-align: right;
+    color: #777;
+    font-variant-numeric: tabular-nums;
+}
+.champ-hud-swatch {
+    width: 8px;
+    height: 14px;
+    border-radius: 1px;
+    flex-shrink: 0;
+}
+.champ-hud-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.champ-hud-pts {
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+.champ-hud-empty {
+    color: #888;
+    font-size: 0.85em;
+    padding: 6px 2px;
+}
