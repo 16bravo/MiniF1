@@ -176,11 +176,11 @@ function evaluatePitDecision(driver, driverIndex, currentTrackWater, leaderDista
     else if (flagState === "yellow")    toleranceBase = 0.60;
     else                                toleranceBase = 0.50;
 
-    // Mandatory stop ramp: if mandatory stop not done, tolerance gradually increases to 1.0
-    // Starts at 100km from leader, reaches 1.0 at 0km → forces a stop before the end
+    // Mandatory stop ramp: if the mandatory stop isn't done, tolerance ramps to 1.0
+    // Starts 100 km from the leader, reaches 1.0 at the finish - forces a stop before the end
     let tolerance;
     if (driver.pitStops < effectiveMandatoryPits) {
-        const progression = Math.max(0, 1 - (leaderDistanceLeft / 100000)); // 0 à 100km → 1 à 0km
+        const progression = Math.max(0, 1 - (leaderDistanceLeft / 100000)); // 0 at 100 km left -> 1 at the finish
         tolerance = Math.max(toleranceBase, progression);
     } else {
         tolerance = toleranceBase;

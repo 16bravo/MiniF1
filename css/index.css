@@ -7,7 +7,7 @@
     font-style: normal;
 }
 
-/* Style pour la liste des circuits */
+/* Circuit list */
 body {
     background-color: black;
     color: white;
@@ -108,7 +108,7 @@ body {
     cursor: pointer;
 }
 
-/* Style pour les tableaux */
+/* Tables */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -172,7 +172,7 @@ select {
     margin-right: auto;
 }
 
-/* Style pour la liste des courses du championnat */
+/* Championship race list */
 #selected-races {
     list-style: none;
     padding: 0;
@@ -214,7 +214,7 @@ select {
     cursor: not-allowed;
 }
 
-/* Style pour le bloc d'ajout */
+/* Add block */
 #championship-setup label,
 #championship-setup select,
 #championship-setup button {

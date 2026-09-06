@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.autoSaveChampionship();
             }
             
-            alert('Championnat terminé !');
+            alert('Championship complete!');
             window.location.href = 'index.html';
         };
     }

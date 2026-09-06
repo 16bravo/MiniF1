@@ -14,7 +14,7 @@ let playbackInterval = null;  // Global variable for play/pause control
 let playbackFPS = 60;         // Global variable for target FPS
 let currentCursorFrame = 0;   // Cursor position for the plugin
 
-// Plugin Chart.js pour afficher une barre verticale du curseur
+// Chart.js plugin: draws a vertical cursor line at the current frame
 const cursorLinePlugin = {
     id: 'cursorLine',
     afterDraw(chart) {
@@ -24,10 +24,10 @@ const cursorLinePlugin = {
         const yScale = chart.scales.y;
         const ctx = chart.ctx;
         
-        // Calcule la position x du curseur
+        // Cursor x position
         const x = xScale.getPixelForValue(currentCursorFrame);
-        
-        // Dessine la barre verticale rouge
+
+        // Draw the vertical red line
         ctx.save();
         ctx.strokeStyle = '#f44336';
         ctx.lineWidth = 2;
@@ -45,7 +45,7 @@ function loadReplay() {
     const file = fileInput.files[0];
     
     if (!file) {
-        alert('Veuillez sélectionner un fichier');
+        alert('Please select a file');
         return;
     }
     

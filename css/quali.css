@@ -56,22 +56,22 @@ th {
     background-color: #333;
 }
 
-/* Styles pour le tableau de classement */
+/* Standings table */
 #ranking-table {
-    width: 100%; /* Largeur totale du tableau */
-    border-collapse: collapse; /* Fusionner les bordures de tableau */
+    width: 100%;
+    border-collapse: collapse;
 }
 
 #ranking-table th,
 #ranking-table td {
-    padding: 5px; /* Espacement intérieur des cellules */
-    text-align: left; /* Alignement du texte à gauche */
+    padding: 5px;
+    text-align: left;
     border-top: 5px solid rgba(0,0,0,0);
     border-bottom: 5px solid rgba(0,0,0,0);
 }
 
 #ranking-table th {
-    background-color: #f2f2f2; /* Couleur de fond des en-têtes */
+    background-color: #f2f2f2; /* header background */
 }
 
 #ranking-table .eliminated {
@@ -80,12 +80,12 @@ th {
 }
 
 #ranking-table td:nth-child(2) {
-    /* Définir la largeur de la colonne avec le nom des pilotes */
-    width: 50%; /* Par exemple, vous pouvez ajuster la valeur en fonction de vos besoins */
+    /* driver-name column width */
+    width: 50%;
 }
 
 #raceButton {
-    display: none; /* Masquer le bouton initialement */
+    display: none; /* hidden until qualifying ends */
     position: fixed;
     bottom: 20px;
     right: 20px;
