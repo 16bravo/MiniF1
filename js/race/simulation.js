@@ -151,9 +151,11 @@ function frame(interval) {
         // Get gaps to front in rankings
         const frontIndicesRanking = computeGapsFrontInRanking(drivers, driver_ranking);
 
-        let frontDriverLength = 0; // Length of the nearest still-racing car ahead (position cap)
-        let frontDriverValid = false; // true once such a car has been processed ahead of the current one
-        let seenRunningCar = false; // true once any running car (racing/box) has been processed
+        // Nearest racing car ahead in the order, and its speed this frame - used
+        // only under caution: the follower matches it exactly and can never pass it.
+        // Infinity length means "no racing car ahead" (this is the train leader).
+        let cautionAheadLen = Infinity;
+        let cautionTrainPace = 0;   // the caution train's pace, set by the first racing car
 
         // ===== UPDATE EACH DRIVER =====
         // Process drivers in race order (fastest first)
@@ -161,12 +163,6 @@ function frame(interval) {
             let i = sorted_indices[pos]; // Driver index in original array
             let driverLengthBefore = drivers[i].totalLength; // Store length before update for gap calculations
             const driver = drivers[i];
-            // Race leader / rhythm-setter = first car still running, recomputed here
-            // (not from a start-of-frame snapshot) so a car that retires mid-loop
-            // hands the role to the next runner in the same frame.
-            const isRunning = driver.state === "racing" || driver.state === "box";
-            let isLeader = isRunning && !seenRunningCar;
-            if (isRunning) seenRunningCar = true;
             if (driver.overtakeCooldown > 0) driver.overtakeCooldown--; // gap between pass attempts
             
             // ===== CAR PERFORMANCE =====
@@ -303,7 +299,35 @@ function frame(interval) {
 
                 const inRange = gapMetersTrack < 300 && gapMetersTrack > 0 && pos > 0 && sameLap;
 
-                if (inRange && defenderOnTrack && !defenderOnPace) {
+                if (flagState === "yellow" || flagState === "safetycar") {
+                    // ===== UNDER CAUTION: field slowed, positions held, gaps close slowly =====
+                    // Replaces the racing move entirely (no double movement). The first
+                    // racing car sets the train pace; everyone behind matches it and
+                    // takes back any slack gently - slower under a local yellow than
+                    // behind the safety car - but can never close inside minGap or pass.
+                    const sc = flagState === "safetycar";
+                    if (cautionAheadLen === Infinity) {
+                        // First racing car: sets the pace of the whole train.
+                        driver.speed = expectedSpeed * (sc ? 0.48 : 0.80);
+                        driver.totalLength = driverLengthBefore + driver.speed * 4000/180;
+                        cautionTrainPace = driver.speed;
+                    } else {
+                        // Everyone else moves at the train pace (so gaps hold whatever the
+                        // pace differences), then nibbles at its own slack - quickly behind
+                        // the safety car, barely at all under a local yellow. Hard-capped a
+                        // car-length behind the car ahead: no overtaking.
+                        const minGap = sc ? 8 : 6;
+                        const slack = Math.max(0, (cautionAheadLen - driverLengthBefore) - minGap);
+                        const nibble = slack * (sc ? 0.04 : 0.003);
+                        let target = driverLengthBefore + cautionTrainPace * 4000/180 + nibble;
+                        target = Math.min(target, cautionAheadLen - minGap);
+                        target = Math.min(target,
+                            driverLengthBefore + expectedSpeed * (sc ? 0.75 : 0.95) * 4000/180);
+                        driver.totalLength = Math.max(driverLengthBefore, target);
+                        driver.speed = (driver.totalLength - driverLengthBefore) * 180/4000;
+                    }
+
+                } else if (inRange && defenderOnTrack && !defenderOnPace) {
                     // Slow car in the way: it costs a little time to get past but it
                     // is not defending - no dirty-air battle, no risky lunge.
                     const near = 1 - gapMetersTrack / 300;
@@ -352,29 +376,13 @@ function frame(interval) {
                 }
             }
             
-            // ===== YELLOW FLAG OR SAFETY CAR: Enforce no overtaking and speed limits =====
-            if ((flagState === "yellow" || flagState === "safetycar") && driver.state === "racing") {
-                // Maximum speed allowed : 80% of normal speed under yellow, 70% under safety car, 50% if the driver is the leader under safety car
-                const maxAllowedSpeed = ((flagState === "yellow") ? generateNormalRandom(3,0.1) : (0.7 * (isLeader ? 0.7 : 1) * driver.speed)); // Safety car is more restrictive for the leader to prevent them from pulling away at restart
-                driver.speed = Math.min(driver.speed, maxAllowedSpeed);
-                driver.totalLength += driver.speed * 4000/180;
-                // No overtaking under yellow/SC - but only relative to a car that
-                // is still racing. Retired or clearly crippled cars can be passed.
-                if (!isLeader && frontDriverValid) {
-                    driver.totalLength = Math.min(driver.totalLength, Math.max(driverLengthBefore, frontDriverLength - 5));
-                }
-            }
-
             // ===== FUEL BURN & ENGINE STRESS (after the frame's position is final) =====
             burnFuel(driver, driver.totalLength - driverLengthBefore);
             updateEngineStress(driver);
 
-            // Record this car as the "car in front" for the next drivers, but
-            // only if it is genuinely racing and not crippled (an unhealthy car -
-            // some state < 0.5 - lets faster cars through).
-            if (isRunning && driver.carState >= 0.5 && driver.tireState >= 0.5) {
-                frontDriverLength = driver.totalLength;
-                frontDriverValid = true;
+            // This car becomes the "car ahead" for the next ones in the caution train.
+            if (driver.state === "racing") {
+                cautionAheadLen = driver.totalLength;
             }
 
             // ===== PIT STOP MANAGEMENT =====
