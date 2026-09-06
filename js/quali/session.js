@@ -55,11 +55,13 @@ function advanceSession() {
         currentSession++;
         resetQualifiers();
         timer = sessionDurations[currentSession] * 60;
-        document.getElementById('session-info').innerText = `Q${currentSession + 1}`;
+        const prefix = (localStorage.getItem('isSprint') === 'true') ? 'SQ' : 'Q';
+        document.getElementById('session-info').innerText = `${prefix}${currentSession + 1}`;
     } else {
         // Qualification completed
         clearInterval(intervalId);
-        document.getElementById('session-info').innerText = "End of Qualification";
+        document.getElementById('session-info').innerText =
+            (localStorage.getItem('isSprint') === 'true') ? "End of Sprint Qualifying" : "End of Qualification";
         setTimeout(showRaceButton, 500);
     }
 }

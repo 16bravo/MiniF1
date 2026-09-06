@@ -87,6 +87,9 @@ document.addEventListener("DOMContentLoaded", function() {
         sessionDurations = [12, 10, 8];
         console.log('Sprint mode active - session durations:', sessionDurations);
     }
+    // Sprint weekends use SQ1/SQ2/SQ3 for the shootout sessions.
+    const sessionInfoEl = document.getElementById('session-info');
+    if (sessionInfoEl) sessionInfoEl.innerText = isSprint ? 'SQ1' : 'Q1';
 
     // =====================================================
     // CIRCUIT DATA INITIALIZATION
