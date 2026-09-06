@@ -27,8 +27,11 @@
         <button class="gp-tab-btn" data-target="step1">Circuit</button>
         <button class="gp-tab-btn" data-target="step2">Team Edit</button>
         <button class="gp-tab-btn" data-target="step3">Driver Edit</button>
+        <button class="gp-tab-btn" data-target="step-grid" style="display:none;">Starting Grid</button>
         <button class="gp-tab-btn championship-only" data-target="step-standings-drivers" style="display:none;">Driver Standings</button>
         <button class="gp-tab-btn championship-only" data-target="step-standings-constructors" style="display:none;">Constructor Standings</button>
+        <button class="gp-tab-btn championship-only special-championship-only" data-target="step-standings-drivers-sprint" style="display:none;">Sprint Drivers</button>
+        <button class="gp-tab-btn championship-only special-championship-only" data-target="step-standings-constructors-sprint" style="display:none;">Sprint Constructors</button>
     </div>
 
     <div class="accordion">
@@ -49,6 +52,14 @@
                         <input type="checkbox" id="sprintMode" />
                         <span class="toggle-slider"></span>
                         <span class="toggle-label">Sprint</span>
+                    </label>
+                </div>
+                <div style="margin-bottom:14px; display:flex; align-items:center; gap:12px;" id="skipQualifyingContainer">
+                    <label style="font-size:0.85em;color:#aaa;text-transform:uppercase;letter-spacing:1px;">Qualifying</label>
+                    <label class="sprint-toggle">
+                        <input type="checkbox" id="skipQualifying" />
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">Skip</span>
                     </label>
                 </div>
                 <ul id="circuitList" class="circuit-list"></ul>
@@ -90,6 +101,18 @@
                 </table>
             </div>
         </div>
+        <div class="accordion-item" id="step-grid" style="display:none;">
+            <div class="accordion-header">3b. Starting Grid</div>
+            <div class="accordion-content">
+                <div style="font-size:0.85em;color:#aaa;margin-bottom:12px;">Drag drivers to reorder the starting grid</div>
+                <table id="gridTable" style="width:100%;color:white;">
+                    <thead>
+                        <tr><th width="50px">Pos</th><th width="2px"></th><th width="40%">Name</th><th width="7%">Code</th><th width="40%">Team</th></tr>
+                    </thead>
+                    <tbody id="gridTableBody"></tbody>
+                </table>
+            </div>
+        </div>
         <div class="accordion-item active" id="step4">
             <div class="accordion-header">4. Overview</div>
             <div class="accordion-content"></div>
@@ -101,6 +124,14 @@
         <div class="accordion-item championship-only" id="step-standings-constructors" style="display:none;">
             <div class="accordion-header"></div>
             <div class="accordion-content" id="tab-constructors"></div>
+        </div>
+        <div class="accordion-item championship-only special-championship-only" id="step-standings-drivers-sprint" style="display:none;">
+            <div class="accordion-header"></div>
+            <div class="accordion-content" id="tab-drivers-sprint"></div>
+        </div>
+        <div class="accordion-item championship-only special-championship-only" id="step-standings-constructors-sprint" style="display:none;">
+            <div class="accordion-header"></div>
+            <div class="accordion-content" id="tab-constructors-sprint"></div>
         </div>
     </div>
 

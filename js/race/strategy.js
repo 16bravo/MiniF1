@@ -18,6 +18,75 @@ function getRainTargetTire(forecastRef) {
     return null;
 }
 
+/**
+ * Updates the global weather regime ('dry' <-> 'wet'). A change stamps
+ * weatherRegimeChangedFrame, which is the ONLY trigger for drivers to (re)pick a
+ * rain-tyre plan. Called once per frame from the simulation loop.
+ * @param {number} currentTrackWater - current track water level (0-1)
+ */
+function updateWeatherRegime(currentTrackWater) {
+    const fc = weatherForecast[Math.min(raceFrame, weatherForecast.length - 1)] || { max: 0, avg: 0 };
+    if (weatherRegime === 'dry' && (currentTrackWater > 0.25 || fc.max > 0.55)) {
+        weatherRegime = 'wet';
+        weatherRegimeChangedFrame = raceFrame;
+        console.log(`Weather regime -> WET at frame ${raceFrame} (water ${currentTrackWater.toFixed(2)})`);
+    } else if (weatherRegime === 'wet' && currentTrackWater < 0.15 && fc.avg < 0.1) {
+        weatherRegime = 'dry';
+        weatherRegimeChangedFrame = raceFrame;
+        console.log(`Weather regime -> DRY at frame ${raceFrame}`);
+    }
+}
+
+/**
+ * Picks a driver's rain-tyre plan (driver.wetTarget). Called ONLY at a weather
+ * transition (or when a driver rejoins after being in the pits during one), never
+ * every frame. Drivers further back gamble more (shorter-term bets): the position
+ * used is a snapshot taken at the moment rain arrives, not a live value.
+ * @param {Object} driver
+ * @param {number} rank - driver's race position at this instant (1 = leader)
+ * @param {number} currentTrackWater - current track water level (0-1)
+ */
+function decideWetStrategy(driver, rank, currentTrackWater) {
+    if (weatherRegime === 'dry') { driver.wetTarget = null; return; }
+
+    const fc = weatherForecast[Math.min(raceFrame, weatherForecast.length - 1)] || { max: 0, avg: 0 };
+    const gamble = rank >= 11 ? Math.min(1, (rank - 10) / 12) : 0; // 0 for leaders, ~1 for backmarkers
+    const heavy = currentTrackWater > 0.55 || fc.max > 0.75;
+    const dryingSoon = fc.avg < currentTrackWater - 0.1 && fc.avg < 0.35;
+    const currentlySlick = driver.tire === "S" || driver.tire === "M" || driver.tire === "H";
+
+    if (heavy) {
+        driver.wetTarget = gamble > 0.5 ? "I" : "W";                 // backmarkers gamble on inters
+    } else if (dryingSoon && currentTrackWater < 0.35) {
+        driver.wetTarget = gamble > 0.3 ? (currentlySlick ? driver.tire : "S") : "I"; // risk slicks if drying
+    } else {
+        driver.wetTarget = "I";
+    }
+}
+
+/**
+ * If the track is already wet at the green light, put the whole field on a
+ * suitable rain tyre and lock the weather regime to 'wet' from frame 0.
+ * Called once, from loadCircuitData(), after the weather curves + forecast are ready.
+ */
+function applyWetStartConditions() {
+    const startWater = (trackWaterCurve && trackWaterCurve[0]) || 0;
+    if (startWater <= 0.15) return; // dry (or barely damp) start: nothing to do
+
+    weatherRegime = 'wet';
+    weatherRegimeChangedFrame = 0;
+    drivers.forEach((driver, i) => {
+        if (driver.state === 'out') return;
+        decideWetStrategy(driver, i + 1, startWater); // i+1 = grid slot at the start
+        driver.wetDecidedRegimeFrame = 0;
+        if (driver.wetTarget === 'W' || driver.wetTarget === 'I') {
+            driver.tire = driver.wetTarget;
+            driver.startingTire = driver.tire;
+        }
+    });
+    console.log(`Wet start (track water ${startWater.toFixed(2)}) - field starts on rain tyres`);
+}
+
 // Tire choice options for dry races
 const dryChoices = ["S", "M", "H"];
 
@@ -62,45 +131,41 @@ function chooseNextTire(driver, currentTrackWater, distanceLeftKm, rainTargetTir
 function evaluatePitDecision(driver, driverIndex, currentTrackWater, leaderDistanceLeft, forecastRef, rainTargetTire) {
     if (driver.state !== "racing") return false;
 
-    const effectiveMandatoryPits = rainyRace ? 0 : MANDATORY_PITS;
+    // No mandatory pits in sprint races or rainy races
+    const isSprint = localStorage.getItem('isSprint') === 'true';
+    const effectiveMandatoryPits = (rainyRace || isSprint) ? 0 : MANDATORY_PITS;
 
     // ─── DAMAGE: always pit if car is damaged but not destroyed ───
     if (driver.carState < 0.75 && driver.carState > 0.5) return true;
 
-    // ─── RAIN MODE: rain detected in the next 600 frames ───
-    if (rainTargetTire !== null) {
-        driver.rainMode = true;
-        //driver.rainTireTarget = rainTargetTire;
+    // ─── WET-WEATHER STRATEGY ───
+    // rainTargetTire here is driver.wetTarget: a plan fixed once, at the last
+    // weather-regime change (see decideWetStrategy). This block only executes it,
+    // it never re-decides - that is what stops the midfield pit-lane ping-pong.
+    const sincePit = raceFrame - (driver.lastPitExitFrame || -9999);
+    const onRainTyre = driver.tire === "W" || driver.tire === "I";
 
-        // The driver already has the correct rain tire and it's not too worn: no need to pit
-        if (driver.tire === rainTargetTire && driver.tireState > 0.3) {
-            return false;
+    if (rainTargetTire === "W" || rainTargetTire === "I") {
+        if (sincePit < 150) return false;                                   // just pitted: settle
+        if (driver.tire === rainTargetTire) return driver.tireState < 0.15; // right tyre: only when worn out
+        if (onRainTyre) {
+            // Already on a rain tyre, just not the planned one - swap only if
+            // the conditions now clearly justify it (a small pace delta is not worth a stop).
+            if (rainTargetTire === "W" && currentTrackWater > 0.6) return true;
+            if (rainTargetTire === "I" && currentTrackWater < 0.4) return true;
+            return driver.tireState < 0.15;
         }
-
-        // Pit before rain gets too bad: if forecast is good for rain and track is already wet, pit now to be ready
-        const mountThreshold = rainTargetTire === "W" ? 0.6 : 0.2;
-        if (currentTrackWater >= mountThreshold) return true;
-
-        // If tire is already very worn, pit anyway to avoid disaster in rain (even if track not yet wet)
-        if (driver.tireState < 0.1) return true;
-
-        return false; // Wait for rain to mount or tire to wear more before pitting
+        return true;                                                        // on slicks, rain is here
     }
 
-    // ─── RETURN TO DRY: rain has passed ───
-    if (driver.tire === "W" || driver.tire === "I") {
-        if (forecastRef < 0.1 && currentTrackWater < 0.2) {
-            driver.rainMode = false;
-            //driver.rainTireTarget = null;
-            return true; // Pit to switch back to dry tires
-        }
-        return false; // Still wet, wait
+    // ─── RETURN TO DRY: the plan is to run slicks ───
+    if (onRainTyre) {
+        if (sincePit < 150) return false;
+        if (weatherRegime === "dry" && currentTrackWater < 0.3) return true;
+        return false; // still too wet to commit to slicks
     }
 
     // ─── DRY MODE ───
-
-    // Wrong tire for dry track: mandatory pit
-    if (currentTrackWater === 0 && (driver.tire === "W" || driver.tire === "I")) return true;
 
     // End-of-race veto: if mandatory stop fulfilled, do not pit in the last 30 km
     if (driver.pitStops >= effectiveMandatoryPits && leaderDistanceLeft < 30000) return false;

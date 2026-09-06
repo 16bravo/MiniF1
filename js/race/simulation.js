@@ -66,6 +66,10 @@ function frame(interval) {
         rainyRace = true;
     }
 
+    // Weather regime ('dry' <-> 'wet'): a change here is the only moment drivers
+    // (re)decide their rain-tyre plan - it is never recomputed frame to frame.
+    updateWeatherRegime(currentTrackWater);
+
     // ===== GRIP UPDATE =====
     // Count the number of cars on track (excluding pits and retirements)
     let carsOnTrack = drivers.filter(d => d.state === "racing").length;
@@ -102,6 +106,24 @@ function frame(interval) {
         }
     }
 
+    // ===== CUMULATIVE DAMAGE WINDOW MANAGEMENT =====
+    // Function to manage cumulative damage window for red flag trigger
+    function updateDamageWindow() {
+        const framesSinceReset = raceFrame - damageWindowStartFrame;
+        
+        // Reset window if 300 frames have passed
+        if (framesSinceReset >= DAMAGE_WINDOW) {
+            cumulativeDamage = 0;
+            damageWindowStartFrame = raceFrame;
+        }
+        
+        // Check if damage threshold exceeded
+        if (cumulativeDamage > DAMAGE_RED_FLAG_THRESHOLD && flagState !== 'red') {
+            return true; // Trigger red flag
+        }
+        return false;
+    }
+
     // ===== DRIVERS SIMULATION =====
     // MAIN RACE LOOP: Update each frame while race is running
     if (leader_total_length <= raceLength && raceTimeLeft > 0 && eventTimeLeft > 0) {
@@ -113,11 +135,10 @@ function frame(interval) {
         let sorted_indices = [...Array(nb_driver).keys()].sort((a, b) => drivers[b].totalLength - drivers[a].totalLength);
         
         // Filter on racing drivers only
-        let racing_indices = sorted_indices.filter(idx => 
+        let racing_indices = sorted_indices.filter(idx =>
             (drivers[idx].state === "racing" || drivers[idx].state === "box") && drivers[idx].carState > 0.7 && drivers[idx].tireState > 0.5
         );
-        let leaderIndex = racing_indices[0];
-        
+
         // Build driver ranking array
         let driver_ranking = new Array(nb_driver);
         for (let r = 0; r < racing_indices.length; r++) {
@@ -130,15 +151,23 @@ function frame(interval) {
         // Get gaps to front in rankings
         const frontIndicesRanking = computeGapsFrontInRanking(drivers, driver_ranking);
 
-        let frontDriverLength = 0; // To track the length of the driver in front for gap calculations
+        let frontDriverLength = 0; // Length of the nearest still-racing car ahead (position cap)
+        let frontDriverValid = false; // true once such a car has been processed ahead of the current one
+        let seenRunningCar = false; // true once any running car (racing/box) has been processed
 
         // ===== UPDATE EACH DRIVER =====
         // Process drivers in race order (fastest first)
         for (let pos = 0; pos < sorted_indices.length; pos++) {
             let i = sorted_indices[pos]; // Driver index in original array
-            let isLeader = (i === leaderIndex); // Check if this driver is the current leader on track
             let driverLengthBefore = drivers[i].totalLength; // Store length before update for gap calculations
             const driver = drivers[i];
+            // Race leader / rhythm-setter = first car still running, recomputed here
+            // (not from a start-of-frame snapshot) so a car that retires mid-loop
+            // hands the role to the next runner in the same frame.
+            const isRunning = driver.state === "racing" || driver.state === "box";
+            let isLeader = isRunning && !seenRunningCar;
+            if (isRunning) seenRunningCar = true;
+            if (driver.overtakeCooldown > 0) driver.overtakeCooldown--; // gap between pass attempts
             
             // ===== CAR PERFORMANCE =====
             driver.carPerf = computeCarPerf(driver.carState);
@@ -150,13 +179,17 @@ function frame(interval) {
             const tireProps = TIRES[driver.tire];
             const tireManagement = driver.tireManagement || 85;
 
-            // ===== WEATHER FORECAST FOR STRATEGY =====
+            // ===== WET-WEATHER STRATEGY (decided at weather transitions, then latched) =====
             const forecastFrame = Math.min(raceFrame, weatherForecast.length - 1);
             const forecast = weatherForecast[forecastFrame] || { max: 0, avg: 0 };
-            // For Rain Strategy : Rank: rank ≤ 10 → conservative (avg), rank > 10 → aggressive (max)
-            const forecastRef = pos <= 10 ? forecast.avg : forecast.max;
-            // Determine target rain tire from forecast (centralized logic)
-            const rainTargetTire = getRainTargetTire(forecastRef);
+            if (weatherRegimeChangedFrame >= 0 &&
+                driver.wetDecidedRegimeFrame !== weatherRegimeChangedFrame &&
+                (driver.state === "racing" || driver.state === "box")) {
+                decideWetStrategy(driver, pos + 1, currentTrackWater);
+                driver.wetDecidedRegimeFrame = weatherRegimeChangedFrame;
+            }
+            const rainTargetTire = driver.wetTarget || null;
+            const forecastRef = forecast.avg; // legacy arg, no longer used for decisions
 
             // Wear factor according to control mode
             let modeFactor = 1;
@@ -219,85 +252,93 @@ function frame(interval) {
                 checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk, rainTargetTire);
 
                 // Gap to front on track
-                let gapSecondsTrack = gapMetersTrack / driver.speed;
+                let gapSecondsTrack = driver.speed > 0 ? gapMetersTrack / driver.speed : Infinity;
+
+                // Recalculate driver level dynamically based on current weather
+                driver.level = (driver.driverLevel/100) ** (1 + Math.max(0, currentTrackWater) * 3) * 
+                               (driver.circuitStats / driver.totalCircuitStats);
 
                 // Expected movement at full speed
-                let expected_length = (generateNormalRandom(baseSpeed*9 + driver.level*10, 6)/30) * 
+                let expected_length = (generateNormalRandom(baseSpeed * 9 + ((driver.level/100)) * 1000, 6)/30) * 
                                      gripFactor * driver.tirePerf * driver.carPerf;
-                let expected_speed = (expected_length) * 180/4000;
+                let expectedSpeed = (expected_length) * 180/4000;
                 
-                let proximityFactor = 1;
-
                 // DRS BOOST application
                 let drsBoost = applyDrsBoost(driver, gapSecondsTrack);
-                expected_speed *= drsBoost;
+                expectedSpeed *= drsBoost;
 
-                // DIRTY AIR: Aerodynamic loss when following closely
-                if (gapSecondsTrack < 4 && gapSecondsTrack > 0) {
-                    proximityFactor = proximityFactor - 0.00125/(1+Math.exp(4*(gapSecondsTrack-2.75)));
-                    expected_speed *= proximityFactor;
-                    
-                    // Aggressive defending/attacking behavior
-                    let frontAggression = (drivers[frontIndex].aggression * 
-                                         ((drivers[frontIndex].mode == "agressive") ? 1 : 0.5) * 
-                                         (sameLap ? 1 : 0.1)) * 0.005 + 0.5;
-                    
-                    // OVERTAKING PROBABILITY SYSTEM
-                    // Base probability: 90% on easy circuits (overtaking=0), 10% on hard circuits (overtaking=100)
-                    let passProbability = 0.9 - (overtaking / 100) * 0.8; // 0.9 to 0.1
-                    
-                    // Adjust by driver level advantage (high level driver passes more often)
-                    let levelAdvantage = (driver.level - drivers[frontIndex].level) / 10;
-                    passProbability += levelAdvantage * 0.15; // ±0.15 based on level difference
-                    passProbability = Math.max(0.05, Math.min(0.95, passProbability)); // Clamp to 5%-95%
-                    
-                    // Reduce probability by leader's defensive aggression (max 40% reduction)
-                    passProbability *= (1 - frontAggression * 0.4);
-                    
-                    // Speed difference factor: need at least 0.5% speed advantage for meaningful pass attempt
-                    let speedDifference = (expected_speed - drivers[frontIndex].speed) / drivers[frontIndex].speed;
-                    if (speedDifference < 0.005) {
-                        passProbability *= 0.1; // Very low chance if not faster
-                    }
-                    
-                    // Check if this frame is a passing opportunity
-                    let isPassingFrame = Math.random() < passProbability;
-                    
-                    if (isPassingFrame && speedDifference > 0.005) {
-                        // Allow the driver to go at expected speed to overtake
-                        driver.speed = expected_speed;
-                    } else {
-                        // Otherwise, stay near the leader with reduced speed
-                        let defenseFactor = ((gapSecondsTrack < 5) ? 
-                                            ((5 - gapSecondsTrack) / 5) * frontAggression : 0) * 0.3;
-                        driver.speed = defenseFactor * (drivers[frontIndex].speed * 0.98) + 
-                                      (1 - defenseFactor) * driver.speed;
-                    }
-                    
-                    driver.totalLength += driver.speed * 4000/180;
+                // Expected full speed before dirty air and overtaking logic
+                let expectedTotalLength = driver.totalLength + expectedSpeed * 4000/180;
 
+                // ===== DIRTY AIR / SLIPSTREAM / OVERTAKING =====
+                // Approaching gets progressively harder (dirty air + defence); once
+                // right on the gearbox the attacker commits to a move (resolveOvertakeAttempt).
+                const defender = frontIndex !== null ? drivers[frontIndex] : null;
+                const defenderRacing = defender &&
+                    (defender.state === "racing" || defender.state === "box") &&
+                    defender.carState >= 0.5 && defender.tireState >= 0.5;
+
+                if (gapMetersTrack < 300 && gapMetersTrack > 0 && pos > 0 && defenderRacing && sameLap) {
+                    const proximity = 1 - gapMetersTrack / 300;      // 0 at 300 m, 1 at the gearbox
+                    const trackO = (typeof overtaking === 'number' ? overtaking : 50) / 100; // 0 easy .. 1 hard
+
+                    // Dirty air: pace loss, worse on high-downforce tracks, less in the wet.
+                    const dirtyAir = proximity * proximity * (0.06 + 0.10 * trackO) * (1 - currentTrackWater * 0.5);
+                    // Slipstream: pace gain, bigger on power tracks, only when close.
+                    const tow = proximity * 0.04 * (1 - 0.5 * trackO);
+
+                    let netSpeed = expectedSpeed * (1 - dirtyAir + tow);
+
+                    // The last bit is the hardest: closing rate is strongly damped
+                    // inside ~1 s unless the driver commits to a move.
+                    const defenderSpeed = Math.max(0.01, defender.speed);
+                    if (gapMetersTrack < 60 && netSpeed > defenderSpeed) {
+                        const overspeed = netSpeed - defenderSpeed;
+                        netSpeed = defenderSpeed + overspeed * (gapMetersTrack / 60) * 0.5;
+                    }
+                    driver.speed = Math.max(0, netSpeed);
+                    driver.totalLength = driverLengthBefore + driver.speed * 4000/180;
+
+                    // Commit to a pass: on the gearbox, off cooldown, with a real advantage.
+                    const drsAvail = isDrsEnabled() && gapSecondsTrack > 0 && gapSecondsTrack < 1;
+                    const paceAdvantage = (expectedSpeed * (1 + tow) - defenderSpeed) / defenderSpeed;
+                    if (gapMetersTrack < 30 && (driver.overtakeCooldown || 0) <= 0 &&
+                        (paceAdvantage > 0.02 || (drsAvail && paceAdvantage > 0))) {
+                        resolveOvertakeAttempt(i, frontIndex, {
+                            paceAdvantage, drsActive: drsAvail,
+                            currentTrackWater, attackerLengthBefore: driverLengthBefore
+                        });
+                        driver.speed = driver.state === "racing"
+                            ? Math.max(0, (driver.totalLength - driverLengthBefore) * 180/4000)
+                            : 0;
+                    }
                 } else {
-                    // No dirty air: full speed
-                    driver.speed = expected_speed;
-                    driver.totalLength += driver.speed * 4000/180;
-                    
+                    // No battle: full pace.
+                    driver.speed = expectedSpeed;
+                    driver.totalLength = expectedTotalLength;
                 }
             }
             
             // ===== YELLOW FLAG OR SAFETY CAR: Enforce no overtaking and speed limits =====
             if ((flagState === "yellow" || flagState === "safetycar") && driver.state === "racing") {
                 // Maximum speed allowed : 80% of normal speed under yellow, 70% under safety car, 50% if the driver is the leader under safety car
-                const maxAllowedSpeed = (flagState === "yellow") ? 0.8 : 0.7 * driver.speed * (isLeader ? 0.7 : 1);
+                const maxAllowedSpeed = ((flagState === "yellow") ? generateNormalRandom(3,0.1) : (0.7 * (isLeader ? 0.7 : 1) * driver.speed)); // Safety car is more restrictive for the leader to prevent them from pulling away at restart
                 driver.speed = Math.min(driver.speed, maxAllowedSpeed);
                 driver.totalLength += driver.speed * 4000/180;
-                // The driver must not overtake the front driver
-                if (!isLeader) {
+                // No overtaking under yellow/SC - but only relative to a car that
+                // is still racing. Retired or clearly crippled cars can be passed.
+                if (!isLeader && frontDriverValid) {
                     driver.totalLength = Math.min(driver.totalLength, Math.max(driverLengthBefore, frontDriverLength - 5));
                 }
             }
 
-            // Record driver total length
-            frontDriverLength = (driver.state === "racing" || driver.state === "box") && driver.carState > 0.7 && driver.tireState > 0.5 ? driver.totalLength : frontDriverLength;
+            // Record this car as the "car in front" for the next drivers, but
+            // only if it is genuinely racing and not crippled (an unhealthy car -
+            // some state < 0.5 - lets faster cars through).
+            if (isRunning && driver.carState >= 0.5 && driver.tireState >= 0.5) {
+                frontDriverLength = driver.totalLength;
+                frontDriverValid = true;
+            }
 
             // ===== PIT STOP MANAGEMENT =====
             managePitStops(driver, i, forecastRef, rainTargetTire);
@@ -340,6 +381,11 @@ function frame(interval) {
             // Circuit minimap positioning
             document.getElementById(p).style.left = cX[circuit_minimap_position_live[i]] / zoom - followX + 750 + 'px';
             document.getElementById(p).style.top = -cY[circuit_minimap_position_live[i]] / zoom + followY + 350 + 'px';
+        }
+
+        // ===== CHECK CUMULATIVE DAMAGE FOR RED FLAG =====
+        if (updateDamageWindow()) {
+            triggerFlag('red', 0, rainTargetTire); // Trigger based on cumulative damage
         }
 
         // ===== RECORD POSITIONS for replay =====
@@ -396,7 +442,9 @@ function frame(interval) {
             for (let i = 0; i < nb_driver; i++) {
                 driver_position_previous[i] = driver_position_Y[i];
                 driver_position[i] = (driver_ranking[i] - 1) * 35 + 75;
-                diff_driver_time[i] = diff_driver_length[i] / (drivers[i].speed*30);
+                diff_driver_time[i] = drivers[i].speed > 0
+                    ? diff_driver_length[i] / (drivers[i].speed * 30)
+                    : 0;
 
                 var pL = "pL" + (i + 1);
                 var pX = "pX" + (i + 1);
@@ -424,7 +472,10 @@ function frame(interval) {
             document.getElementById('ind').innerHTML = "<strong> END OF </br> THE RACE </strong>";
             document.getElementById('ind').style.color = "white";
             clearInterval(interval);
-            showChampionshipResultsButton();
+            // Snap the display to the final classification BEFORE saving, so the
+            // frozen frame matches exactly what gets recorded for the championship.
+            renderFinalStandings();
+            handleRaceEnd();
 
             // Add download button for race recording
             const recording = stopRecording();
@@ -437,4 +488,137 @@ function frame(interval) {
     }
 
     currentFrame++;
+}
+
+// Final classification, best first: classified cars by distance, then retired
+// cars (shown at the back). Same ordering the championship standings derive
+// from `championshipResults` (which filter out `state === "out"` and re-sort
+// the rest by totalLength).
+function getFinalClassification() {
+    const inRace = [], out = [];
+    drivers.forEach((d, i) => (d.state === "out" ? out : inRace).push(i));
+    inRace.sort((a, b) => drivers[b].totalLength - drivers[a].totalLength);
+    out.sort((a, b) => drivers[b].totalLength - drivers[a].totalLength);
+    return inRace.concat(out);
+}
+
+// Re-render the ranking board synchronously from the final positions so the
+// frozen last frame is consistent with the recorded result (the frame-by-frame
+// animation otherwise trails the simulation by ~one animation cycle).
+function renderFinalStandings() {
+    const order = getFinalClassification();
+    const leaderIdx = order.find(i => drivers[i].state !== "out");
+    const leaderLength = leaderIdx != null ? drivers[leaderIdx].totalLength : 0;
+
+    order.forEach((i, rank) => {
+        const y = rank * 35 + 75;
+        driver_position[i] = y;
+        driver_position_previous[i] = y;
+        driver_position_Y[i] = y;
+
+        const pL = document.getElementById("pL" + (i + 1));
+        const pX = document.getElementById("pX" + (i + 1));
+        const t  = document.getElementById("t" + (i + 1));
+        const ty = document.getElementById("ty" + (i + 1));
+        [pL, pX, t, ty].forEach(el => { if (el) el.style.top = y + "px"; });
+
+        if (!t) return;
+        const d = drivers[i];
+        if (d.state === "out") {
+            t.style.color = "gray";
+            t.innerHTML = "<strong>OUT</strong>";
+        } else if (d.state === "in pit" || d.state === "in pit red flag") {
+            t.style.color = d.color;
+            t.innerHTML = "<strong>IN PIT</strong>";
+        } else {
+            const gapLen = leaderLength - d.totalLength;
+            const gapTime = d.speed > 0 ? gapLen / (d.speed * 30) : 0;
+            t.style.color = "white";
+            t.textContent = formatInterval(gapTime, gapLen / circuitLength);
+        }
+    });
+}
+
+// Handle race end: save results and manage grids for championship races
+function handleRaceEnd() {
+    const isChampionship = localStorage.getItem('championshipActive') === 'true';
+    const specialMode = localStorage.getItem('championshipSpecialMode') === 'true';
+    const isSprint = localStorage.getItem('isSprint') === 'true';
+    
+    // Final classification (classified cars by distance, retired cars at the back) —
+    // same order shown by renderFinalStandings() on the frozen frame.
+    const sortedDrivers = getFinalClassification().map(i => drivers[i]);
+    
+    if (isChampionship) {
+        // Save race results
+        let championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
+        const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
+        championshipResults[currentRaceIndex] = sortedDrivers;
+        localStorage.setItem('championshipResults', JSON.stringify(championshipResults));
+        
+        // Auto-save championship if active
+        if (window.autoSaveChampionship) {
+            window.autoSaveChampionship();
+        }
+        
+        // In Special Championship Mode: after sprint race, only save results for next GP
+        if (specialMode && isSprint) {
+            // DON'T modify featureGrid - it must stay based on qualification
+            // Just save current sprint results for NEXT GP's sprint grid
+            localStorage.setItem('lastSprintResults', JSON.stringify(sortedDrivers));
+            console.log('Sprint results saved for next GP sprint grid');
+        }
+    }
+    
+    // Show race end button
+    showRaceEndButton();
+}
+
+// Show button at race end with appropriate text and behavior
+function showRaceEndButton() {
+    const isChampionship = localStorage.getItem('championshipActive') === 'true';
+    const specialMode = localStorage.getItem('championshipSpecialMode') === 'true';
+    const isSprint = localStorage.getItem('isSprint') === 'true';
+    
+    const btn = document.createElement('button');
+    btn.id = 'raceEndBtn';
+    btn.className = 'raceEndBtn';
+    
+    if (isChampionship) {
+        if (specialMode && isSprint) {
+            // After sprint in special mode: go to feature race
+            btn.textContent = 'Go to Feature Race';
+            btn.onclick = () => {
+                const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
+                const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
+                const nextRaceIndex = currentRaceIndex + 1;
+                
+                if (nextRaceIndex < races.length && races[nextRaceIndex].circuit === races[currentRaceIndex].circuit) {
+                    localStorage.setItem('championshipCurrentRace', nextRaceIndex.toString());
+                    localStorage.setItem('selectedCircuit', JSON.stringify(races[nextRaceIndex]));
+                    localStorage.setItem('isSprint', 'false');
+                    window.location.href = 'race.html';
+                }
+            };
+        } else {
+            // After feature race: show championship standings
+            btn.textContent = 'Show Championship';
+            btn.onclick = () => {
+                window.location.href = 'gp_select.html';
+            };
+        }
+    } else {
+        // Simple GP mode: return to gp_select
+        btn.textContent = 'Back to GP Select';
+        btn.onclick = () => {
+            // Clean up temporary race data
+            localStorage.removeItem('drivers');
+            localStorage.removeItem('startingGrid');
+            localStorage.removeItem('weatherQuali');
+            localStorage.removeItem('weatherRace');
+            window.location.href = 'gp_select.html';
+        };
+    }
+    
+    document.body.appendChild(btn);
 }

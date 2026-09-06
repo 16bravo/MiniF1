@@ -15,13 +15,13 @@
         "name": "George Russell",
         "code": "RUS",
         "team_id": 2,
-        "driverLevel": 92
+        "driverLevel": 91
     },
     {
         "name": "Kimi Antonelli",
         "code": "ANT",
         "team_id": 2,
-        "driverLevel": 90
+        "driverLevel": 91
     },
     {
         "name": "Max Verstappen",
@@ -45,7 +45,7 @@
         "name": "Lewis Hamilton",
         "code": "HAM",
         "team_id": 4,
-        "driverLevel": 91
+        "driverLevel": 92
     },
     {
         "name": "Alexander Albon",
@@ -87,7 +87,7 @@
         "name": "Esteban Ocon",
         "code": "OCO",
         "team_id": 8,
-        "driverLevel": 89
+        "driverLevel": 88
     },
     {
         "name": "Oliver Bearman",
@@ -105,7 +105,7 @@
         "name": "Gabriel Bortoleto",
         "code": "BOR",
         "team_id": 9,
-        "driverLevel": 86
+        "driverLevel": 87
     },
     {
         "name": "Pierre Gasly",

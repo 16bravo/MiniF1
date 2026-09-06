@@ -30,6 +30,11 @@
             <span class="btn-label">Replay Race</span>
             <span class="btn-desc">Watch a recorded race</span>
         </button>
+        <button class="home-btn" id="archiveBtn">
+            <span class="btn-icon">&#9707;</span>
+            <span class="btn-label">Championship Archive</span>
+            <span class="btn-desc">Open an exported championship (.json)</span>
+        </button>
     </div>
     <script>
         document.getElementById('singleRaceBtn').onclick = () => {
@@ -38,6 +43,7 @@
         };
         document.getElementById('championshipBtn').onclick = () => window.location.href = 'championship_save_select.html';
         document.getElementById('replayBtn').onclick = () => window.location.href = 'replay.html';
+        document.getElementById('archiveBtn').onclick = () => window.location.href = 'championship_viewer.html';
     </script>
 </body>
 </html>

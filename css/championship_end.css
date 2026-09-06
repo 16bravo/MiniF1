@@ -1,0 +1,123 @@
+/* ============================================================
+   CHAMPIONSHIP_END.CSS
+   End-of-championship recap screen. Builds on results.css.
+   ============================================================ */
+
+#end-body {
+    max-width: 1100px;
+    margin: 32px auto;
+    padding: 0 24px;
+}
+
+#end-body h2 {
+    margin: 40px 0 16px;
+    font-size: 1.1em;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #999;
+    border-bottom: 2px solid #e10600;
+    padding-bottom: 8px;
+}
+
+/* ---- Champion cards ---- */
+#champions {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.champion-card {
+    flex: 1 1 320px;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+    border: 2px solid #e10600;
+    border-radius: 10px;
+    padding: 24px 28px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.champion-card .champion-label {
+    font-size: 0.8em;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #e10600;
+    margin-bottom: 10px;
+}
+
+.champion-card .champion-name {
+    font-size: 2em;
+    font-weight: bold;
+    color: #ffd700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.champion-card .champion-swatch {
+    width: 18px;
+    height: 32px;
+    border-radius: 3px;
+    display: inline-block;
+    flex: 0 0 auto;
+}
+
+.champion-card .champion-sub {
+    margin-top: 8px;
+    color: #cccccc;
+    font-size: 0.95em;
+}
+
+/* ---- Recap image ---- */
+#recapCanvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    background: #0d0d0d;
+}
+
+/* ---- Buttons ---- */
+.end-btn {
+    padding: 10px 22px;
+    font-size: 0.8em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+.end-btn:hover {
+    transform: translateY(-2px);
+}
+
+.end-btn-ghost {
+    background: #1e1e1e;
+    color: #e8e8e8;
+    border: 2px solid #333;
+}
+
+.end-btn-ghost:hover {
+    border-color: #e10600;
+    color: #ffffff;
+}
+
+.end-btn-danger {
+    background: #1e1e1e;
+    color: #e10600;
+    border: 2px solid #e10600;
+}
+
+.end-btn-danger:hover {
+    background: #e10600;
+    color: #ffffff;
+}
+
+#header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}

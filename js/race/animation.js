@@ -26,7 +26,9 @@ async function loadCircuitData(circuit) {
         // Apply sprint mode divisor if activated
         const isSprint = localStorage.getItem('isSprint') === 'true';
         if (isSprint) {
-            raceLength = Math.ceil(raceLength / 3);
+            const specialMode = localStorage.getItem('championshipSpecialMode') === 'true';
+            const sprintDivisor = specialMode ? 6 : 3;
+            raceLength = Math.ceil(raceLength / sprintDivisor);
             console.log('Sprint mode active - race distance:', raceLength, 'meters (~' + Math.ceil(raceLength / 1000) + 'km)');
         }
 
@@ -35,8 +37,7 @@ async function loadCircuitData(circuit) {
 
         // Calculate derived values
         laps = Math.ceil(raceLength / circuitLength);
-        pageWidth = window.innerWidth || document.documentElement.clientWidth;
-        console.log("Page width:", pageWidth);
+        pageWidth = window.innerWidth || document.documentElement.clientWidth || 1920;
         dist_per_pixel = circuitLength / pageWidth;
 
         // Update RaceRecorder with full circuit metadata
@@ -77,7 +78,7 @@ async function loadCircuitData(circuit) {
         var countryNameHTML = document.getElementById("countryName");
         var countryFlagHTML = document.getElementById("countryFlag");
 
-        countryNameHTML.innerText = "#" + circuit.toUpperCase() + "GP";
+        countryNameHTML.innerText = "#" + String((selectedCircuit && selectedCircuit.displayCode) || circuit).toUpperCase() + "GP";
         countryFlagHTML.src = "img/flags/" + country.toLowerCase().replace(/ /g, "_") + ".png";
 
         // Load weather curves from localStorage (pre-generated in gp_select)
@@ -93,6 +94,7 @@ async function loadCircuitData(circuit) {
             console.warn('Weather curves not found in localStorage, generated as fallback');
         }
         computeWeatherForecast(); // Pre-compute 600-frame rolling forecast used by strategy
+        applyWetStartConditions(); // If the track is wet at the start, put the field on rain tyres
         console.log("Circuit data loaded for:", circuit);
         console.log("Race length:", raceLength, "meters");
         console.log("Total laps:", laps);

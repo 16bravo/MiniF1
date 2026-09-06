@@ -1,18 +1,18 @@
 // REPLAY_UI.JS
-// Interface et interactions pour la relecture
+// Interface and interactions for replay
 
 let currentReplay = null;
 let currentSelectedDriver = null;
-let lastSelectedDriver = null;           // Track changes de pilote
+let lastSelectedDriver = null;           // Track driver changes
 let currentRaceStatVariable = null;
 let currentDriverStatVariable = null;
 let raceChartInstance = null;
 let driverChartInstance = null;
-let lastRaceStatVariable = null;  // Garde trace de la dernière var pour détecter les changements
-let lastDriverStatVariable = null; // Garde trace de la dernière var pour détecter les changements
-let playbackInterval = null;  // ✅ Variable globale pour control play/pause
-let playbackFPS = 60;         // ✅ Variable globale pour FPS cible
-let currentCursorFrame = 0;   // ✅ Position du curseur pour le plugin
+let lastRaceStatVariable = null;  // Tracks the last race variable to detect changes
+let lastDriverStatVariable = null; // Tracks the last driver variable to detect changes
+let playbackInterval = null;  // Global variable for play/pause control
+let playbackFPS = 60;         // Global variable for target FPS
+let currentCursorFrame = 0;   // Cursor position for the plugin
 
 // Plugin Chart.js pour afficher une barre verticale du curseur
 const cursorLinePlugin = {
@@ -94,7 +94,7 @@ function initReplayUI() {
 }
 
 function selectDriver(driverIndex) {
-    // Détecte si on a changé de pilote
+    // Detect driver change
     if (lastSelectedDriver !== driverIndex) {
         if (driverChartInstance) {
             driverChartInstance.destroy();
@@ -121,10 +121,10 @@ function selectDriver(driverIndex) {
         select.appendChild(option);
     });
     
-    // Garde la même stat sélectionnée si elle existe, sinon vide
+    // Keep the same selected stat if it still exists, otherwise reset
     if (currentDriverStatVariable && vars.includes(currentDriverStatVariable)) {
         select.value = currentDriverStatVariable;
-        // Met à jour automatiquement le graphique avec la nouvelle donnée du pilote
+        // Automatically update the chart with the new driver's data
         updateDriverStat();
     }
 }
@@ -135,7 +135,7 @@ function updateRaceStat() {
     
     if (!currentRaceStatVariable) return;
     
-    // Si on a changé de variable sélectionnée, détruire l'ancien graphique
+    // If the selected variable changed, destroy the old chart
     if (lastRaceStatVariable !== currentRaceStatVariable) {
         if (raceChartInstance) {
             raceChartInstance.destroy();
@@ -151,7 +151,7 @@ function updateRaceStat() {
     document.getElementById('raceStatValue').textContent = 
         `${currentRaceStatVariable}: ${typeof currentValue === 'number' ? currentValue.toFixed(4) : currentValue}`;
     
-    // Crée le graphique une fois au lieu de le recréer à chaque frame
+    // Create chart once instead of recreating it every frame
     initChart('raceStatChart', history, currentRaceStatVariable, 'race');
     updateChartCursor('raceStatChart', currentFrame, history, 'race');
 }
@@ -164,7 +164,7 @@ function updateDriverStat() {
     
     if (!currentDriverStatVariable) return;
     
-    // Si on a changé de variable sélectionnée, détruire l'ancien graphique
+    // If the selected variable changed, destroy the old chart
     if (lastDriverStatVariable !== currentDriverStatVariable) {
         if (driverChartInstance) {
             driverChartInstance.destroy();
@@ -180,16 +180,16 @@ function updateDriverStat() {
     document.getElementById('driverStatValue').textContent = 
         `${currentDriverStatVariable}: ${typeof currentValue === 'number' ? currentValue.toFixed(4) : currentValue}`;
     
-    // Crée le graphique une fois au lieu de le recréer à chaque frame
+    // Create chart once instead of recreating it every frame
     initChart('driverStatChart', history, currentDriverStatVariable, 'driver');
     updateChartCursor('driverStatChart', currentFrame, history, 'driver');
 }
 
-// Crée le graphique UNE SEULE FOIS avec toutes les données
+// Create the chart ONCE with all data
 function initChart(canvasId, data, label, type) {
     let chartInstance = type === 'race' ? raceChartInstance : driverChartInstance;
     
-    // Si le graphique existe déjà, skip la création
+    // If the chart already exists, skip creation
     if (chartInstance) return;
     
     const ctx = document.getElementById(canvasId).getContext('2d');
@@ -214,7 +214,7 @@ function initChart(canvasId, data, label, type) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: false, // Désactive les animations pour pas ralentir
+            animation: false, // Disable animations to avoid slowing down rendering
             scales: {
                 y: { beginAtZero: true }
             },
@@ -222,51 +222,51 @@ function initChart(canvasId, data, label, type) {
                 legend: { display: false }
             }
         },
-        plugins: [cursorLinePlugin]  // ✅ Ajoute le plugin barre verticale
+        plugins: [cursorLinePlugin]  // Adds the vertical bar plugin
     });
     
     if (type === 'race') raceChartInstance = chartInstance;
     else driverChartInstance = chartInstance;
 }
 
-// Met à jour SEULEMENT le curseur (très rapide)
+// Update ONLY the cursor (very fast)
 function updateChartCursor(canvasId, currentFrame, data, type) {
-    currentCursorFrame = currentFrame;  // ✅ Met à jour la position du curseur
+    currentCursorFrame = currentFrame;  // Update cursor position
     
     const chartInstance = type === 'race' ? raceChartInstance : driverChartInstance;
     
     if (!chartInstance) return;
     
-    // Mise à jour ultra rapide (seulement le redraw du plugin)
-    chartInstance.update('none'); // 'none' = pas d'animation
+    // Ultra-fast update (only redraws the plugin)
+    chartInstance.update('none'); // 'none' = no animation
 }
 
-// ✅ CORRIGÉ: Gestion du play/pause
+// Play/pause management
 function togglePlay() {
     const btn = document.getElementById('playBtn');
     
     if (playbackInterval !== null) {
-        // En train de jouer → Pause
+        // Currently playing → Pause
         clearInterval(playbackInterval);
         playbackInterval = null;
         btn.textContent = '▶ Play';
     } else {
-        // En pause → Play
+        // Currently paused → Play
         btn.textContent = '⏸ Pause';
         startPlayback();
     }
 }
 
-// ✅ CORRIGÉ: Fonction pour démarrer la lecture avec FPS cible
+// Function to start playback with target FPS
 function startPlayback() {
     const totalFrames = RaceReplay.getTotalFrames();
-    const frameDuration = 1000 / playbackFPS; // FPS cible (pas de frein)
+    const frameDuration = 1000 / playbackFPS; // Target FPS (no cap)
     
     playbackInterval = setInterval(() => {
         const current = RaceReplay.getCurrentFrame();
         
         if (current >= totalFrames - 1) {
-            // Fin de la course
+            // End of race
             clearInterval(playbackInterval);
             playbackInterval = null;
             document.getElementById('playBtn').textContent = '▶ Play';
@@ -279,7 +279,7 @@ function startPlayback() {
 }
 
 function nextFrame() {
-    // Arrête la lecture si en cours
+    // Stop playback if running
     if (playbackInterval !== null) {
         clearInterval(playbackInterval);
         playbackInterval = null;
@@ -292,7 +292,7 @@ function nextFrame() {
 }
 
 function previousFrame() {
-    // Arrête la lecture si en cours
+    // Stop playback if running
     if (playbackInterval !== null) {
         clearInterval(playbackInterval);
         playbackInterval = null;
@@ -305,7 +305,7 @@ function previousFrame() {
 }
 
 function seekFrame(value) {
-    // Arrête la lecture si en cours
+    // Stop playback if running
     if (playbackInterval !== null) {
         clearInterval(playbackInterval);
         playbackInterval = null;
@@ -316,21 +316,21 @@ function seekFrame(value) {
     updateFrame();
 }
 
-// ✅ Gestion FPS cible avec redémarrage de la lecture
+// Target FPS management with playback restart
 function setPlaybackFPS(fps) {
     const wasPlaying = playbackInterval !== null;
     
-    // Arrête la lecture actuelle
+    // Stop current playback
     if (playbackInterval !== null) {
         clearInterval(playbackInterval);
         playbackInterval = null;
     }
     
-    // Mise à jour FPS
+    // Update FPS
     playbackFPS = Math.max(1, Math.min(240, parseInt(fps))); // Min 1, Max 240 FPS
     document.getElementById('fpsInput').value = playbackFPS;
     
-    // Relance la lecture si elle était active
+    // Restart playback if it was active
     if (wasPlaying) {
         startPlayback();
     }
@@ -346,7 +346,7 @@ function updateFrame() {
     document.getElementById('frameSlider').value = current;
     document.getElementById('frameLabel').textContent = `Frame: ${current} / ${totalFrames - 1}`;
 
-    // ✅ UTILISE LES POSITIONS ENREGISTRÉES
+    // USE RECORDED POSITIONS
     ReplayAnimation.updateGlobalInfo(current, metadata);
     ReplayAnimation.updateAllPositions(current);
     
@@ -357,7 +357,7 @@ function updateFrame() {
 
 
 
-// ✅ Fonction helper pour la météo
+// Helper function for weather
 function getWeatherDescription(currentRain) {
     if (currentRain > 0.5) return "Heavy Rain 🌧️";
     if (currentRain > 0) return "Light Rain 🌦️";

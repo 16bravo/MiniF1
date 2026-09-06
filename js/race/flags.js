@@ -68,7 +68,7 @@ function triggerFlag(type, driverIndex, rainTargetTire) {
                 drivers[i].state = "in pit red flag";
                 drivers[i].carState = 1; // Repair car
                 drivers[i].tireState = 1; // Fresh tires
-                drivers[i].tire = chooseNextTire(drivers[i], 0, (raceLength - drivers[i].totalLength) / 1000, rainTargetTire);
+                drivers[i].tire = chooseNextTire(drivers[i], 0, (raceLength - drivers[i].totalLength) / 1000, drivers[i].wetTarget || rainTargetTire);
                 drivers[i].pitStops = (drivers[i].pitStops || 0) + 1;
                 drivers[i].speed = 0;
             }

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniF1 - Championship Complete</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/results.css">
+    <link rel="stylesheet" href="css/championship_end.css">
+    <link rel="stylesheet" href="css/home-button.css">
+</head>
+<body>
+    <div id="page-header">
+        <h1>Championship Complete</h1>
+        <div id="header-actions">
+            <button id="downloadJsonBtn" class="end-btn end-btn-ghost">Download Data (JSON)</button>
+            <button id="downloadImgBtn" class="end-btn end-btn-ghost">Download Image (PNG)</button>
+            <button id="finishBtn" class="end-btn end-btn-danger">Finish &amp; Delete Save</button>
+        </div>
+    </div>
+
+    <div id="end-body">
+        <div id="champions"></div>
+
+        <div id="recap-image-section">
+            <h2>Season Summary</h2>
+            <canvas id="recapCanvas" width="1000" height="1400"></canvas>
+        </div>
+
+        <div id="championship-standings">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="drivers">Drivers</button>
+                <button class="tab-btn" data-tab="constructors">Constructors</button>
+            </div>
+            <div id="tab-drivers" class="tab-panel active"></div>
+            <div id="tab-constructors" class="tab-panel"></div>
+        </div>
+    </div>
+
+    <script src="js/home-button.js"></script>
+    <script src="js/championship_common.js"></script>
+    <script src="js/championship_end.js"></script>
+</body>
+</html>

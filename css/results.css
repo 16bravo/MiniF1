@@ -238,3 +238,25 @@ td.no-points {
     color: #ffffff;
     transform: translateY(-2px);
 }
+
+/* Sortable standings columns */
+.standings-sort-total,
+.standings-sort-projected {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.standings-sort-total:hover,
+.standings-sort-projected:hover {
+    background: #2a2a2a !important;
+    color: #ffffff !important;
+}
+
+.standings-sort-total::after,
+.standings-sort-projected::after {
+    content: ' ↕';
+    font-size: 0.7em;
+    margin-left: 4px;
+    opacity: 0.5;
+}

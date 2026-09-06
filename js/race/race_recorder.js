@@ -1,6 +1,6 @@
 // RACE_RECORDER.JS
-// Module pour enregistrer TOUTES les variables de la course frame par frame
-// Avec minification des clés pour économiser l'espace
+// Module to record ALL race variables frame by frame
+// With key minification to save space
 
 const RaceRecorder = (() => {
     let recording = null;
@@ -58,7 +58,7 @@ const RaceRecorder = (() => {
                 c: metadata.circuit,
                 sc: metadata.selectedCircuit,
                 rp: metadata.rainProbability,
-                di: metadata.driversInitial,  // ✅ Garder driversInitial ici
+                di: metadata.driversInitial,  // Keep driversInitial here
                 cl: metadata.circuitLength,
                 rl: metadata.raceLength,
                 bs: metadata.baseSpeed
@@ -71,9 +71,9 @@ const RaceRecorder = (() => {
         for (let i = 0; i < metadata.driversCount; i++) {
             recording.dv.push({
                 i: i,
-                n: metadata.driversInitial[i].name,  // ✅ CORRIGÉ
-                cd: metadata.driversInitial[i].code,  // ✅ CORRIGÉ
-                tm: metadata.driversInitial[i].team_id,  // ✅ CORRIGÉ
+                n: metadata.driversInitial[i].name,
+                cd: metadata.driversInitial[i].code,
+                tm: metadata.driversInitial[i].team_id,
                 fr: [] // frames
             });
         }
@@ -107,7 +107,7 @@ const RaceRecorder = (() => {
             rtL: globalState.raceTimeLeft,
             etL: globalState.eventTimeLeft,
             cl: frameData.currentLap,
-            fs: mapFlagState(globalState.flagState),  // ✅ Convertir en chiffre
+            fs: mapFlagState(globalState.flagState),  // Convert to number
             ft: globalState.flagTimer,
             drs: globalState.drsEnabled,
             rr: globalState.rainyRace,
@@ -129,12 +129,12 @@ const RaceRecorder = (() => {
             const minifiedDriver = {
                 s: driver.speed,
                 tl: driver.totalLength,
-                st: mapState(driver.state),        // ✅ Convertir en chiffre
-                tr: mapTire(driver.tire),          // ✅ Convertir en chiffre
+                st: mapState(driver.state),        // Convert to number
+                tr: mapTire(driver.tire),          // Convert to number
                 trS: driver.tireState,
                 cs: driver.carState,
                 fu: driver.fuel,
-                m: mapMode(driver.mode),           // ✅ Convertir en chiffre
+                m: mapMode(driver.mode),           // Convert to number
                 ps: driver.pitStops,
                 pt: driver.pitTimer,
                 clg: driver.crossingLine,

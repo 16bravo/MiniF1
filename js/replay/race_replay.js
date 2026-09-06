@@ -1,6 +1,6 @@
 // RACE_REPLAY.JS
-// Module pour relire une course enregistrée
-// Ignore la simulation, lit les variables pré-enregistrées
+// Module for replaying a recorded race
+// Skips simulation, reads pre-recorded variables
 
 const RaceReplay = (() => {
     let recording = null;
@@ -9,7 +9,7 @@ const RaceReplay = (() => {
     let playbackSpeed = 1;
     let animationInterval = null;
 
-    // UNMAPPED keys pour conversion
+    // UNMAPPED keys for conversion
     const UNMAPPED_KEYS = {
         'f': 'frame', 'rtL': 'raceTimeLeft', 'etL': 'eventTimeLeft', 'cl': 'currentLap',
         'fs': 'flagState', 'ft': 'flagTimer', 'drs': 'drsEnabled', 'rr': 'rainyRace',

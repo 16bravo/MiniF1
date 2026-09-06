@@ -31,6 +31,7 @@ function managePitStops(driver, i, forecastRef, rainTargetTire) {
             driver.tireState = 1;
             driver.carState = 1;
             driver.state = "racing";
+            driver.lastPitExitFrame = raceFrame; // decision cooldown starts now
             console.log(`${driver.name} exits pit. Pit stops: ${driver.pitStops}, New tire: ${driver.tire}`);
         }
     }

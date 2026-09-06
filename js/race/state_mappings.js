@@ -1,6 +1,6 @@
 // STATE_MAPPINGS.JS
-// Mapping des états textuels en valeurs numériques pour l'enregistrement
-// Ces mappings permettent d'afficher facilement les états dans les graphiques
+// Mapping of text states to numeric values for recording
+// These mappings allow states to be easily displayed in charts
 
 // Driver State Mapping
 const DRIVER_STATE_MAP = {

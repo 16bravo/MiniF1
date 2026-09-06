@@ -108,7 +108,7 @@ function updateDriverStates() {
                     driver.distance = 0;
                     const outLapTime = calculateLapTime(driver, 0.9); // Slow lap (out-lap)
                     driver.targetLapTime = outLapTime;
-                    driver.currentSpeed = 1 / outLapTime; // Speed in % circuit
+                    driver.currentSpeed = 1 / Math.max(outLapTime, 0.001); // Speed in % circuit
                     driver.lapTimer = 0;
 
                     // Record grip analysis for debugging
@@ -134,7 +134,7 @@ function updateDriverStates() {
                     driver.distance = 0;
                     const fastLapTime = calculateLapTime(driver, 1.0); // Fast lap
                     driver.targetLapTime = fastLapTime;
-                    driver.currentSpeed = 1 / fastLapTime;
+                    driver.currentSpeed = 1 / Math.max(fastLapTime, 0.001);
                     driver.lapTimer = 0;
                 }
                 break;
@@ -150,12 +150,12 @@ function updateDriverStates() {
                     driver.currentState = "<<<";
                     const inLapTime = calculateLapTime(driver, 0.8); // Very slow lap (in-lap)
                     driver.targetLapTime = inLapTime;
-                    driver.currentSpeed = 1 / inLapTime;
+                    driver.currentSpeed = 1 / Math.max(inLapTime, 0.001);
                     driver.lapTimer = 0;
                 } else if (driver.distance >= 1) {
                     // Lap completed: record time
                     const remainingDistance = 1 - distanceBefore;
-                    const extraTime = remainingDistance / driver.currentSpeed;
+                    const extraTime = driver.currentSpeed > 0 ? remainingDistance / driver.currentSpeed : 0;
                     const lapTime = driver.lapTimer - 1 + extraTime;
 
                     driver.lastTime = lapTime;
@@ -167,7 +167,7 @@ function updateDriverStates() {
 
                     driver.sessionLaps++;
                     driver.runLaps++;
-                    grip += 0.003; // Increase grip after each lap (track cleanup)
+                    grip += 0.002; // Increase grip after each lap (track cleanup)
                     console.log(grip);
                     updateTable();
 
@@ -176,7 +176,7 @@ function updateDriverStates() {
                     driver.distance = 0;
                     const inLapTime = calculateLapTime(driver, 0.9); // Slow lap (in-lap)
                     driver.targetLapTime = inLapTime;
-                    driver.currentSpeed = 1 / inLapTime;
+                    driver.currentSpeed = 1 / Math.max(inLapTime, 0.001);
                     driver.lapTimer = 0;
                 } else {
                     // During lap: check for crashes
@@ -198,16 +198,21 @@ function updateDriverStates() {
 
 // Function to calculate lap time based on driver level, tire grip, and weather conditions
 function calculateLapTime(driver, speedFactor) {
+    if (!speedFactor || speedFactor <= 0) speedFactor = 0.1; // Guard against division by zero
+    const safeTotal = Math.max(totalCircuit, 1);             // Guard against division by zero
+
     // Recalculate driver level based on current weather
-    driver.level = (driver.driverLevel/100) * (
-        (fastSpeed * driver.teamSPD * ((1 - currentTrackWater) * 0.1 + 0.9) + 
-         fastCorners * driver.teamFS + 
-         slowCorners * driver.teamSS) / totalCircuit
-    );
+    driver.level =
+        (driver.driverLevel/100) ** (1 + Math.max(0, currentTrackWater) * 3) // Driver skill adjusted for rain sensitivity
+        * (
+            (fastSpeed * driver.teamSPD * ((1 - currentTrackWater) * 0.1 + 0.9) + 
+            fastCorners * driver.teamFS + 
+            slowCorners * driver.teamSS) / safeTotal
+        );
     
     // Base lap time adjusted for driver level
     const baseTime = baseLapTime - driver.level / 10 + 9;
     
     // Return randomized lap time based on speed factor
-    return generateNormalRandom(baseTime / speedFactor, baseLapTime / 400);
+    return generateNormalRandom(baseTime / speedFactor, Math.max(baseLapTime, 1) / 400);
 }

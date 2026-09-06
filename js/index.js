@@ -290,13 +290,13 @@ function updateDriverTeamOptions() {
         // Create an object to store data for the current line
         const rowData = {
             id: parseInt(cells[0].querySelector('.team-name').id),
-            name: cells[0].querySelector('.team-name').value, // Récupérer la valeur du champ de saisie pour le nom de l'équipe
-            teamSPD: cells[1].querySelector('input[type="number"]').value, // Récupérer la valeur du champ de saisie pour la vitesse
-            teamFS: cells[2].querySelector('input[type="number"]').value, // Récupérer la valeur du champ de saisie pour les virages rapides
-            teamSS: cells[3].querySelector('input[type="number"]').value, // Récupérer la valeur du champ de saisie pour les virages lents
-            teamFB: cells[4].querySelector('input[type="number"]').value, // Récupérer la valeur du champ de saisie pour la fiabilité
-            color: cells[5].querySelector('input[type="color"]').value, // Récupérer la valeur du champ de saisie pour la couleur
-            image: cells[6].querySelector('.team-image').getAttribute('src') // Récupérer l'attribut src de l'image de l'équipe
+            name: cells[0].querySelector('.team-name').value, // Get team name input value
+            teamSPD: cells[1].querySelector('input[type="number"]').value, // Get speed input value
+            teamFS: cells[2].querySelector('input[type="number"]').value, // Get fast corners input value
+            teamSS: cells[3].querySelector('input[type="number"]').value, // Get slow corners input value
+            teamFB: cells[4].querySelector('input[type="number"]').value, // Get reliability input value
+            color: cells[5].querySelector('input[type="color"]').value, // Get color input value
+            image: cells[6].querySelector('.team-image').getAttribute('src') // Get team image src attribute
         };
     
         // Add line data to main array
@@ -378,14 +378,14 @@ async function loadDrivers() {
             const savedDrivers = localStorage.getItem('drivers');
             if (savedDrivers) {
                 drivers = JSON.parse(savedDrivers);
-                // Tri par team_id pour garder l'ordre des équipes
+                // Sort by team_id to preserve team order
                 drivers.sort((a, b) => (a.team_id || 0) - (b.team_id || 0));
             } else {
                 const response = await fetch('./data/driver_default.json');
                 drivers = await response.json();
             }
         } else {
-            // Mode simple GP
+            // Single GP mode
             const response = await fetch('./data/driver_default.json');
             drivers = await response.json();
         }
@@ -541,13 +541,17 @@ function activateTab(stepId) {
     const btn = document.querySelector(`.gp-tab-btn[data-target="${stepId}"]`);
     if (btn) btn.classList.add('active');
     if (stepId === 'step4') showOverview();
-    if (stepId === 'step-standings-drivers' || stepId === 'step-standings-constructors') renderChampionshipStandings();
+    if (stepId.includes('standings')) renderChampionshipStandings();
 }
 
-// Render championship standings into the two standings tab panels
+// Render championship standings into the standings tab panels
 function renderChampionshipStandings() {
     const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
-    const POINTS_SPRINT = [8, 7, 6, 5, 4, 3, 2, 1];
+    // Sprint race points: 8,7,6,5,4,3,2,1 then 0 for every other position.
+    const POINTS_SPRINT = [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const SPECIAL_CHAMPIONSHIP_POINTS = Array.from({length: 22}, (_, i) => 22 - i);
+    const SPRINT_CHAMPIONSHIP_POINTS = [100, 75, 60, 50, 42, 35, 28, 22, 18, 14, 10, 6, 3, 2, 1, ...Array(7).fill(0)];
+    
     let championshipResults, races;
     try {
         championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
@@ -562,6 +566,15 @@ function renderChampionshipStandings() {
     races = validPairs.map(p => p.race);
     championshipResults = validPairs.map(p => p.result ?? []);
 
+    // Check if special championship mode is enabled
+    const specialMode = localStorage.getItem('championshipSpecialMode') === 'true';
+    
+    // Get points to use for sprint races
+    let pointsSprintToUse = POINTS_SPRINT;
+    if (specialMode) {
+        pointsSprintToUse = SPECIAL_CHAMPIONSHIP_POINTS;
+    }
+
     let allDrivers = {}, allTeams = {};
     championshipResults.forEach(race => {
         race.forEach(d => {
@@ -570,52 +583,194 @@ function renderChampionshipStandings() {
         });
     });
 
+    // Tables for all races (both feature and sprint)
     let driverPointsTable = {}, teamPointsTable = {};
+    let driverPointsTableSprint = {}, teamPointsTableSprint = {};
+    let driverPointsTableFeature = {}, teamPointsTableFeature = {};
+    
     races.forEach((race, raceIdx) => {
         const results = championshipResults[raceIdx] || [];
-        // Determine if this race is sprint or normal
-        const pointsScale = race.isSprintRace ? POINTS_SPRINT : POINTS;
+        const pointsScale = race.isSprintRace ? pointsSprintToUse : POINTS;
         
         results.filter(d => d.state !== 'out').sort((a, b) => b.totalLength - a.totalLength)
             .forEach((driver, idx) => {
                 if (!driverPointsTable[driver.code]) driverPointsTable[driver.code] = Array(races.length).fill(0);
                 driverPointsTable[driver.code][raceIdx] = pointsScale[idx] || 0;
+                
+                if (race.isSprintRace) {
+                    if (!driverPointsTableSprint[driver.code]) driverPointsTableSprint[driver.code] = Array(races.length).fill(0);
+                    driverPointsTableSprint[driver.code][raceIdx] = pointsScale[idx] || 0;
+                } else {
+                    if (!driverPointsTableFeature[driver.code]) driverPointsTableFeature[driver.code] = Array(races.length).fill(0);
+                    driverPointsTableFeature[driver.code][raceIdx] = pointsScale[idx] || 0;
+                }
             });
+        
         Object.values(allTeams).forEach(team => {
             if (!teamPointsTable[team]) teamPointsTable[team] = Array(races.length).fill(0);
+            if (!teamPointsTableSprint[team]) teamPointsTableSprint[team] = Array(races.length).fill(0);
+            if (!teamPointsTableFeature[team]) teamPointsTableFeature[team] = Array(races.length).fill(0);
         });
+        
         results.filter(d => d.state !== 'out').sort((a, b) => b.totalLength - a.totalLength)
-            .forEach((driver, idx) => { teamPointsTable[driver.team][raceIdx] += pointsScale[idx] || 0; });
+            .forEach((driver, idx) => {
+                teamPointsTable[driver.team][raceIdx] += pointsScale[idx] || 0;
+                if (race.isSprintRace) {
+                    teamPointsTableSprint[driver.team][raceIdx] += pointsScale[idx] || 0;
+                } else {
+                    teamPointsTableFeature[driver.team][raceIdx] += pointsScale[idx] || 0;
+                }
+            });
     });
 
-    let driverTable = `<table><thead><tr><th>#</th><th>Driver</th>`;
-    races.forEach(r => driverTable += `<th>${r.circuit}</th>`);
-    driverTable += `<th>Total</th></tr></thead><tbody>`;
-    Object.entries(driverPointsTable)
-        .sort((a, b) => b[1].reduce((x,y)=>x+y,0) - a[1].reduce((x,y)=>x+y,0))
-        .forEach(([code, ptsArr], idx) => {
-            driverTable += `<tr><td>${idx+1}</td><td>${allDrivers[code]||code}</td>`;
-            ptsArr.forEach(pts => driverTable += `<td${pts===0?' class="no-points"':''}>${pts===0?'-':pts}</td>`);
-            driverTable += `<td><b>${ptsArr.reduce((x,y)=>x+y,0)}</b></td></tr>`;
-        });
-    driverTable += `</tbody></table>`;
+    // Calculate sprint championship points (based on overall sprint classification)
+    const calculateSprintChampionshipPoints = () => {
+        let driverSprintChampPoints = {}, teamSprintChampPoints = {};
+        
+        if (specialMode) {
+            // Rank drivers by their sprint points total
+            const driverSprintTotals = Object.entries(driverPointsTableSprint)
+                .map(([code, ptsArr]) => ({ code, total: ptsArr.reduce((a,b)=>a+b,0) }))
+                .sort((a, b) => b.total - a.total);
+            
+            // Assign sprint championship points [100, 75, 60, ...]
+            driverSprintTotals.forEach((d, idx) => {
+                driverSprintChampPoints[d.code] = SPRINT_CHAMPIONSHIP_POINTS[idx] || 0;
+            });
+            
+            // Do the same for teams
+            const teamSprintTotals = Object.entries(teamPointsTableSprint)
+                .map(([team, ptsArr]) => ({ team, total: ptsArr.reduce((a,b)=>a+b,0) }))
+                .sort((a, b) => b.total - a.total);
+            
+            teamSprintTotals.forEach((t, idx) => {
+                teamSprintChampPoints[t.team] = SPRINT_CHAMPIONSHIP_POINTS[idx] || 0;
+            });
+        }
+        
+        return { driverSprintChampPoints, teamSprintChampPoints };
+    };
+    
+    const { driverSprintChampPoints, teamSprintChampPoints } = calculateSprintChampionshipPoints();
 
-    let teamTable = `<table><thead><tr><th>#</th><th>Constructor</th>`;
-    races.forEach(r => teamTable += `<th>${r.circuit}</th>`);
-    teamTable += `<th>Total</th></tr></thead><tbody>`;
-    Object.entries(teamPointsTable)
-        .sort((a, b) => b[1].reduce((x,y)=>x+y,0) - a[1].reduce((x,y)=>x+y,0))
-        .forEach(([team, ptsArr], idx) => {
-            teamTable += `<tr><td>${idx+1}</td><td>${team}</td>`;
-            ptsArr.forEach(pts => teamTable += `<td${pts===0?' class="no-points"':''}>${pts===0?'-':pts}</td>`);
-            teamTable += `<td><b>${ptsArr.reduce((x,y)=>x+y,0)}</b></td></tr>`;
+    // Column header for a race: short code, with a ·S suffix for sprint races.
+    const colLabel = r => `${String(r.displayCode || r.circuit).toUpperCase()}${r.isSprintRace ? '·S' : ''}`;
+
+    // In CLASSIC mode every race (feature + sprint) counts toward the single
+    // championship table. In SPECIAL mode only feature races are shown here;
+    // sprints keep their separate tabs and feed a "projected total".
+    const columnRaces = specialMode ? races.filter(r => !r.isSprintRace) : races;
+    const columnIndices = specialMode
+        ? races.map((r, i) => !r.isSprintRace ? i : -1).filter(i => i !== -1)
+        : races.map((_, i) => i);
+
+    // Generic renderer used for both drivers and constructors
+    const renderStandingsTable = (nameHeader, pointsSource, featureSource, sprintChampPoints, nameFn, sortByProjected) => {
+        let table = `<table><thead><tr><th>#</th><th>${nameHeader}</th>`;
+        columnRaces.forEach(r => table += `<th>${colLabel(r)}</th>`);
+        table += `<th class="standings-sort-total" onclick="window.standingsSortMode = false; renderChampionshipStandings()">Total</th>`;
+        if (specialMode) {
+            table += `<th>Sprint Pts</th><th class="standings-sort-projected" onclick="window.standingsSortMode = true; renderChampionshipStandings()">Projected Total</th>`;
+        }
+        table += `</tr></thead><tbody>`;
+
+        // Classic: combined points over all races. Special: feature-only points.
+        const source = specialMode ? featureSource : pointsSource;
+
+        let rows = Object.entries(source).map(([key, ptsArr]) => {
+            const cols = columnIndices.map(idx => ptsArr[idx] || 0);
+            return {
+                key,
+                cols,
+                total: cols.reduce((x, y) => x + y, 0),
+                sprintChampPts: sprintChampPoints[key] || 0
+            };
         });
-    teamTable += `</tbody></table>`;
+
+        if (sortByProjected && specialMode) {
+            rows.sort((a, b) => (b.total + b.sprintChampPts) - (a.total + a.sprintChampPts));
+        } else {
+            rows.sort((a, b) => b.total - a.total);
+        }
+
+        rows.forEach(({ key, cols, total, sprintChampPts }, idx) => {
+            table += `<tr><td>${idx + 1}</td><td>${nameFn(key)}</td>`;
+            cols.forEach(pts => table += `<td${pts === 0 ? ' class="no-points"' : ''}>${pts === 0 ? '-' : pts}</td>`);
+            table += `<td><b>${total}</b></td>`;
+            if (specialMode) {
+                table += `<td>${sprintChampPts}</td><td><b>${total + sprintChampPts}</b></td>`;
+            }
+            table += `</tr>`;
+        });
+        table += `</tbody></table>`;
+        return table;
+    };
+
+    const renderDriverStandings = (sortByProjected = false) =>
+        renderStandingsTable('Driver', driverPointsTable, driverPointsTableFeature,
+            driverSprintChampPoints, code => allDrivers[code] || code, sortByProjected);
+
+    const renderTeamStandings = (sortByProjected = false) =>
+        renderStandingsTable('Constructor', teamPointsTable, teamPointsTableFeature,
+            teamSprintChampPoints, team => team, sortByProjected);
+
+    const sortByProjected = window.standingsSortMode === true;
+    const driverTable = renderDriverStandings(sortByProjected);
+    const teamTable = renderTeamStandings(sortByProjected);
 
     const driversPanel = document.getElementById('tab-drivers');
     const constructorsPanel = document.getElementById('tab-constructors');
     if (driversPanel) driversPanel.innerHTML = driverTable;
     if (constructorsPanel) constructorsPanel.innerHTML = teamTable;
+
+    // Generate sprint race standings (only if special mode)
+    if (specialMode) {
+        const sprintRaces = races.filter(r => r.isSprintRace);
+        const sprintRaceIndices = races.map((r, i) => r.isSprintRace ? i : -1).filter(i => i !== -1);
+        
+        let driverPointsTableSprintFiltered = {};
+        let teamPointsTableSprintFiltered = {};
+        
+        Object.entries(driverPointsTableSprint).forEach(([code, ptsArr]) => {
+            driverPointsTableSprintFiltered[code] = sprintRaceIndices.map(idx => ptsArr[idx]);
+        });
+        Object.entries(teamPointsTableSprint).forEach(([team, ptsArr]) => {
+            teamPointsTableSprintFiltered[team] = sprintRaceIndices.map(idx => ptsArr[idx]);
+        });
+        
+        let driverTableSprint = `<table><thead><tr><th>#</th><th>Driver</th>`;
+        sprintRaces.forEach(r => driverTableSprint += `<th>${String(r.displayCode || r.circuit).toUpperCase()}</th>`);
+        driverTableSprint += `<th>Total</th><th>Championship Value</th></tr></thead><tbody>`;
+        Object.entries(driverPointsTableSprintFiltered)
+            .sort((a, b) => b[1].reduce((x,y)=>x+y,0) - a[1].reduce((x,y)=>x+y,0))
+            .forEach(([code, ptsArr], idx) => {
+                driverTableSprint += `<tr><td>${idx+1}</td><td>${allDrivers[code]||code}</td>`;
+                ptsArr.forEach(pts => driverTableSprint += `<td${pts===0?' class="no-points"':''}>${pts===0?'-':pts}</td>`);
+                driverTableSprint += `<td><b>${ptsArr.reduce((x,y)=>x+y,0)}</b></td><td style="color:#888">${SPRINT_CHAMPIONSHIP_POINTS[idx] || 0} pts</td></tr>`;
+            });
+        driverTableSprint += `</tbody></table>`;
+
+        let teamTableSprint = `<table><thead><tr><th>#</th><th>Constructor</th>`;
+        sprintRaces.forEach(r => teamTableSprint += `<th>${String(r.displayCode || r.circuit).toUpperCase()}</th>`);
+        teamTableSprint += `<th>Total</th><th>Championship Value</th></tr></thead><tbody>`;
+        Object.entries(teamPointsTableSprintFiltered)
+            .sort((a, b) => b[1].reduce((x,y)=>x+y,0) - a[1].reduce((x,y)=>x+y,0))
+            .forEach(([team, ptsArr], idx) => {
+                teamTableSprint += `<tr><td>${idx+1}</td><td>${team}</td>`;
+                ptsArr.forEach(pts => teamTableSprint += `<td${pts===0?' class="no-points"':''}>${pts===0?'-':pts}</td>`);
+                teamTableSprint += `<td><b>${ptsArr.reduce((x,y)=>x+y,0)}</b></td><td style="color:#888">${SPRINT_CHAMPIONSHIP_POINTS[idx] || 0} pts</td></tr>`;
+            });
+        teamTableSprint += `</tbody></table>`;
+
+        const driversPanelSprint = document.getElementById('tab-drivers-sprint');
+        const constructorsPanelSprint = document.getElementById('tab-constructors-sprint');
+        if (driversPanelSprint) driversPanelSprint.innerHTML = driverTableSprint;
+        if (constructorsPanelSprint) constructorsPanelSprint.innerHTML = teamTableSprint;
+        
+        document.querySelectorAll('.special-championship-only').forEach(el => el.style.display = '');
+    } else {
+        document.querySelectorAll('.special-championship-only').forEach(el => el.style.display = 'none');
+    }
 }
 
 // Tab button click handlers
@@ -661,6 +816,14 @@ window.onload = async () => {
 
     // Update button flag if a circuit is already selected
     updateButtonFlag();
+    
+    // Initialize starting grid display after all data is loaded
+    toggleStartingGrid();
+    
+    // Initialize championship standings if in championship mode
+    if (localStorage.getItem('championshipActive') === 'true') {
+        renderChampionshipStandings();
+    }
 };
 
 // Auto-save before leaving page
@@ -672,6 +835,8 @@ window.addEventListener('beforeunload', () => {
 
 document.getElementById('goToNextPage').addEventListener('click', () => {
     const isChamp = localStorage.getItem('championshipActive') === 'true';
+    const skipQualifying = !isChamp && document.getElementById('skipQualifying')?.checked === true;
+    
     if (isChamp) {
         const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
         const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
@@ -699,13 +864,157 @@ document.getElementById('goToNextPage').addEventListener('click', () => {
     
     const selectedCircuit = localStorage.getItem('selectedCircuit');
     if (selectedCircuit) {
-        window.location.href = 'quali.html';
+        if (skipQualifying) {
+            // Save starting grid before going to race
+            saveStartingGrid();
+            window.location.href = 'race.html';
+        } else {
+            // Clear custom starting grid when doing real qualifying
+            localStorage.removeItem('startingGrid');
+            window.location.href = 'quali.html';
+        }
     } else {
         alert('Select a Grand Prix.');
     }
 });
 
+// Function to populate and manage the starting grid
+function renderStartingGrid() {
+    const gridTableBody = document.getElementById('gridTableBody');
+    if (!gridTableBody) return;
+    
+    const drivers = JSON.parse(localStorage.getItem('selectedDrivers') || '[]');
+    gridTableBody.innerHTML = '';
+    
+    drivers.forEach((driver, index) => {
+        const row = document.createElement('tr');
+        row.draggable = true;
+        row.dataset.gridIndex = index;
+        row.style.cursor = 'grab';
+        
+        const team = teamNames.find(t => t.id === driver.team_id);
+        
+        row.innerHTML = `
+            <td style="text-align:center;font-weight:bold;">${index + 1}</td>
+            <td style="background:${team?.color || '#fff'};color:${team?.color ? '#fff' : '#000'};"></td>
+            <td style="padding-left:5px;">${driver.name}</td>
+            <td>${driver.code}</td>
+            <td>${team?.name || 'N/A'}</td>
+        `;
+        
+        row.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'move';
+            row.style.opacity = '0.5';
+            gridDraggedRow = row;
+        });
+        
+        row.addEventListener('dragend', (e) => {
+            row.style.opacity = '1';
+            gridDraggedRow = null;
+        });
+        
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (row !== gridDraggedRow) {
+                row.style.backgroundColor = '#333';
+            }
+        });
+        
+        row.addEventListener('dragleave', (e) => {
+            row.style.backgroundColor = '';
+        });
+        
+        row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            row.style.backgroundColor = '';
+            
+            if (row !== gridDraggedRow && gridDraggedRow) {
+                // Swap grid positions
+                swapGridRows(gridDraggedRow, row);
+            }
+        });
+        
+        gridTableBody.appendChild(row);
+    });
+}
+
+// Variable to track dragged grid row
+let gridDraggedRow = null;
+
+// Function to swap two rows in the grid
+function swapGridRows(row1, row2) {
+    const drivers = JSON.parse(localStorage.getItem('selectedDrivers') || '[]');
+    const sourceIdx = parseInt(row1.dataset.gridIndex);
+    const destIdx = parseInt(row2.dataset.gridIndex);
+    
+    // Remove the dragged driver from its original position
+    const [movedDriver] = drivers.splice(sourceIdx, 1);
+    
+    // Insert the driver at the destination index
+    // If we dragged down, destIdx is already correct after removal
+    // If we dragged up, we need to adjust
+    const insertIdx = sourceIdx < destIdx ? destIdx - 1 : destIdx;
+    drivers.splice(insertIdx, 0, movedDriver);
+    
+    localStorage.setItem('selectedDrivers', JSON.stringify(drivers));
+    renderStartingGrid();
+}
+
+// Function to generate qualification results for skip qualifying mode
+function generateQualificationResults() {
+    // This is now handled directly in race.js when mapping drivers
+    // No need to do it here - race.js will calculate missing values
+    const drivers = JSON.parse(localStorage.getItem('selectedDrivers') || '[]');
+    localStorage.setItem('drivers', JSON.stringify(drivers));
+    return true;
+}
+
+function saveStartingGrid() {
+    const drivers = JSON.parse(localStorage.getItem('selectedDrivers') || '[]');
+    // Mark that we're using skip qualifying mode
+    generateQualificationResults();
+    localStorage.setItem('startingGrid', JSON.stringify(drivers));
+    // Clear any old qualifying data to avoid conflicts
+    localStorage.removeItem('drivers');
+}
+
+// Function to toggle the starting grid visibility
+function toggleStartingGrid() {
+    const isChampionship = localStorage.getItem('championshipActive') === 'true';
+    const skipQualifyingCheckbox = document.getElementById('skipQualifying');
+    const skipQualifyingContainer = document.getElementById('skipQualifyingContainer');
+    const gridSection = document.getElementById('step-grid');
+    const gridTabBtn = document.querySelector('.gp-tab-btn[data-target="step-grid"]');
+    const goBtn = document.getElementById('goToNextPage');
+    
+    // Show/hide skip qualifying option based on mode
+    if (skipQualifyingContainer) {
+        skipQualifyingContainer.style.display = isChampionship ? 'none' : 'flex';
+    }
+    
+    // Show/hide grid section and tab based on skip qualifying toggle
+    if (skipQualifyingCheckbox && gridSection && gridTabBtn && goBtn) {
+        if (skipQualifyingCheckbox.checked) {
+            gridSection.style.display = '';
+            gridTabBtn.style.display = '';
+            goBtn.textContent = 'Start Race';
+            renderStartingGrid();
+        } else {
+            gridSection.style.display = 'none';
+            gridTabBtn.style.display = 'none';
+            goBtn.textContent = 'Go to Qualifying';
+        }
+    }
+}
+
+// Add event listener to skip qualifying toggle
 document.addEventListener('DOMContentLoaded', function() {
+    const skipQualifyingCheckbox = document.getElementById('skipQualifying');
+    if (skipQualifyingCheckbox) {
+        skipQualifyingCheckbox.addEventListener('change', toggleStartingGrid);
+    }
+    
     // Initialize sprint toggle from localStorage
     const sprintModeCheckbox = document.getElementById('sprintMode');
     if (sprintModeCheckbox) {
@@ -724,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const isChampionship = localStorage.getItem('championshipActive') === 'true';
-    const circuitSection = document.getElementById('step1'); // Le bloc de sélection du circuit
+    const circuitSection = document.getElementById('step1'); // Circuit selection block
 
     if (isChampionship) {
         // Hide the circuit selection tab (circuit is pre-selected from championship)
@@ -735,7 +1044,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show championship standings tabs
         document.querySelectorAll('.championship-only').forEach(el => el.style.display = '');
 
-        // Charger le circuit de la course en cours
+        // Show/hide sprint tabs based on special championship mode
+        const specialMode = localStorage.getItem('championshipSpecialMode') === 'true';
+        document.querySelectorAll('.special-championship-only').forEach(el => {
+            el.style.display = specialMode ? '' : 'none';
+        });
+
+        // Load the current race circuit
         const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
         const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
         const selectedCircuit = races[currentRaceIndex];
@@ -784,24 +1099,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.href = 'gp_select.html';
                     };
                 } else {
-                    // Last race: show "End Championship" button
-                    goBtn.innerHTML = 'End Championship';
+                    // Last race done: go to the end-of-championship recap screen
+                    goBtn.innerHTML = 'Final Results';
                     goBtn.onclick = () => {
-                        localStorage.setItem('championshipActive', 'false');
-                        
-                        // Auto-save before ending
+                        // Keep championshipActive true so the recap screen can read the data;
+                        // the recap screen handles deleting the save when the user is done.
                         if (window.autoSaveChampionship) {
                             window.autoSaveChampionship();
                         }
-                        
-                        alert('Championnat terminé !');
-                        window.location.href = 'index.html';
+                        window.location.href = 'championship_end.html';
                     };
                 }
             }
         }
     } else {
-        // Afficher la sélection du circuit normalement
+        // Show circuit selection normally
         if (circuitSection) circuitSection.style.display = '';
     }
 });

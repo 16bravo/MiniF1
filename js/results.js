@@ -24,10 +24,46 @@ document.addEventListener('DOMContentLoaded', function() {
     races = validPairs.map(p => p.race);
     championshipResults = validPairs.map(p => p.result ?? []);
 
-    const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
-    const POINTS_SPRINT = [8, 7, 6, 5, 4, 3, 2, 1];
+    const DEFAULT_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const DEFAULT_POINTS_SPRINT = [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const SPECIAL_CHAMPIONSHIP_POINTS = Array.from({length: 22}, (_, i) => 22 - i);
+    
+    // Load custom points from championship setup or use defaults
+    let POINTS = [...DEFAULT_POINTS];
+    let POINTS_SPRINT = [...DEFAULT_POINTS_SPRINT];
+    
+    try {
+        const savedPoints = localStorage.getItem('championshipPoints');
+        const savedPointsSprint = localStorage.getItem('championshipPointsSprint');
+        const specialMode = localStorage.getItem('championshipSpecialMode') === 'true';
+        
+        if (savedPoints) {
+            POINTS = JSON.parse(savedPoints);
+            // Ensure we have 22 positions (handle migration from old system)
+            while (POINTS.length < DEFAULT_POINTS.length) {
+                POINTS.push(0);
+            }
+        }
+        
+        if (specialMode) {
+            // Use special championship points for sprint races
+            POINTS_SPRINT = [...SPECIAL_CHAMPIONSHIP_POINTS];
+        } else if (savedPointsSprint) {
+            POINTS_SPRINT = JSON.parse(savedPointsSprint);
+            // Ensure we have 22 positions (handle migration from old system)
+            while (POINTS_SPRINT.length < DEFAULT_POINTS_SPRINT.length) {
+                POINTS_SPRINT.push(0);
+            }
+        }
 
-    // Liste des pilotes et équipes
+        // Sprint race points are fixed for now: 8,7,6,5,4,3,2,1 then 0. Ignore any saved/legacy scale.
+        POINTS_SPRINT = [...DEFAULT_POINTS_SPRINT];
+    } catch(e) {
+        console.error('Error loading championship points:', e);
+        // Falls back to defaults
+    }
+
+    // List of drivers and teams
     let allDrivers = {};
     let allTeams = {};
     championshipResults.forEach(race => {
@@ -37,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Tableau des points par pilote et par course
+    // Points table per driver and per race
     let driverPointsTable = {};
     let teamPointsTable = {};
     races.forEach((race, raceIdx) => {
@@ -45,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Determine if this race is sprint or normal
         const pointsScale = race.isSprintRace ? POINTS_SPRINT : POINTS;
         
-        // Pilotes
+        // Drivers
         results
             .filter(d => d.state !== "out")
             .sort((a, b) => b.totalLength - a.totalLength)
@@ -53,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!driverPointsTable[driver.code]) driverPointsTable[driver.code] = Array(races.length).fill(0);
                 driverPointsTable[driver.code][raceIdx] = pointsScale[idx] || 0;
             });
-        // Constructeurs
+        // Constructors
         Object.values(allTeams).forEach(team => {
             if (!teamPointsTable[team]) teamPointsTable[team] = Array(races.length).fill(0);
         });
@@ -65,9 +101,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    // Affichage du tableau pilotes
+    // Display driver standings table
     const standingsDiv = document.getElementById('championship-standings');
-    let driverTable = `<table><thead><tr><th>Rang</th><th>Drivers</th>`;
+    let driverTable = `<table><thead><tr><th>Rank</th><th>Drivers</th>`;
     races.forEach(r => driverTable += `<th>${r.circuit}</th>`);
     driverTable += `<th>Total</th></tr></thead><tbody>`;
     Object.entries(driverPointsTable)
@@ -79,8 +115,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     driverTable += `</tbody></table>`;
 
-    // Affichage du tableau constructeurs
-    let teamTable = `<table><thead><tr><th>Rang</th><th>Constructors</th>`;
+    // Display constructor standings table
+    let teamTable = `<table><thead><tr><th>Rank</th><th>Constructors</th>`;
     races.forEach(r => teamTable += `<th>${r.circuit}</th>`);
     teamTable += `<th>Total</th></tr></thead><tbody>`;
     Object.entries(teamPointsTable)
@@ -105,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Gestion des boutons
+    // Button handling
     const nextBtn = document.getElementById('nextRaceBtn');
     const endBtn = document.getElementById('endChampionshipBtn');
     const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');

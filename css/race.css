@@ -531,6 +531,7 @@ td {
     width: 90px;
     text-align: right;
     z-index: 100;
+    font-size: 0.9em;
 }
 
 #clock {
@@ -618,7 +619,8 @@ i,
     right: 50px;
 }
 
-#championshipResultsBtn {
+#championshipResultsBtn,
+.raceEndBtn {
     position: fixed;
     bottom: 30px;
     right: 30px;
@@ -634,7 +636,8 @@ i,
     transition: background 0.2s;
 }
 
-#championshipResultsBtn:hover {
+#championshipResultsBtn:hover,
+.raceEndBtn:hover {
     background: #fff;
     color: #e00;
 }

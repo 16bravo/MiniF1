@@ -1,6 +1,23 @@
 // SESSION.JS
 // Qualification session management and progression
 
+// Helper function to generate sprint race grid by inverting top 10
+function generateSprintGridHelper(currentRanking) {
+    if (!Array.isArray(currentRanking) || currentRanking.length === 0) {
+        return currentRanking;
+    }
+    
+    // Extract top 10 and rest (P11+)
+    const top10 = currentRanking.slice(0, 10);
+    const rest = currentRanking.slice(10);
+    
+    // Invert top 10: P1→P10, P2→P9, etc.
+    const invertedTop10 = top10.reverse();
+    
+    // Combine inverted top 10 + rest
+    return [...invertedTop10, ...rest];
+}
+
 // Function to reset qualifier times at the start of a new session
 function resetQualifiers() {
     ranking.forEach(driver => {
@@ -51,7 +68,46 @@ function advanceSession() {
 function showRaceButton() {
     // Final sort of all 20 drivers based on their best time
     ranking.sort((a, b) => (a.bestTime || Infinity) - (b.bestTime || Infinity));
-    localStorage.setItem('drivers', JSON.stringify(ranking));
+    
+    const isChampionship = localStorage.getItem('championshipActive') === 'true';
+    const specialMode = localStorage.getItem('championshipSpecialMode') === 'true';
+    
+    // Determine if the race we're about to run is a sprint.
+    // Default: keep whatever was already set (GP-select toggle / championship overview).
+    let isNextRaceSprint = localStorage.getItem('isSprint') === 'true';
+    if (isChampionship) {
+        const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
+        const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
+        isNextRaceSprint = specialMode
+            ? (currentRaceIndex % 2 === 0)                // special mode: races alternate sprint/feature
+            : !!(races[currentRaceIndex] && races[currentRaceIndex].isSprintRace); // classic: read the flag
+    }
+    
+    // Store feature race grid (original qualification order)
+    localStorage.setItem('featureGrid', JSON.stringify(ranking));
+    
+    // In Special Championship Mode, generate sprint grid
+    let gridToUse = ranking;
+    if (isChampionship && specialMode) {
+        const lastSprintResults = JSON.parse(localStorage.getItem('lastSprintResults') || '[]');
+        
+        if (lastSprintResults.length > 0) {
+            // Use previous sprint results (inverted) for this GP's sprint
+            gridToUse = generateSprintGridHelper(lastSprintResults);
+            console.log('Sprint grid generated from LAST GP sprint results - top 10 inverted');
+            // Clear lastSprintResults after using it
+            localStorage.removeItem('lastSprintResults');
+        } else {
+            // First GP: use current qualification results (inverted)
+            gridToUse = generateSprintGridHelper(ranking);
+            console.log('Sprint grid generated from qualification - top 10 inverted (first GP)');
+        }
+        
+        localStorage.setItem('sprintGrid', JSON.stringify(gridToUse));
+    }
+    
+    localStorage.setItem('drivers', JSON.stringify(gridToUse));
+    localStorage.setItem('isSprint', isNextRaceSprint.toString());
 
     // Auto-save championship if active
     if (window.autoSaveChampionship) {
@@ -61,7 +117,8 @@ function showRaceButton() {
     // Create button
     const button = document.createElement('button');
     button.id = 'raceButton';
-    button.innerText = 'Go to Race';
+    // In Special Mode, go to sprint; otherwise go to race
+    button.innerText = (isChampionship && specialMode) ? 'Go to Sprint' : 'Go to Race';
 
     // Add click event to redirect to race.html
     button.addEventListener('click', () => {

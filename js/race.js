@@ -3,6 +3,35 @@
 // Uses modules: utils, weather, tires, physics, ranking, flags, pits, drs, animation, recording, simulation
 
 // =====================================================
+// SPRINT GRID GENERATION (for Special Championship Mode)
+// =====================================================
+
+/**
+ * Generate sprint race grid by inverting top 10 of qualifying/previous sprint
+ * Handles missing drivers and newcomers
+ * @param {Array} currentRanking - Current ranking from quali or previous sprint
+ * @returns {Array} - New grid with inverted top 10
+ */
+function generateSprintGrid(currentRanking) {
+    if (!Array.isArray(currentRanking) || currentRanking.length === 0) {
+        return currentRanking;
+    }
+    
+    // Extract top 10 and rest (P11+)
+    const top10 = currentRanking.slice(0, 10);
+    const rest = currentRanking.slice(10);
+    
+    // Invert top 10: P1→P10, P2→P9, etc.
+    const invertedTop10 = top10.reverse();
+    
+    // Combine inverted top 10 + rest
+    const newGrid = [...invertedTop10, ...rest];
+    
+    console.log('Sprint grid generated - top 10 inverted');
+    return newGrid;
+}
+
+// =====================================================
 // GLOBAL VARIABLES (accessible to all modules)
 // =====================================================
 
@@ -18,6 +47,11 @@ const MAX_WEATHER_FRAMES = 12600; // 3h30 weather simulation duration
 let rainCurve = []; // Rain intensity curve for the race
 let trackWaterCurve = []; // Track water accumulation curve
 let rainyRace = false; // Flag for mandatory wet pit stops
+// Weather regime: rain-tyre strategy is (re)decided ONLY when this flips, then latched.
+// Continuously recomputing a tyre target from the live forecast made midfield cars
+// ping-pong between compounds and pit every few seconds.
+let weatherRegime = 'dry';           // 'dry' | 'wet'
+let weatherRegimeChangedFrame = -1;  // frame of the last regime change (drivers replan then)
 let grip = 0.75; // Current track grip (0-1, updated each frame)
 let gripFactor = (1 / (1 + Math.exp(-10 * (grip - 0.5))) * 0.2) + 0.8; // Grip performance multiplier
 
@@ -30,6 +64,12 @@ let redFlagClassification = null; // Driver order saved under red flag for resta
 // DRS (Drag Reduction System)
 let drsEnabled = false; // DRS disabled by default
 
+// CUMULATIVE DAMAGE TRACKING
+let cumulativeDamage = 0;      // Total damage accumulated in current window
+let damageWindowStartFrame = 0; // Frame when current damage window started
+const DAMAGE_WINDOW = 300;      // Track damage over 300 frames
+const DAMAGE_RED_FLAG_THRESHOLD = 2.5; // Red flag if damage > 2.5
+
 // PIT STRATEGY
 const MANDATORY_PITS = 1; // Mandatory pit stops (0 if rainy race)
 let weatherForecast = []; // Pre-computed forecast {max, avg} per frame
@@ -38,7 +78,8 @@ let weatherForecast = []; // Pre-computed forecast {max, avg} per frame
 const selectedCircuit = JSON.parse(localStorage.getItem('selectedCircuit'));
 let baseLapTime, country, grandPrix, circuit, overtaking, difficulty;
 if (selectedCircuit) {
-    baseLapTime = selectedCircuit.length / ((selectedCircuit.speed * 1000) / 3600);
+    // Same formula as quali.js (speed is a km/h-ish figure; the 1015 factor keeps both in sync)
+    baseLapTime = selectedCircuit.length / ((selectedCircuit.speed * 1015) / 3600);
     country = selectedCircuit.country;
     grandPrix = selectedCircuit.grandPrix;
     circuit = selectedCircuit.circuit;
@@ -53,40 +94,128 @@ if (selectedCircuit) {
 }
 
 // DRIVERS DATA
-const driversData = JSON.parse(localStorage.getItem('drivers'));
+const isChampionship = localStorage.getItem('championshipActive') === 'true';
+const specialMode = localStorage.getItem('championshipSpecialMode') === 'true';
+const isSprint = localStorage.getItem('isSprint') === 'true';
+
+let driversData = [];
+
+// In Special Championship Mode, load correct grid based on race type
+if (isChampionship && specialMode) {
+    if (isSprint) {
+        // Sprint race: load sprint grid (inverted top 10)
+        const sprintGrid = JSON.parse(localStorage.getItem('sprintGrid') || '[]');
+        if (sprintGrid.length > 0) {
+            driversData = sprintGrid;
+            console.log('Sprint race: loaded sprintGrid (inverted top 10)');
+        }
+    } else {
+        // Feature race: load feature grid (original qualification order)
+        const featureGrid = JSON.parse(localStorage.getItem('featureGrid') || '[]');
+        if (featureGrid.length > 0) {
+            driversData = featureGrid;
+            console.log('Feature race: loaded featureGrid (original qualification)');
+        }
+    }
+} else if (isChampionship) {
+    // Standard championship mode
+    driversData = JSON.parse(localStorage.getItem('drivers') || '[]');
+} else {
+    // Simple GP mode: prioritize custom starting grid over old qualifying data
+    const startingGrid = JSON.parse(localStorage.getItem('startingGrid') || '[]');
+    const driversFromQualif = JSON.parse(localStorage.getItem('drivers') || '[]');
+    
+    if (startingGrid.length > 0) {
+        // Custom starting grid takes priority (skip qualifying mode)
+        driversData = startingGrid;
+        console.log('Using custom starting grid from skip qualifying mode');
+    } else if (driversFromQualif.length > 0) {
+        // Use qualifying results if available
+        driversData = driversFromQualif;
+        console.log('Using drivers from qualification results');
+    } else {
+        // Fallback to selected drivers
+        driversData = JSON.parse(localStorage.getItem('selectedDrivers') || '[]');
+        console.log('Using default selected drivers');
+    }
+}
+
 let drivers = [];
 let nb_driver; // Will be set after loading drivers
 
-if (driversData) {
-    drivers = driversData.map(driver => ({
-        name: driver.name,
-        code: driver.code,
-        team: driver.team,
-        team_id: driver.team_id,
-        color: driver.color,
-        image: driver.image,
-        driverLevel: driver.driverLevel,
-        level: driver.level,
-        speed: 1,
-        totalLength: 0,
-        reliability: driver.reliability,
-        crashProne: driver.crashProne || 50,
-        state: 'racing',
-        tire: dryChoices[Math.floor(Math.random() * dryChoices.length)],
-        startingTire: null, // Set below (same as tire)
-        tireState: 1,
-        carState: 1,
-        fuel: 100 + Math.round(Math.random() * 10),
-        mode: 'agressive',
-        aggression: driver.aggression || 85,
-        tireManagement: driver.tireManagement || 85,
-        crashRisk: 0,
-        crossingLine: false,
-        pitStops: 0,
-        pitTimer: 0,
-        waitingForRain: false, // Strategy: waiting for rain to pit
-        rainTireTarget: null   // Strategy: target rain tire ('W' or 'I')
-    }));
+if (driversData && driversData.length > 0) {
+    // Pre-calculate circuit stats for missing data
+    const circuitFastSpeed = selectedCircuit?.fastSpeed / 100 || 0.4;
+    const circuitFastCorners = selectedCircuit?.fastCorners / 100 || 0.3;
+    const circuitSlowCorners = selectedCircuit?.slowCorners / 100 || 0.3;
+    const circuitTotalStats = circuitFastSpeed + circuitFastCorners + circuitSlowCorners;
+    
+    drivers = driversData.map((driver, gridIndex) => {
+        // Calculate missing circuit stats if needed
+        const driverCircuitStats = driver.circuitStats ||
+            (circuitFastSpeed * (driver.teamSPD || 0.5) +
+             circuitFastCorners * (driver.teamFS || 0.5) + 
+             circuitSlowCorners * (driver.teamSS || 0.5));
+        
+        const driverTotalCircuitStats = driver.totalCircuitStats || circuitTotalStats;
+        
+        const driverLevel = driver.level || 
+            ((driver.driverLevel || 50) / 100) * (driverCircuitStats / driverTotalCircuitStats);
+        
+        return {
+            name: driver.name,
+            code: driver.code,
+            // Grid slot = index in the (quali-ordered) driver list; kept in the saved
+            // results so the championship archive can compute poles / best qualifying.
+            startPosition: driver.startPosition || (gridIndex + 1),
+            team: driver.team,
+            team_id: driver.team_id,
+            color: driver.color,
+            image: driver.image,
+            driverLevel: driver.driverLevel,
+            level: driverLevel,
+            circuitStats: driverCircuitStats,
+            totalCircuitStats: driverTotalCircuitStats,
+            speed: 1,
+            totalLength: 0,
+            reliability: driver.reliability || (driver.teamFB || 85),
+            crashProne: driver.crashProne || 50,
+            state: 'racing',
+            // Use tire from qualification data if available, otherwise random
+            tire: driver.currentTire ? (driver.currentTire === 'S' ? 'S' : (driver.currentTire === 'M' ? 'M' : 'H')) : dryChoices[Math.floor(Math.random() * dryChoices.length)],
+            startingTire: null, // Set below (same as tire)
+            tireState: 1,
+            carState: 1,
+            fuel: 100 + Math.round(Math.random() * 10),
+            mode: 'agressive',
+            aggression: driver.aggression || 85,
+            tireManagement: driver.tireManagement || 85,
+            crashRisk: 0,
+            crossingLine: false,
+            pitStops: 0,
+            pitTimer: 0,
+            waitingForRain: false, // Strategy: waiting for rain to pit
+            rainTireTarget: null,  // Strategy: target rain tire ('W' or 'I')
+            wetTarget: null,             // Latched rain-tyre plan ('W' / 'I' / null)
+            wetDecidedRegimeFrame: -1,   // Which weather-regime change this plan was made for
+            lastPitExitFrame: -1,        // Frame the driver last left the pits (decision cooldown)
+            overtakeCooldown: 0          // Frames until this driver may attempt another pass
+        };
+    });
+    
+    // SPRINT RACE: Reset driver states to fresh (except for grid order)
+    if (isChampionship && specialMode && isSprint) {
+        drivers.forEach(driver => {
+            driver.tireState = 1; // Fresh tires
+            driver.carState = 1;  // Fresh car
+            driver.totalLength = 0; // Reset position
+            driver.speed = 0;
+            driver.pitStops = 0;
+            driver.state = "racing";
+            console.log(`${driver.name}: Reset to fresh state for sprint race`);
+        });
+    }
+    
     drivers.forEach(d => { d.startingTire = d.tire; }); // Track starting compound
     nb_driver = drivers.length; // Set nb_driver from actual driver count
     console.log("Drivers loaded:", drivers.length);

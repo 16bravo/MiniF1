@@ -101,9 +101,10 @@ body {
 }
 
 .race-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 16px 22px minmax(0, 1fr) 58px 24px max-content;
     align-items: center;
-    gap: 12px;
+    column-gap: 10px;
     padding: 8px 14px;
     margin-bottom: 4px;
     background: #111;
@@ -132,9 +133,9 @@ body {
 .drag-handle {
     color: #333;
     font-size: 1.1em;
+    line-height: 1;
     cursor: grab;
-    padding: 0 2px;
-    flex-shrink: 0;
+    text-align: center;
     transition: color 0.1s;
     user-select: none;
 }
@@ -146,9 +147,8 @@ body {
 .race-num {
     font-size: 0.8em;
     color: #444;
-    width: 24px;
-    text-align: right;
-    flex-shrink: 0;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
 }
 
 .race-name {
@@ -161,18 +161,68 @@ body {
     text-overflow: ellipsis;
 }
 
+/* Editable GP name — selector kept specific to beat the global input[type=text] rule */
+.race-row input.race-name-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 0.95em;
+    font-weight: bold;
+    text-align: left;
+    color: #ffffff;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 4px 6px;
+}
+
+.race-row input.race-name-input:hover {
+    border-color: #2a2a2a;
+}
+
+.race-row input.race-name-input:focus {
+    outline: none;
+    border-color: #e10600;
+    background: #0d0d0d;
+}
+
+/* Editable short code */
+.race-row input.race-code-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 0.8em;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+    color: #aaaaaa;
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    border-radius: 3px;
+    padding: 4px 2px;
+}
+
+.race-row input.race-code-input:focus {
+    outline: none;
+    border-color: #e10600;
+    color: #ffffff;
+    background: #0d0d0d;
+}
+
 .race-country {
+    width: 24px;
     height: 16px;
-    width: auto;
-    flex-shrink: 0;
-    opacity: 0.8;
+    object-fit: contain;
+    justify-self: center;
+    opacity: 0.85;
     border-radius: 2px;
 }
 
 .race-actions {
     display: flex;
     gap: 4px;
-    flex-shrink: 0;
+    align-items: center;
 }
 
 .btn-move {
@@ -348,4 +398,248 @@ body {
 .btn-reinit:hover {
     color: #888;
     border-color: #555;
+}
+
+/* ---- Tabs Navigation ---- */
+#setup-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 40px;
+    border-bottom: 1px solid #1e1e1e;
+    background: #0d0d0d;
+    position: sticky;
+    top: 69px;
+    z-index: 5;
+}
+
+.setup-tab-btn {
+    padding: 12px 24px;
+    font-size: 0.9em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+    background: transparent;
+    color: #666;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-bottom-color 0.15s;
+    font-weight: bold;
+}
+
+.setup-tab-btn:hover {
+    color: #aaa;
+}
+
+.setup-tab-btn.active {
+    color: #ffffff;
+    border-bottom-color: #e10600;
+}
+
+/* ---- Tab Content ---- */
+.setup-tab-content {
+    display: none;
+}
+
+.setup-tab-content.active {
+    display: block;
+}
+
+#races-tab {
+    padding: 4px 0 0 0;
+}
+
+/* ---- Settings Controls ---- */
+#settings-controls {
+    margin-bottom: 30px;
+}
+
+.settings-control-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 4px;
+}
+
+.settings-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.settings-toggle-label input[type="checkbox"] {
+    display: none;
+}
+
+.settings-toggle-slider {
+    position: relative;
+    width: 48px;
+    height: 24px;
+    background: #2a2a2a;
+    border-radius: 12px;
+    border: 1px solid #3a3a3a;
+    transition: background 0.3s, border-color 0.3s;
+    flex-shrink: 0;
+}
+
+.settings-toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #666;
+    border-radius: 10px;
+    transition: left 0.3s, background 0.3s;
+}
+
+.settings-toggle-label input[type="checkbox"]:checked + .settings-toggle-slider {
+    background: #e10600;
+    border-color: #e10600;
+}
+
+.settings-toggle-label input[type="checkbox"]:checked + .settings-toggle-slider::after {
+    left: 24px;
+    background: #ffffff;
+}
+
+.settings-toggle-text {
+    font-size: 0.95em;
+    letter-spacing: 0.05em;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.settings-toggle-desc {
+    font-size: 0.8em;
+    color: #888;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-left: auto;
+}
+
+/* ---- Points Configuration ---- */
+#points-tab {
+    padding: 30px 40px 120px 40px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.points-table {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.points-table-header {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr;
+    gap: 0;
+    background: #1a1a1a;
+    border-bottom: 2px solid #e10600;
+    padding: 12px;
+    font-size: 0.9em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.points-table-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid #1e1e1e;
+    padding: 10px 12px;
+    align-items: center;
+}
+
+.points-table-row:last-child {
+    border-bottom: none;
+}
+
+.points-table-row:hover {
+    background: #161616;
+}
+
+.points-col-position {
+    font-size: 0.95em;
+    color: #888;
+    font-weight: bold;
+    padding-right: 12px;
+    text-align: right;
+}
+
+.points-col-feature,
+.points-col-sprint {
+    display: flex;
+    justify-content: center;
+}
+
+.points-col-feature input,
+.points-col-sprint input {
+    width: 60px;
+    padding: 8px 10px;
+    font-size: 0.95em;
+    background: #1e1e1e;
+    color: #e10600;
+    border: 1px solid #2a2a2a;
+    border-radius: 3px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+/* Remove number input spinners (up/down arrows) */
+.points-col-feature input::-webkit-outer-spin-button,
+.points-col-feature input::-webkit-inner-spin-button,
+.points-col-sprint input::-webkit-outer-spin-button,
+.points-col-sprint input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.points-col-feature input[type=number],
+.points-col-sprint input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.points-col-feature input:hover,
+.points-col-sprint input:hover {
+    border-color: #3a3a3a;
+}
+
+.points-col-feature input:focus,
+.points-col-sprint input:focus {
+    outline: none;
+    border-color: #e10600;
+    background: #252525;
+}
+
+#reset-points-btn {
+    padding: 10px 24px;
+    font-size: 0.85em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'Pixel Operator', 'Gill Sans', sans-serif;
+    font-weight: bold;
+    background: transparent;
+    color: #e10600;
+    border: 1px solid #e10600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+#reset-points-btn:hover {
+    background: #e10600;
+    color: #000;
 }

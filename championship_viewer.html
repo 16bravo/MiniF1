@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniF1 - Championship Archive</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/results.css">
+    <link rel="stylesheet" href="css/championship_viewer.css">
+    <link rel="stylesheet" href="css/home-button.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="page-header">
+        <h1>Championship Archive</h1>
+        <div id="header-actions">
+            <button id="downloadImgBtn" hidden>Download Image (PNG)</button>
+            <button id="loadAnotherBtn" hidden>Load Another File</button>
+        </div>
+    </div>
+
+    <div id="upload-section">
+        <p>Open a championship exported from the end-of-season recap screen
+           (<code>minif1_championship_*.json</code>).</p>
+        <input type="file" id="fileInput" accept=".json,application/json">
+        <button id="loadBtn">Open</button>
+        <div id="loadError" class="load-error" hidden></div>
+    </div>
+
+    <div id="viewer" hidden>
+        <div id="meta"></div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="standings">Standings</button>
+            <button class="tab-btn" data-tab="races">Races</button>
+            <button class="tab-btn" data-tab="stats">Stats</button>
+            <button class="tab-btn" data-tab="progression">Points Progression</button>
+            <button class="tab-btn" data-tab="recap">Recap Image</button>
+        </div>
+
+        <div id="tab-standings" class="tab-panel active">
+            <h3>Drivers</h3>
+            <div id="standings-drivers"></div>
+            <h3>Constructors</h3>
+            <div id="standings-constructors"></div>
+        </div>
+
+        <div id="tab-races" class="tab-panel">
+            <div><select id="raceSelect"></select></div>
+            <div id="raceResult"></div>
+        </div>
+
+        <div id="tab-stats" class="tab-panel">
+            <div id="statsGridNote" class="chart-note" hidden></div>
+            <h3>Drivers</h3>
+            <div class="stats-scroll"><div id="stats-drivers"></div></div>
+            <h3>Constructors</h3>
+            <div class="stats-scroll"><div id="stats-constructors"></div></div>
+        </div>
+
+        <div id="tab-progression" class="tab-panel">
+            <div class="chart-controls">
+                <label><input type="radio" name="progMode" value="drivers" checked> Drivers</label>
+                <label><input type="radio" name="progMode" value="constructors"> Constructors</label>
+            </div>
+            <div class="chart-wrap"><canvas id="progressionCanvas"></canvas></div>
+            <div class="chart-note">Cumulative championship points. Up to 10 entries shown for readability.</div>
+        </div>
+
+        <div id="tab-recap" class="tab-panel">
+            <canvas id="recapCanvas" width="1000" height="1400"></canvas>
+        </div>
+    </div>
+
+    <script src="js/home-button.js"></script>
+    <script src="js/championship_common.js"></script>
+    <script src="js/championship_viewer.js"></script>
+</body>
+</html>

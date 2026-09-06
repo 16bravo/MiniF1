@@ -7,15 +7,23 @@ function computeFrontsForAll() {
     const positions = drivers.map(driver => driver.totalLength % circuitLength);
     const laps = drivers.map(driver => Math.floor(driver.totalLength / circuitLength));
 
-    // Sort drivers by position on circuit (ascending order = least advanced first)
+    // Only cars still on track count. A retired car (state "out") is treated as
+    // removed immediately: it keeps its frozen distance in the classification
+    // (and is passed once others go further) but is no longer an obstacle that
+    // other drivers follow, defend against or get blocked behind.
     const posArray = positions.map((pos, i) => ({
         index: i,
         pos,
         lap: laps[i]
-    })).sort((a, b) => a.pos - b.pos);
+    })).filter(o => drivers[o.index].state !== "out")
+      .sort((a, b) => a.pos - b.pos);
 
-    // For each driver, find who is in front
+    // Default: nobody in front (covers retired cars and the lone-runner case)
     const fronts = new Array(nb_driver);
+    for (let i = 0; i < nb_driver; i++) {
+        fronts[i] = { frontIndex: null, gapMetersTrack: Infinity, sameLap: false };
+    }
+    if (posArray.length < 2) return fronts;
 
     for (let myRank = 0; myRank < posArray.length; myRank++) {
         const myPosObj = posArray[myRank];

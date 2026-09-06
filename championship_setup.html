@@ -19,8 +19,34 @@
         </div>
     </div>
 
+    <div id="setup-tabs">
+        <button class="setup-tab-btn active" data-tab="races-tab">Races</button>
+        <button class="setup-tab-btn" data-tab="points-tab">Settings</button>
+    </div>
+
     <div id="setup-body">
-        <ul id="selected-races"></ul>
+        <!-- Races Tab -->
+        <div id="races-tab" class="setup-tab-content active">
+            <ul id="selected-races"></ul>
+        </div>
+
+        <!-- Points Configuration Tab -->
+        <div id="points-tab" class="setup-tab-content">
+            <!-- Special Championship Mode temporarily disabled (pending reimplementation).
+                 Kept in the DOM so championship_setup.js keeps working; hidden from users. -->
+            <div id="settings-controls" hidden>
+                <div class="settings-control-group">
+                    <label class="settings-toggle-label">
+                        <input type="checkbox" id="special-championship-toggle" />
+                        <span class="settings-toggle-slider"></span>
+                        <span class="settings-toggle-text">Special Championship Mode</span>
+                    </label>
+                    <span class="settings-toggle-desc">Sprint races: 22 → 1 points</span>
+                </div>
+            </div>
+            <div id="points-container"></div>
+            <button id="reset-points-btn" class="btn-reset-points">Reset to Defaults</button>
+        </div>
     </div>
 
     <div id="setup-footer">

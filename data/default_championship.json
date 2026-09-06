@@ -1,0 +1,28 @@
+{
+  "note": "Default championship calendar for a new championship (championship_setup.html). One line per Grand Prix. 'circuit' must match a 'circuit' code in data/circuits.json and picks the track (layout, weather, difficulty…). 'name' and 'code' are DISPLAY ONLY - the GP name and the 3-letter tag shown in menus, standings and the archive; they never change which track is raced. Add \"sprint\": true for a sprint weekend (a sprint race is inserted before that GP). Reorder / add / remove lines freely. If 'name' or 'code' is omitted, the value from circuits.json is used.",
+  "races": [
+    { "circuit": "AUS", "name": "Australia", "code": "AUS" },
+    { "circuit": "CHI", "name": "China", "code": "CHN", "sprint": true },
+    { "circuit": "JPN", "name": "Japan", "code": "JPN" },
+    { "circuit": "MIA", "name": "Miami", "code": "MIA", "sprint": true },
+    { "circuit": "CAN", "name": "Canada", "code": "CAN", "sprint": true },
+    { "circuit": "MCO", "name": "Monaco", "code": "MCO" },
+    { "circuit": "ESP", "name": "Barcelona-Catalunya", "code": "BAR" },
+    { "circuit": "AUT", "name": "Austria", "code": "AUT" },
+    { "circuit": "GBR", "name": "Great-Britain", "code": "GBR", "sprint": true },
+    { "circuit": "BEL", "name": "Belgium", "code": "BEL", "sprint": true },
+    { "circuit": "HUN", "name": "Hungary", "code": "HUN" },
+    { "circuit": "NED", "name": "Netherlands", "code": "NED", "sprint": true },
+    { "circuit": "ITA", "name": "Italy", "code": "ITA" },
+    { "circuit": "VAL", "name": "Spain", "code": "SPA" },
+    { "circuit": "AZE", "name": "Azerbaijan", "code": "AZE" },
+    { "circuit": "MAL", "name": "Bahrain", "code": "BAH" },
+    { "circuit": "SIN", "name": "Singapore", "code": "SIN", "sprint": true },
+    { "circuit": "USA", "name": "United States", "code": "USA" },
+    { "circuit": "MEX", "name": "Mexico", "code": "MEX" },
+    { "circuit": "BRA", "name": "São Paulo", "code": "SPL" },
+    { "circuit": "LVG", "name": "Las Vegas", "code": "LVG" },
+    { "circuit": "QAT", "name": "Qatar", "code": "QAT" },
+    { "circuit": "UAE", "name": "Abu Dhabi", "code": "ABU" }
+  ]
+}

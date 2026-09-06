@@ -1,6 +1,6 @@
 // REPLAY_ANIMATION.JS
-// Reprend les positions enregistrées de race.js
-// Pas de recalcul, juste de l'affichage des positions
+// Reads back positions recorded by race.js
+// No recalculation, just displays recorded positions
 
 const ReplayAnimation = (() => {
     const TIRES = {
@@ -34,9 +34,9 @@ const ReplayAnimation = (() => {
         if (!positions) return;
 
         const metadata = RaceReplay.getMetadata();
-        loadDriverImages(metadata); // Charge les images au premier appel
+        loadDriverImages(metadata); // Load images on first call
         
-        const Y_COEFFICIENT = 0.5; // Adapter à 75% de hauteur
+        const Y_COEFFICIENT = 0.5; // Adjusted to 75% height
         
         for (let i = 0; i < metadata.di.length; i++) {
             // Apply recorded positions directly
@@ -65,13 +65,28 @@ const ReplayAnimation = (() => {
                 tyElem.style.top = (positions.typy[i] * Y_COEFFICIENT) + 'px';
             }
 
-            // Update tire display
+            // Update tire / state display.
+            // The recorder stores tire and state as numbers (see state_mappings.js) so they
+            // graph nicely in the debug charts; for the on-screen replay we convert them back
+            // to their letter / label form here.
             const driverState = RaceReplay.getDriverStateAtFrame(i, frameIndex);
-            if (driverState && tyElem) {
-                tyElem.textContent = driverState.tire;
-                tyElem.style.color = TIRES[driverState.tire]?.color || '#fff';
-                tyElem.style.fontWeight = "bold";
-                tyElem.style.fontSize = "18px";
+            if (driverState) {
+                const tireLetter = typeof driverState.tire === 'number' && typeof unmapTire === 'function'
+                    ? unmapTire(driverState.tire)
+                    : driverState.tire;
+                if (tyElem) {
+                    tyElem.textContent = tireLetter;
+                    tyElem.style.color = TIRES[tireLetter]?.color || '#fff';
+                    tyElem.style.fontWeight = "bold";
+                    tyElem.style.fontSize = "18px";
+                }
+
+                // Dim retired cars, like the live race view does
+                const stateLabel = typeof driverState.state === 'number' && typeof unmapState === 'function'
+                    ? unmapState(driverState.state)
+                    : driverState.state;
+                const opacity = stateLabel === 'out' ? '0.4' : '1';
+                [pLElem, pXElem, tElem, tyElem].forEach(el => { if (el) el.style.opacity = opacity; });
             }
 
             // Update driver code color

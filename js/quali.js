@@ -15,7 +15,7 @@ let currentTrackWater = 0;
 let forecastTrackWater = 0;
 let currentFrame = 0;
 let flagTimer = 0;
-let grip = 0.75;
+let grip = 0.83;
 let trackState = "green";
 let rainCurve = [];
 let trackWaterCurve = [];
@@ -143,6 +143,8 @@ document.addEventListener("DOMContentLoaded", function() {
         teamSS: driver.teamSS,
         reliability: driver.teamFB,
         level: (driver.driverLevel/100) * ((fastSpeed*driver.teamSPD + fastCorners*driver.teamFS + slowCorners*driver.teamSS)/totalCircuit),
+        circuitStats: (fastSpeed*driver.teamSPD + fastCorners*driver.teamFS + slowCorners*driver.teamSS),
+        totalCircuitStats: totalCircuit,
         lastTime: null,
         bestTime: 1000,
         displayBestTime: null,
