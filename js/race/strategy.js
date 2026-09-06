@@ -312,6 +312,9 @@ function evaluateRaceMode(driver, ctx) {
     if (flagState === "yellow" || flagState === "safetycar" || flagState === "red") {
         return "gestion";                                     // no overtaking anyway
     }
+    if ((driver.carPerf || 1) < 0.6) {
+        return "gestion";                                     // too hobbled to fight - don't even defend
+    }
     if (tyre < 0.28 && fracLeft > 0.15 && !(behind > 0 && behind < defendReach)) {
         return "gestion";                                     // tyres nearly gone: nurse them (unless actively defending)
     }

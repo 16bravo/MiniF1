@@ -293,11 +293,25 @@ function frame(interval) {
                 // Approaching gets progressively harder (dirty air + defence); once
                 // right on the gearbox the attacker commits to a move (resolveOvertakeAttempt).
                 const defender = frontIndex !== null ? drivers[frontIndex] : null;
-                const defenderRacing = defender &&
-                    (defender.state === "racing" || defender.state === "box") &&
-                    defender.carState >= 0.5 && defender.tireState >= 0.5;
+                const defenderOnTrack = defender &&
+                    (defender.state === "racing" || defender.state === "box");
+                // A real rival: healthy and roughly on the follower's pace. Anything
+                // slower (limping, badly damaged) is an obstacle, not a rival.
+                const defenderOnPace = defenderOnTrack &&
+                    defender.carState >= 0.5 && defender.tireState >= 0.5 &&
+                    defender.speed >= 0.80 * expectedSpeed;
 
-                if (gapMetersTrack < 300 && gapMetersTrack > 0 && pos > 0 && defenderRacing && sameLap) {
+                const inRange = gapMetersTrack < 300 && gapMetersTrack > 0 && pos > 0 && sameLap;
+
+                if (inRange && defenderOnTrack && !defenderOnPace) {
+                    // Slow car in the way: it costs a little time to get past but it
+                    // is not defending - no dirty-air battle, no risky lunge.
+                    const near = 1 - gapMetersTrack / 300;
+                    const nuisance = near * near * 0.06;                 // ~6% only when right on top of it
+                    driver.speed = Math.max(defender.speed, expectedSpeed * (1 - nuisance));
+                    driver.totalLength = driverLengthBefore + driver.speed * 4000/180;
+
+                } else if (inRange && defenderOnPace) {
                     const proximity = 1 - gapMetersTrack / 300;      // 0 at 300 m, 1 at the gearbox
                     const trackO = (typeof overtaking === 'number' ? overtaking : 50) / 100; // 0 easy .. 1 hard
 
