@@ -40,14 +40,16 @@ const TIRE_REVERSE = {
 
 // Driver Mode Mapping
 const MODE_MAP = {
-    "agressive": 1,
-    "gestion": 0
+    "gestion": 0,
+    "normal": 1,
+    "agressive": 2
 };
 
 // Reverse mapping for display
 const MODE_REVERSE = {
     0: "gestion",
-    1: "agressive"
+    1: "normal",
+    2: "agressive"
 };
 
 // Flag State Mapping

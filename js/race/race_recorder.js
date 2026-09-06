@@ -28,6 +28,7 @@ const RaceRecorder = (() => {
         trS: 'tireState',
         cs: 'carState',
         fu: 'fuel',
+        ef: 'effort',
         m: 'mode',
         ps: 'pitStops',
         pt: 'pitTimer',
@@ -134,6 +135,7 @@ const RaceRecorder = (() => {
                 trS: driver.tireState,
                 cs: driver.carState,
                 fu: driver.fuel,
+                ef: driver.effort,                 // engine effort -1..+1
                 m: mapMode(driver.mode),           // Convert to number
                 ps: driver.pitStops,
                 pt: driver.pitTimer,
