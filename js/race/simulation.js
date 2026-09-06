@@ -191,10 +191,27 @@ function frame(interval) {
             const rainTargetTire = driver.wetTarget || null;
             const forecastRef = forecast.avg; // legacy arg, no longer used for decisions
 
-            // Wear factor according to control mode
-            let modeFactor = 1;
-            if (driver.mode === "agressive") modeFactor = 1.02;
-            else if (driver.mode === "gestion") modeFactor = 0.98;
+            // ===== PER-LAP STRATEGY DECISIONS (engine effort + driving mode) =====
+            const driverLap = Math.floor(driver.totalLength / circuitLength);
+            if (driver._stratLap !== driverLap && (driver.state === "racing" || driver.state === "box")) {
+                driver._stratLap = driverLap;
+                let gapAheadSec = Infinity, gapBehindSec = Infinity;
+                const sp = Math.max(0.01, driver.speed) * 30;
+                for (let q = pos - 1; q >= 0; q--) {
+                    const a = drivers[sorted_indices[q]];
+                    if (a.state !== "out") { gapAheadSec = (a.totalLength - driver.totalLength) / sp; break; }
+                }
+                for (let q = pos + 1; q < sorted_indices.length; q++) {
+                    const b = drivers[sorted_indices[q]];
+                    if (b.state !== "out") { gapBehindSec = (driver.totalLength - b.totalLength) / sp; break; }
+                }
+                const raceCtx = { gapAheadSec, gapBehindSec };
+                decideEffort(driver, raceCtx);
+                driver.mode = evaluateRaceMode(driver, raceCtx);
+            }
+
+            // Tyre wear factor from the driving mode
+            let modeFactor = modeWearFactor(driver);
 
             // Tire gross wear (bounded between 0 and 1)
             let tireManagementBonus = 1 - tireManagement / 100;
@@ -217,9 +234,9 @@ function frame(interval) {
             // ===== DRIVER STATE MACHINE =====
             // Handle different driver states: racing, box, in pit, out, pit stop red flag
             
-            if (driver.state === "racing" && (driver.carState <= 0 || driver.tireState <= 0)) {
-                // AUTO-ELIMINATION: Car completely damaged or tires shredded
-                console.log(`${driver.name} automatically eliminated (car state or tires at 0)`);
+            if (driver.state === "racing" && (driver.carState <= 0 || driver.tireState <= 0 || driver.fuel <= 0)) {
+                // AUTO-ELIMINATION: car destroyed, tires shredded, or out of fuel
+                console.log(`${driver.name} eliminated (${driver.fuel <= 0 ? 'out of fuel' : 'car state or tires at 0'})`);
                 driver.state = "out";
                 driver.speed = 0;
                 driver.totalLength = driver.totalLength;
@@ -255,14 +272,16 @@ function frame(interval) {
                 let gapSecondsTrack = driver.speed > 0 ? gapMetersTrack / driver.speed : Infinity;
 
                 // Recalculate driver level dynamically based on current weather
-                driver.level = (driver.driverLevel/100) ** (1 + Math.max(0, currentTrackWater) * 3) * 
+                driver.level = (driver.driverLevel/100) ** (1 + Math.max(0, currentTrackWater) * 3) *
                                (driver.circuitStats / driver.totalCircuitStats);
+                driver.level += modeLevelBonus(driver); // driving mode: on the edge (+) / eased off (-)
 
                 // Expected movement at full speed
                 let expected_length = (generateNormalRandom(baseSpeed * 9 + ((driver.level/100)) * 1000, 6)/30) * 
                                      gripFactor * driver.tirePerf * driver.carPerf;
                 let expectedSpeed = (expected_length) * 180/4000;
-                
+                expectedSpeed *= fuelPaceFactor(driver); // engine effort + fuel weight
+
                 // DRS BOOST application
                 let drsBoost = applyDrsBoost(driver, gapSecondsTrack);
                 expectedSpeed *= drsBoost;
@@ -331,6 +350,10 @@ function frame(interval) {
                     driver.totalLength = Math.min(driver.totalLength, Math.max(driverLengthBefore, frontDriverLength - 5));
                 }
             }
+
+            // ===== FUEL BURN & ENGINE STRESS (after the frame's position is final) =====
+            burnFuel(driver, driver.totalLength - driverLengthBefore);
+            updateEngineStress(driver);
 
             // Record this car as the "car in front" for the next drivers, but
             // only if it is genuinely racing and not crippled (an unhealthy car -

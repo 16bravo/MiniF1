@@ -95,6 +95,7 @@ async function loadCircuitData(circuit) {
         }
         computeWeatherForecast(); // Pre-compute 600-frame rolling forecast used by strategy
         applyWetStartConditions(); // If the track is wet at the start, put the field on rain tyres
+        initFuelModel();          // Set per-race fuel loads now that raceLength is known
         console.log("Circuit data loaded for:", circuit);
         console.log("Race length:", raceLength, "meters");
         console.log("Total laps:", laps);

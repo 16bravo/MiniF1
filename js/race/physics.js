@@ -1,6 +1,21 @@
 // PHYSICS.JS
 // Car performance and crash mechanics
 
+// Caution-rate tuning. Targets per Grand Prix: ~3 retirements, but only ~1 yellow
+// and ~0.67 safety car - most cars that drop out do so without a flag (stopped
+// in a safe place, parked in the pits, beached in a run-off).
+//  - INCIDENT_SERIOUS : fraction of incidents that damage the car (rest = a moment).
+//  - SC_DAMAGE_SD     : spread of the damage a serious incident does.
+//  - SC_CARSTATE      : carState below which the car is out.
+//  - TERMINAL_FLAG    : of terminal crashes, how they split flag-wise.
+//  - DAMAGED_YELLOW   : chance a damaged (but running) car brings out a yellow -
+//                       usually it just limps to the pits under green.
+const INCIDENT_SERIOUS = 0.58;
+const SC_DAMAGE_SD = 0.5;
+const SC_CARSTATE = 0.35;
+const TERMINAL_FLAG = { safetycar: 0.36, yellow: 0.13 };  // remainder (0.51) -> no flag
+const DAMAGED_YELLOW = 0.22;
+
 // Logistics function: performance loss based on car damage/wear
 // Implements steep degradation between 0.75 and 0.5 car state
 function computeCarPerf(carState) {
@@ -15,25 +30,32 @@ function checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk
     if (driver.state !== "racing") return; // Only racing drivers can crash
 
     // ===== MECHANICAL WITHDRAWAL =====
-    // Random mechanical failure independent of weather/conditions
-    let abandonProb = ((101 - driver.reliability) / 100) / 9600;
+    // Random mechanical failure - baseline from reliability, raised by sustained
+    // engine stress (a driver who has been pushing hard all race). Denominator
+    // tuned for ~1.6 mechanical DNF per race - most without a flag.
+    let abandonProb = ((101 - driver.reliability) / 100) / 8000;
+    if (typeof engineStressFailureMultiplier === 'function') {
+        abandonProb *= engineStressFailureMultiplier(driver);
+    }
     if (Math.random() < abandonProb) {
         driver.state = "out";
         driver.carState = 0;
         drivers[i].speed = 0;
         drivers[i].totalLength = drivers[i].totalLength;
         console.log(`${driver.name} retires due to mechanical problems!`);
-        triggerFlag('yellow', i, rainTargetTire); // mechanical failure = yellow flag
+        // A stricken car usually rolls to a safe spot - only some failures bring out a caution.
+        if (Math.random() < 0.16) triggerFlag('yellow', i, rainTargetTire);
         return;
     }
 
     // ===== CRASH PROBABILITY CALCULATION =====
     // Base risk factors
-    const baseRisk = 0.0002;
+    const baseRisk = 0.0006;   // tuned with INCIDENT_SERIOUS for the target caution rate
     const skillFactor = (100 - driver.driverLevel) / 100; // Less skilled = higher risk
     const proneFactor = (driver.crashProne || 50) / 100; // Inherent crash proneness
-    const modeFactor = driver.mode === "agressive" ? 1.5 : 1; // Aggressive driving increases risk
-    const waterFactor = 1 + currentTrackWater * 2; // Wet track multiplies risk
+    const modeFactor = (typeof modeCrashFactor === "function") ? modeCrashFactor(driver)
+                     : (driver.mode === "agressive" ? 1.5 : 1); // Aggressive driving increases risk
+    const waterFactor = 1 + currentTrackWater * 1.1; // Wet track multiplies risk (~2.1x soaked)
     const difficultyFactor = 1 + (difficulty || 50) / 100; // Circuit difficulty adds risk
     
     // Proximity risk: close to front driver = higher crash chance
@@ -59,28 +81,37 @@ function checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk
     let crashProb = baseRisk * skillFactor * proneFactor * modeFactor * waterFactor * difficultyFactor * proximityFront * tyreRisk + crashChainBonus;
     if (crashProb > 1) crashProb = 1;
 
-    // ===== CRASH HAPPENED =====
+    // ===== INCIDENT HAPPENED =====
     if (Math.random() < crashProb) {
-        // Calculate damage severity (normal distribution around 0.5, max 1)
-        const damage = Math.min(1, Math.abs(generateNormalRandom(1, 0.25)));
+        // Most incidents are just a moment - a lock-up or a trip through the
+        // gravel: time lost, no damage, no flag. Only INCIDENT_SERIOUS of them
+        // actually damage the car (repair stop = yellow, or terminal = safety car).
+        if (Math.random() > INCIDENT_SERIOUS) {
+            driver.totalLength = Math.max(0, driver.totalLength - (15 + Math.random() * 45));
+            console.log(`${driver.name}: a moment, keeps going`);
+            return;
+        }
+
+        // Serious: guaranteed to cost the car something.
+        const damage = Math.min(1, 0.38 + Math.abs(generateNormalRandom(0, SC_DAMAGE_SD)));
         driver.carState = Math.max(0, driver.carState - damage);
         driver.carPerf = computeCarPerf(driver.carState);
-        
-        // Add to cumulative damage tracking
         cumulativeDamage += damage;
 
         console.log(`${driver.name} crashed! Damage: ${damage.toFixed(2)}, Car state: ${driver.carState.toFixed(2)}, Cumulative: ${cumulativeDamage.toFixed(2)}`);
 
-        // Consequences depend on crash severity
-        if (driver.carState < 0.25) {
-            // Severe crash: car is out
+        if (driver.carState < SC_CARSTATE) {
+            // Terminal: the car is out. A crash out doesn't always bring a caution -
+            // sometimes the car stops clear, sometimes it's a big one.
             driver.state = "out";
-            triggerFlag('safetycar', i, rainTargetTire); // Normal crash = safety car
-        } else if (driver.carState < 0.75) {
-            // Minor crash: must pit for repairs
+            const roll = Math.random();
+            if (roll < TERMINAL_FLAG.safetycar) triggerFlag('safetycar', i, rainTargetTire);
+            else if (roll < TERMINAL_FLAG.safetycar + TERMINAL_FLAG.yellow) triggerFlag('yellow', i, rainTargetTire);
+        } else {
+            // Damaged but going: pits for repairs, usually under green.
             driver.state = "box";
             driver.carPerf = computeCarPerf(driver.carState);
-            triggerFlag('yellow', i, rainTargetTire); // Crash with moderate damage = yellow flag
+            if (Math.random() < DAMAGED_YELLOW) triggerFlag('yellow', i, rainTargetTire);
         }
 
         // ===== CHAIN CRASH: Propagate risk to nearby drivers =====
@@ -111,12 +142,12 @@ function checkForCrash(i, fronts, currentTrackWater, currentRain, extraCrashRisk
 function applyRacingIncident(idx) {
     const d = drivers[idx];
     if (!d || d.state !== "racing") return;
-    const damage = Math.min(1, Math.abs(generateNormalRandom(0.9, 0.3)));
+    const damage = Math.min(1, Math.abs(generateNormalRandom(0, SC_DAMAGE_SD * 1.1)));
     d.carState = Math.max(0, d.carState - damage);
     d.carPerf = computeCarPerf(d.carState);
     cumulativeDamage += damage;
     console.log(`${d.name}: racing incident while battling (damage ${damage.toFixed(2)}, car ${d.carState.toFixed(2)})`);
-    if (d.carState < 0.25) {
+    if (d.carState < SC_CARSTATE) {
         d.state = "out";
         d.speed = 0;
         triggerFlag('safetycar', idx, d.wetTarget || null);
@@ -141,8 +172,11 @@ function resolveOvertakeAttempt(attackerIdx, defenderIdx, ctx) {
     const defender = drivers[defenderIdx];
     const trackO = (typeof overtaking === 'number' ? overtaking : 50) / 100; // 0 easy .. 1 hard
     const diff = (typeof difficulty === 'number' ? difficulty : 50) / 100;
-    const aSkill = attacker.driverLevel || 70;
-    const dSkill = defender.driverLevel || 70;
+    // Effective skill includes the driving-mode bonus (both cars in a battle are
+    // forced aggressive, so the level bump largely cancels - they just both pay
+    // the tyre / crash cost of a long fight).
+    const aSkill = (attacker.driverLevel || 70) + modeLevelBonus(attacker);
+    const dSkill = (defender.driverLevel || 70) + modeLevelBonus(defender);
     const dAggr = defender.aggression || 85;
     const paceAdv = Math.max(0, ctx.paceAdvantage || 0);
 

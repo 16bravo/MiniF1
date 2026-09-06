@@ -186,8 +186,12 @@ if (driversData && driversData.length > 0) {
             startingTire: null, // Set below (same as tire)
             tireState: 1,
             carState: 1,
-            fuel: 100 + Math.round(Math.random() * 10),
-            mode: 'agressive',
+            fuel: 100,              // real load set by initFuelModel() once raceLength is known
+            effort: 0,              // engine effort -1..+1 (save..push), decided per lap by decideEffort()
+            engineStress: 0,        // accumulates while pushing -> raises mechanical-failure risk
+            refuelAmount: 0,        // future player option: fuel added at the next stop (seam only)
+            playerControlled: false,
+            mode: 'normal',         // driving mode - re-decided each lap by evaluateRaceMode()
             aggression: driver.aggression || 85,
             tireManagement: driver.tireManagement || 85,
             crashRisk: 0,

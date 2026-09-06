@@ -275,33 +275,56 @@ function projectPitStopsNeeded(driver, distanceRemainingKm) {
     return Math.max(0, stintsNeeded - 1);
 }
 
+// ===== DRIVING MODE =====
+// Tactical driving style, decided ~once per lap (parallel to fuel effort, separate axis):
+//   agressive - drives on the edge: effective level up (attack AND defence), tyres wear
+//               faster, crash risk up. Both cars in a battle are forced here.
+//   normal    - the resting state.
+//   gestion   - eases off: protects worn tyres and the car, slightly below its edge.
+// Kept simple and centralised so the numbers are easy to retune after testing.
+const MODE_WEAR        = { gestion: 0.98, normal: 1.0, agressive: 1.02 };
+const MODE_CRASH_MULT  = { gestion: 1.0,  normal: 1.0, agressive: 1.5  };
+const MODE_LEVEL_BONUS = { gestion: -2,   normal: 0,   agressive: 4    };
+
+function modeWearFactor(driver)  { const v = MODE_WEAR[driver.mode];        return v === undefined ? 1 : v; }
+function modeCrashFactor(driver) { const v = MODE_CRASH_MULT[driver.mode];  return v === undefined ? 1 : v; }
+function modeLevelBonus(driver)  { const v = MODE_LEVEL_BONUS[driver.mode]; return v === undefined ? 0 : v; }
+
 /**
- * Evaluates if driver should adopt aggressive or conservative mode based on race situation
- * @param {Object} driver - Driver object
- * @param {number} driverIndex - Index of driver
- * @returns {string} Recommended mode: 'agressive', 'defensive', or 'conservative'
+ * Picks a driver's driving mode for the next lap. Pure w.r.t. the driver;
+ * a player-controlled car keeps whatever mode its input set.
+ * @param {Object} driver
+ * @param {{gapAheadSec:number, gapBehindSec:number}} ctx - gaps to the nearest rivals in race order
+ * @returns {'gestion'|'normal'|'agressive'}
  */
-function evaluateRaceMode(driver, driverIndex) {
-    const position = analyzeDriverPosition(driver, driverIndex);
-    const distanceRemaining = position.distanceRemaining;
-    
-    // Fighting for position: in top 5 and close to driver ahead
-    if (position.rank <= 5 && position.gapToLeader < 10) {
-        return 'agressive';
+function evaluateRaceMode(driver, ctx) {
+    if (driver.playerControlled) return driver.mode;
+
+    // Personality: a naturally aggressive driver fights from further away and
+    // eases off more reluctantly. driver.aggression is a fixed trait for now.
+    const aggrBias = ((driver.aggression || 70) - 70) / 30;   // ~ -2.3 .. +1
+    const attackReach = 1.0 + aggrBias * 0.5;                 // only truly on the gearbox counts
+    const defendReach = 0.9 + aggrBias * 0.4;
+    const fracLeft = Math.max(0, (raceLength - driver.totalLength) / raceLength);
+    const tyre = driver.tireState;
+    const ahead = ctx.gapAheadSec, behind = ctx.gapBehindSec;
+
+    if (flagState === "yellow" || flagState === "safetycar" || flagState === "red") {
+        return "gestion";                                     // no overtaking anyway
     }
-    
-    // Leader or protected: maintain current position
-    if (position.rank === 1 || position.gapToLeader < 2) {
-        return 'defensive';
+    if (tyre < 0.28 && fracLeft > 0.15 && !(behind > 0 && behind < defendReach)) {
+        return "gestion";                                     // tyres nearly gone: nurse them (unless actively defending)
     }
-    
-    // Back of field or already decided: manage fuel/tires
-    if (position.rank > 10) {
-        return 'conservative';
+    if ((behind > 0 && behind < defendReach) || (ahead > 0 && ahead < attackReach)) {
+        return "agressive";                                   // nose-to-tail fight, either side
     }
-    
-    // Mid-field default
-    return driver.mode;
+    if (fracLeft < 0.12 && (ahead < 3 || behind < 3)) {
+        return "agressive";                                   // last laps, a place still within reach
+    }
+    if (tyre < 0.40 || (ahead > 6 && behind > 6)) {
+        return "gestion";                                     // worn tyres or clear track: ease off, save the car
+    }
+    return "normal";
 }
 
 /**

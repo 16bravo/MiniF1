@@ -30,6 +30,12 @@ function managePitStops(driver, i, forecastRef, rainTargetTire) {
             driver.pitStops = (driver.pitStops || 0) + 1;
             driver.tireState = 1;
             driver.carState = 1;
+            // Refuelling seam: no refuelling today (refuelAmount is always 0), but a
+            // future explicit player option can set driver.refuelAmount before the stop.
+            if (typeof refuel === "function" && driver.refuelAmount > 0) {
+                refuel(driver, driver.refuelAmount);
+                driver.refuelAmount = 0;
+            }
             driver.state = "racing";
             driver.lastPitExitFrame = raceFrame; // decision cooldown starts now
             console.log(`${driver.name} exits pit. Pit stops: ${driver.pitStops}, New tire: ${driver.tire}`);
