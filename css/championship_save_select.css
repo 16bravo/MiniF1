@@ -296,3 +296,40 @@ body {
     background: #444;
     color: #ccc;
 }
+
+/* ============================================================
+   RESPONSIVE — small screens only. Desktop layout above is
+   untouched.
+   ============================================================ */
+@media (max-width: 760px) {
+    #save-header {
+        padding: 14px 14px;
+    }
+
+    #save-title {
+        font-size: 1.3em;
+    }
+
+    #save-menu {
+        padding: 32px 14px;
+    }
+
+    /* Stack the slot info above its actions, and drop the hover shift
+       (it can nudge a full-width card past the viewport edge). */
+    .save-slot {
+        grid-template-columns: 1fr;
+        row-gap: 14px;
+    }
+
+    .save-slot:hover {
+        transform: none;
+    }
+
+    .slot-actions {
+        justify-content: flex-start;
+    }
+
+    #save-footer {
+        padding: 18px 16px 24px 16px;
+    }
+}

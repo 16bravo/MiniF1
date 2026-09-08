@@ -117,3 +117,21 @@ body {
     color: #666;
     margin-top: 3px;
 }
+
+/* ============================================================
+   RESPONSIVE — small screens only. Desktop layout above is
+   untouched.
+   ============================================================ */
+@media (max-width: 760px) {
+    #home-header {
+        padding: 22px 18px 18px 18px;
+    }
+
+    #home-logo {
+        font-size: 2em;
+    }
+
+    #home-menu {
+        padding: 32px 14px;
+    }
+}

@@ -632,3 +632,73 @@ tr:hover td {
 .driver-row[draggable="true"]:active .driver-handle {
     cursor: grabbing;
 }
+
+/* ============================================================
+   RESPONSIVE — small screens only. Every desktop rule above is
+   untouched; this block only takes effect under 760px.
+   ============================================================ */
+@media (max-width: 760px) {
+    /* Header + tab bar: drop the sticky stacking (it assumes a fixed
+       header height) and let them wrap / scroll instead. */
+    #gp-header {
+        position: static;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 14px 14px;
+    }
+
+    #gp-title {
+        font-size: 1.3em;
+    }
+
+    #gp-header-actions {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .gp-tabs {
+        position: static;
+        top: auto;
+        padding: 0 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .gp-tab-btn {
+        padding: 9px 14px;
+        font-size: 0.72em;
+        white-space: nowrap;
+    }
+
+    .accordion {
+        padding: 16px 12px 90px 12px;
+    }
+
+    #step1, #step2, #step3, #step4 {
+        max-width: none;
+    }
+
+    .circuit-list {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    /* Teams / drivers editing tables: keep their column layout, let the
+       panel scroll horizontally so cells stay usable. */
+    #step2 .accordion-content,
+    #step3 .accordion-content {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #teamTable {
+        min-width: 620px;
+    }
+
+    #driverTable {
+        min-width: 520px;
+    }
+
+    .image-dropdown {
+        width: min(340px, 92vw);
+    }
+}

@@ -41,3 +41,24 @@
 .header {
     padding-left: 70px;
 }
+
+/* Responsive — tighten the button and the title clearance on small screens */
+@media (max-width: 760px) {
+    .home-button {
+        top: 12px;
+        left: 12px;
+        font-size: 1.2em;
+    }
+
+    #home-logo,
+    #save-title,
+    #setup-title,
+    #gp-title,
+    #page-header {
+        padding-left: 52px;
+    }
+
+    .header {
+        padding-left: 52px;
+    }
+}

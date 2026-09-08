@@ -260,3 +260,54 @@ td.no-points {
     margin-left: 4px;
     opacity: 0.5;
 }
+
+/* ============================================================
+   RESPONSIVE — small screens only. Desktop rules above are
+   untouched. Shared by championship_end and championship_viewer.
+   ============================================================ */
+@media (max-width: 760px) {
+    #page-header {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 14px 14px;
+    }
+
+    h1 {
+        font-size: 1.4em;
+    }
+
+    h1::before {
+        margin-right: 10px;
+    }
+
+    #header-actions {
+        flex-wrap: wrap;
+    }
+
+    #race-results,
+    #championship-standings {
+        margin: 20px auto;
+        padding: 0 12px;
+    }
+
+    .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-btn {
+        padding: 10px 20px;
+        white-space: nowrap;
+    }
+
+    /* Standings tables have one column per round — let the table scroll
+       inside itself instead of stretching the page. display:block keeps
+       the rows aligned via the browser's anonymous table box. */
+    .tab-panel table,
+    #race-results table,
+    #championship-standings table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}

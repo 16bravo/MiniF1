@@ -174,3 +174,37 @@ tr.dnf td {
     margin: 0 0 12px;
     color: #c9a23a;
 }
+
+/* ============================================================
+   RESPONSIVE — small screens only. Desktop layout above is
+   untouched. (Table scrolling is handled in results.css.)
+   ============================================================ */
+@media (max-width: 760px) {
+    #upload-section {
+        margin: 32px auto;
+        padding: 24px 16px;
+    }
+
+    #upload-section input[type="file"] {
+        display: block;
+        margin: 0 auto 14px auto;
+    }
+
+    #viewer {
+        margin: 16px auto 60px;
+        padding: 0 12px;
+    }
+
+    #meta .meta-name {
+        font-size: 1.1em;
+    }
+
+    .chart-controls {
+        flex-wrap: wrap;
+        gap: 10px 18px;
+    }
+
+    .chart-wrap {
+        height: 320px;
+    }
+}

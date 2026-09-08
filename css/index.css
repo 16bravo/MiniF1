@@ -252,3 +252,22 @@ table tr:hover {
     color: #fff;
     transition: background 0.2s;
 }
+
+/* ============================================================
+   RESPONSIVE — small screens only. Desktop rules above are
+   untouched; everything here lives behind the media query.
+   ============================================================ */
+@media (max-width: 760px) {
+    .accordion {
+        padding: 14px 12px 90px 12px;
+    }
+
+    .circuit-list {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    }
+
+    #goToNextPage {
+        height: auto;
+        padding: 12px 0;
+    }
+}
