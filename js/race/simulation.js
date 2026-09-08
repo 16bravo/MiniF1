@@ -89,6 +89,7 @@ function frame(interval) {
             } else if (flagState === "yellow" || flagState === "safetycar") {
                 // Yellow/Safety car ended: return to green
                 flagState = "green";
+                lastGreenFrame = raceFrame;   // cold-tyre mistake window on the restart lap
                 showFlagBanner("green");
             }
         }
@@ -98,6 +99,7 @@ function frame(interval) {
     if (flagState === "red" && flagTimer < 0 && currentRain < 0.2) {
         console.log("End of red flag - conditions met for restart");
         flagState = "green";
+        lastGreenFrame = raceFrame;   // cold-tyre mistake window on the restart lap
         showFlagBanner("green");
         // Resume all drivers from red flag classification
         for (let pos = 0; pos < redFlagClassification.length; pos++) {
@@ -204,6 +206,11 @@ function frame(interval) {
                 const raceCtx = { gapAheadSec, gapBehindSec };
                 decideEffort(driver, raceCtx);
                 driver.mode = evaluateRaceMode(driver, raceCtx);
+
+                // Roll this lap's one-off mistake (lock-up / missed braking / spin).
+                if (typeof rollLapMistake === "function") {
+                    rollLapMistake(driver, { currentTrackWater, gapBehindSec, lastGreenFrame });
+                }
             }
 
             // Tyre wear factor from the driving mode
@@ -219,6 +226,17 @@ function frame(interval) {
             // Driver position on circuit as percentage (0-1)
             let driver_length_percent = (driver.totalLength % circuitLength) / circuitLength;
             driver.crossingLine = driver_length_percent <= 0.1 || driver_length_percent >= 0.9;
+
+            // ===== ONE-OFF DRIVER MISTAKE =====
+            // Rolled once per lap in the strategy block above; it plays out here
+            // once the driver reaches the (random) point on the lap where it happens.
+            if (driver.mistakePending > 0 && driver.state === "racing" &&
+                flagState !== "yellow" && flagState !== "safetycar" && flagState !== "red" &&
+                driver_length_percent >= driver.mistakePendingAt &&
+                typeof applyDriverMistake === "function") {
+                applyDriverMistake(driver);
+                driver_length_percent = (driver.totalLength % circuitLength) / circuitLength;
+            }
 
             // ===== TIRE PERFORMANCE =====
             // Performance based on wear state and water

@@ -58,6 +58,7 @@ let gripFactor = (1 / (1 + Math.exp(-10 * (grip - 0.5))) * 0.2) + 0.8; // Grip p
 // FLAGS AND SAFETY CAR
 let flagState = "green"; // Current flag state: 'green', 'yellow', 'safetycar', 'red'
 let flagTimer = 0; // Frame counter for flag duration
+let lastGreenFrame = -9999; // Frame of the last green-flag restart (cold-tyre mistake window)
 let safetyCarLapCount = 0; // Counter for safety car laps
 let redFlagClassification = null; // Driver order saved under red flag for restart
 
@@ -192,6 +193,9 @@ if (driversData && driversData.length > 0) {
             refuelAmount: 0,        // future player option: fuel added at the next stop (seam only)
             playerControlled: false,
             mode: 'normal',         // driving mode - re-decided each lap by evaluateRaceMode()
+            mistakePending: 0,          // seconds to lose from a rolled one-off mistake this lap
+            mistakePendingTier: null,   // "lock-up" / "missed braking" / "spin"
+            mistakePendingAt: 0,        // fraction of the lap where the mistake plays out
             aggression: driver.aggression || 85,
             tireManagement: driver.tireManagement || 85,
             crashRisk: 0,
