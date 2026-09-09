@@ -6,6 +6,9 @@ function updateTable() {
     const tableBody = document.getElementById('ranking-table');
     tableBody.innerHTML = "";
 
+    // Compact layout for large fields so the header stays on screen
+    document.body.classList.toggle('dense', ranking.length > 20);
+
     // Sort drivers by best time, then by default order
     const sortedRanking = [...ranking].sort((a, b) => {
         const aTime = a.bestTime != null ? a.bestTime : Infinity;

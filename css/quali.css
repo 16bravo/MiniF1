@@ -14,8 +14,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    /* min-height (not height) so a tall field grows the page instead of
+       centring the container with its header clipped above the viewport. */
+    min-height: 100vh;
     margin: 0;
+    padding: 12px 0;
+    box-sizing: border-box;
 }
 
 .container {
@@ -66,8 +70,28 @@ th {
 #ranking-table td {
     padding: 5px;
     text-align: left;
-    border-top: 5px solid rgba(0,0,0,0);
-    border-bottom: 5px solid rgba(0,0,0,0);
+    border-top: 3px solid rgba(0,0,0,0);
+    border-bottom: 3px solid rgba(0,0,0,0);
+}
+
+/* Large fields (24+ drivers): tighten rows and header so the whole grid,
+   header included, fits without the top scrolling out of reach.
+   Toggled from js/quali/ui.js by driver count. */
+body.dense .header {
+    font-size: 1.15em;
+    margin-bottom: 8px;
+}
+
+body.dense #GPFlag {
+    height: 34px;
+}
+
+body.dense #ranking-table td,
+body.dense #ranking-table th {
+    padding: 1px 5px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    font-size: 0.82em;
 }
 
 #ranking-table th {

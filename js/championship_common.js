@@ -196,28 +196,31 @@ const ChampionshipCommon = (() => {
         const teams = {};
         let hasGridData = false;
         let hasFastestLapData = false;
+        let hasSprintData = false;
 
         const minDefined = (cur, val) => (val == null ? cur : (cur == null ? val : Math.min(cur, val)));
 
         function ensureDriver(d) {
             if (!drivers[d.code]) drivers[d.code] = {
                 code: d.code, name: d.name, team: d.team, color: d.color || '#888',
-                entered: 0, finishes: 0, dnf: 0, wins: 0, podiums: 0, pointFinishes: 0,
-                poles: 0, fastestLaps: 0, bestFinish: null, bestGrid: null, points: 0, _finishPosSum: 0
+                entered: 0, finishes: 0, dnf: 0, wins: 0, sprintWins: 0, podiums: 0, pointFinishes: 0,
+                poles: 0, sprintPoles: 0, fastestLaps: 0, bestFinish: null, bestGrid: null, points: 0, _finishPosSum: 0
             };
             return drivers[d.code];
         }
         function ensureTeam(d) {
             if (!teams[d.team]) teams[d.team] = {
                 team: d.team, color: d.color || '#888',
-                entered: 0, finishes: 0, dnf: 0, wins: 0, podiums: 0, pointFinishes: 0,
-                poles: 0, fastestLaps: 0, oneTwo: 0, bestFinish: null, bestGrid: null, points: 0
+                entered: 0, finishes: 0, dnf: 0, wins: 0, sprintWins: 0, podiums: 0, pointFinishes: 0,
+                poles: 0, sprintPoles: 0, fastestLaps: 0, oneTwo: 0, bestFinish: null, bestGrid: null, points: 0
             };
             return teams[d.team];
         }
 
         races.forEach((race, ri) => {
-            const scale = race.isSprintRace ? POINTS_SPRINT : points;
+            const spr = !!race.isSprintRace;
+            if (spr) hasSprintData = true;
+            const scale = spr ? POINTS_SPRINT : points;
             const result = results[ri] || [];
             const classified = result.filter(d => d.state !== 'out')
                 .sort((a, b) => b.totalLength - a.totalLength);
@@ -238,20 +241,20 @@ const ChampionshipCommon = (() => {
 
                 const sd = ensureDriver(d);
                 sd.entered++; sd.finishes++; sd.points += pts; sd._finishPosSum += pos;
-                if (pos === 1) sd.wins++;
+                if (pos === 1) (spr ? sd.sprintWins++ : sd.wins++);
                 if (pos <= 3) sd.podiums++;
                 if (pts > 0) sd.pointFinishes++;
-                if (g === 1) sd.poles++;
+                if (g === 1) (spr ? sd.sprintPoles++ : sd.poles++);
                 sd.bestFinish = minDefined(sd.bestFinish, pos);
                 sd.bestGrid = minDefined(sd.bestGrid, g);
 
                 const st = ensureTeam(d);
                 if (!teamsSeen.has(d.team)) { st.entered++; teamsSeen.add(d.team); }
                 st.finishes++; st.points += pts;
-                if (pos === 1) st.wins++;
+                if (pos === 1) (spr ? st.sprintWins++ : st.wins++);
                 if (pos <= 3) { st.podiums++; (teamPodiumPos[d.team] = teamPodiumPos[d.team] || []).push(pos); }
                 if (pts > 0) st.pointFinishes++;
-                if (g === 1) st.poles++;
+                if (g === 1) (spr ? st.sprintPoles++ : st.poles++);
                 st.bestFinish = minDefined(st.bestFinish, pos);
                 st.bestGrid = minDefined(st.bestGrid, g);
             });
@@ -260,13 +263,13 @@ const ChampionshipCommon = (() => {
                 const g = grid(d);
                 const sd = ensureDriver(d);
                 sd.entered++; sd.dnf++;
-                if (g === 1) sd.poles++;
+                if (g === 1) (spr ? sd.sprintPoles++ : sd.poles++);
                 sd.bestGrid = minDefined(sd.bestGrid, g);
 
                 const st = ensureTeam(d);
                 if (!teamsSeen.has(d.team)) { st.entered++; teamsSeen.add(d.team); }
                 st.dnf++;
-                if (g === 1) st.poles++;
+                if (g === 1) (spr ? st.sprintPoles++ : st.poles++);
                 st.bestGrid = minDefined(st.bestGrid, g);
             });
 
@@ -300,8 +303,118 @@ const ChampionshipCommon = (() => {
             driverStats: Object.values(drivers).sort(byPointsThenBest),
             teamStats: Object.values(teams).sort(byPointsThenBest),
             hasGridData,
-            hasFastestLapData
+            hasFastestLapData,
+            hasSprintData
         };
+    }
+
+    // ------------------------------------------------------------
+    // Stats tables + points-progression chart (shared: archive viewer,
+    // end-of-season screen, and the between-races standings tab)
+    // ------------------------------------------------------------
+    const _fp = n => (n == null ? '—' : 'P' + n);
+    const _fa = n => (n == null ? '—' : n.toFixed(1));
+    const _n  = n => (n ? String(n) : '-');
+
+    function statsNote(stats) {
+        const miss = [];
+        if (!stats.hasGridData) miss.push('Pole / Best Grid need qualifying data');
+        if (!stats.hasFastestLapData) miss.push('Fastest Lap needs race lap timing');
+        return miss.length ? miss.join(' — ') + ' — not recorded by this championship.' : '';
+    }
+
+    function buildDriverStatsTable(stats) {
+        const rows = (stats && stats.driverStats) || [];
+        if (!rows.length) return `<p style="color:#888;padding:20px;">No data yet.</p>`;
+        const fl = stats.hasFastestLapData, sp = stats.hasSprintData;
+        let h = `<table><thead><tr><th>#</th><th>Driver</th><th>Team</th>` +
+            `<th title="Grands Prix entered">GP</th><th title="Race finishes">Fin</th>` +
+            `<th title="Retirements (DNF)">DNF</th><th title="Feature-race wins">Wins</th>` +
+            (sp ? `<th title="Sprint wins">S·W</th>` : '') +
+            `<th title="Podiums (top 3)">Pod</th><th title="Points-scoring finishes">Scoring</th>` +
+            `<th title="Feature-race poles">Pole</th>` +
+            (sp ? `<th title="Sprint poles">S·P</th>` : '') +
+            (fl ? `<th title="Fastest laps (feature races)">FL</th>` : '') +
+            `<th title="Best race finish">Best</th><th title="Best grid slot">Grid</th>` +
+            `<th title="Average finishing position">Avg</th><th title="Championship points">Points</th>` +
+            `</tr></thead><tbody>`;
+        rows.forEach((r, i) => {
+            h += `<tr><td>${i + 1}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td>` +
+                `<td>${r.entered}</td><td>${r.finishes}</td><td>${_n(r.dnf)}</td><td>${_n(r.wins)}</td>` +
+                (sp ? `<td>${_n(r.sprintWins)}</td>` : '') +
+                `<td>${_n(r.podiums)}</td><td>${_n(r.pointFinishes)}</td><td>${_n(r.poles)}</td>` +
+                (sp ? `<td>${_n(r.sprintPoles)}</td>` : '') +
+                (fl ? `<td>${_n(r.fastestLaps)}</td>` : '') +
+                `<td>${_fp(r.bestFinish)}</td><td>${_fp(r.bestGrid)}</td><td>${_fa(r.avgFinish)}</td>` +
+                `<td><b>${r.points}</b></td></tr>`;
+        });
+        return h + `</tbody></table>`;
+    }
+
+    function buildTeamStatsTable(stats) {
+        const rows = (stats && stats.teamStats) || [];
+        if (!rows.length) return `<p style="color:#888;padding:20px;">No data yet.</p>`;
+        const fl = stats.hasFastestLapData, sp = stats.hasSprintData;
+        let h = `<table><thead><tr><th>#</th><th>Constructor</th>` +
+            `<th title="Grands Prix entered">GP</th><th title="Car finishes">Fin</th>` +
+            `<th title="Retirements (DNF)">DNF</th><th title="Feature-race wins">Wins</th>` +
+            (sp ? `<th title="Sprint wins">S·W</th>` : '') +
+            `<th title="Podiums (per car)">Pod</th><th title="1-2 finishes">1-2</th>` +
+            `<th title="Points-scoring finishes (per car)">Scoring</th>` +
+            `<th title="Feature-race poles">Pole</th>` +
+            (sp ? `<th title="Sprint poles">S·P</th>` : '') +
+            (fl ? `<th title="Fastest laps (feature races)">FL</th>` : '') +
+            `<th title="Best race finish">Best</th><th title="Best grid slot">Grid</th>` +
+            `<th title="Championship points">Points</th></tr></thead><tbody>`;
+        rows.forEach((r, i) => {
+            h += `<tr><td>${i + 1}</td><td>${escapeHtml(r.team)}</td>` +
+                `<td>${r.entered}</td><td>${r.finishes}</td><td>${_n(r.dnf)}</td><td>${_n(r.wins)}</td>` +
+                (sp ? `<td>${_n(r.sprintWins)}</td>` : '') +
+                `<td>${_n(r.podiums)}</td><td>${_n(r.oneTwo)}</td><td>${_n(r.pointFinishes)}</td>` +
+                `<td>${_n(r.poles)}</td>` +
+                (sp ? `<td>${_n(r.sprintPoles)}</td>` : '') +
+                (fl ? `<td>${_n(r.fastestLaps)}</td>` : '') +
+                `<td>${_fp(r.bestFinish)}</td><td>${_fp(r.bestGrid)}</td><td><b>${r.points}</b></td></tr>`;
+        });
+        return h + `</tbody></table>`;
+    }
+
+    // Cumulative points-progression line chart. Needs Chart.js loaded on the page.
+    // Returns the Chart instance (or null); pass the previous one back as `chart`
+    // so it can be destroyed before redraw.
+    function progressionChart(canvas, { standings, races, mode, chart }) {
+        if (typeof Chart === 'undefined' || !canvas) return null;
+        const rows = (standings || []).slice(0, 10);
+        const labels = (races || []).map((r, i) => raceCode(r) || `R${i + 1}`);
+        const datasets = rows.map((row, i) => {
+            let run = 0;
+            const cum = (row.perRace || []).map(p => (run += (p || 0)));
+            return {
+                label: mode === 'constructors' ? row.team : row.name,
+                data: cum,
+                borderColor: row.color || '#888',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderDash: (mode === 'drivers' && i > 0 && rows[i - 1].color === row.color) ? [6, 4] : [],
+                tension: 0.15,
+                pointRadius: 2
+            };
+        });
+        if (chart) chart.destroy();
+        return new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: { grid: { color: '#1e1e1e' }, ticks: { color: '#999' } },
+                    y: { grid: { color: '#1e1e1e' }, ticks: { color: '#999' }, beginAtZero: true }
+                },
+                plugins: { legend: { labels: { color: '#ccc', boxWidth: 14, font: { size: 11 } } } }
+            }
+        });
     }
 
     // ------------------------------------------------------------
@@ -503,7 +616,7 @@ const ChampionshipCommon = (() => {
         DEFAULT_POINTS, POINTS_SPRINT,
         sanitizePairs, normalizePoints,
         computeStandings, fastestLapWinner, positionHistogram, compareStandingRows, raceClassification,
-        computeStats,
+        computeStats, statsNote, buildDriverStatsTable, buildTeamStatsTable, progressionChart,
         raceCode, buildStandingsTable, drawRecap,
         escapeHtml, escapeText, slugify, dateStamp, triggerDownload
     };

@@ -126,6 +126,9 @@ body {
 
 /* ---- Accordion panels → flat tab panels ---- */
 .accordion {
+    /* index.css sets width:100%; without border-box the 40px side padding
+       here pushed the box 80px past the viewport (horizontal scrollbar). */
+    box-sizing: border-box;
     margin: 0 auto;
     padding: 24px 40px 60px 40px;
     max-width: none;
@@ -631,6 +634,92 @@ tr:hover td {
 
 .driver-row[draggable="true"]:active .driver-handle {
     cursor: grabbing;
+}
+
+/* ---- Championship Stats + Points Progression tabs ---- */
+/* Centred column like #step1..4 (a touch wider for the wide stats table). */
+#step-stats,
+#step-progression {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.champ-sub {
+    font-size: 0.85em;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #999;
+    margin: 24px 0 8px;
+}
+.champ-sub:first-child { margin-top: 4px; }
+
+.champ-stats-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.champ-stats-scroll table {
+    width: auto;
+    min-width: 560px;
+    border-collapse: collapse;
+    font-size: 0.85em;
+}
+
+.champ-stats-scroll th {
+    background: #1a0000;
+    color: #e10600;
+    border-bottom: 2px solid #e10600;
+    text-align: center;
+    padding: 8px 10px;
+    white-space: nowrap;
+}
+
+.champ-stats-scroll td {
+    text-align: center;
+    padding: 6px 10px;
+    border-bottom: 1px solid #1e1e1e;
+    white-space: nowrap;
+}
+
+.champ-stats-scroll th:nth-child(2),
+.champ-stats-scroll td:nth-child(2),
+.champ-stats-scroll th:nth-child(3),
+.champ-stats-scroll td:nth-child(3) {
+    text-align: left;
+}
+
+.champ-chart-controls {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-size: 0.85em;
+    color: #aaa;
+    margin-bottom: 12px;
+}
+
+.champ-chart-wrap {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    height: 440px;
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 10px;
+    overflow: hidden;          /* never let the canvas push the page wider */
+}
+
+#champ-progression-canvas {
+    display: block;
+    max-width: 100%;
+}
+
+.champ-chart-note {
+    margin-top: 8px;
+    font-size: 0.8em;
+    color: #666;
 }
 
 /* ============================================================

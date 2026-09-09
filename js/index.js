@@ -639,6 +639,56 @@ function activateTab(stepId) {
     if (btn) btn.classList.add('active');
     if (stepId === 'step4') showOverview();
     if (stepId.includes('standings')) renderChampionshipStandings();
+    if (stepId === 'step-stats') renderChampionshipStats();
+    if (stepId === 'step-progression') renderChampionshipProgression();
+}
+
+// ---- Championship stats + points progression (shared helpers: championship_common.js) ----
+let championshipProgressionChart = null;
+
+// Standings/stats in ChampionshipCommon's format, straight from what's recorded.
+function ccChampionshipData() {
+    if (typeof ChampionshipCommon === 'undefined') return null;
+    let races, results, points;
+    try {
+        races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
+        results = JSON.parse(localStorage.getItem('championshipResults') || '[]');
+        points = JSON.parse(localStorage.getItem('championshipPoints') || 'null');
+    } catch (e) { return null; }
+    const clean = ChampionshipCommon.sanitizePairs(races, results);
+    const opts = {
+        fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
+        fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10')
+    };
+    return {
+        races: clean.races,
+        standings: ChampionshipCommon.computeStandings(clean.races, clean.results, ChampionshipCommon.normalizePoints(points), opts),
+        stats: ChampionshipCommon.computeStats(clean.races, clean.results, ChampionshipCommon.normalizePoints(points))
+    };
+}
+
+function renderChampionshipStats() {
+    const d = ccChampionshipData();
+    const dEl = document.getElementById('champ-stats-drivers');
+    const cEl = document.getElementById('champ-stats-constructors');
+    const note = document.getElementById('champ-stats-note');
+    if (!d || !dEl) return;
+    const txt = ChampionshipCommon.statsNote(d.stats);
+    if (note) { note.hidden = !txt; note.textContent = txt; }
+    dEl.innerHTML = ChampionshipCommon.buildDriverStatsTable(d.stats);
+    cEl.innerHTML = ChampionshipCommon.buildTeamStatsTable(d.stats);
+}
+
+function renderChampionshipProgression() {
+    const d = ccChampionshipData();
+    const canvas = document.getElementById('champ-progression-canvas');
+    if (!d || !canvas || canvas.offsetParent === null) return;
+    const modeEl = document.querySelector('input[name="champProgMode"]:checked');
+    const mode = modeEl ? modeEl.value : 'drivers';
+    championshipProgressionChart = ChampionshipCommon.progressionChart(canvas, {
+        standings: mode === 'constructors' ? d.standings.constructorStandings : d.standings.driverStandings,
+        races: d.races, mode, chart: championshipProgressionChart
+    });
 }
 
 // Render championship standings into the standings tab panels
@@ -895,6 +945,10 @@ function renderChampionshipStandings() {
 // Tab button click handlers
 document.querySelectorAll('.gp-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => activateTab(btn.dataset.target));
+});
+
+document.querySelectorAll('input[name="champProgMode"]').forEach(el => {
+    el.addEventListener('change', renderChampionshipProgression);
 });
 
 // Call showOverview when the overview is open

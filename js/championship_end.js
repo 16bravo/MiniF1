@@ -39,7 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderChampions();
     renderStandings();
+    renderStats();
     setupTabs();
+    setupProgression();
     setupButtons();
 
     if (document.fonts && document.fonts.ready) {
@@ -142,7 +144,40 @@ function setupTabs() {
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
             this.classList.add('active');
             document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+            if (this.dataset.tab === 'progression') renderProgression();
         });
+    });
+}
+
+// ------------------------------------------------------------
+// Stats + points progression (shared helpers in championship_common.js)
+// ------------------------------------------------------------
+let progressionChart = null;
+
+function renderStats() {
+    const stats = CC.computeStats(state.races, state.results, state.points);
+    const note = document.getElementById('statsGridNote');
+    const txt = CC.statsNote(stats);
+    note.hidden = !txt;
+    note.textContent = txt;
+    document.getElementById('stats-drivers').innerHTML = CC.buildDriverStatsTable(stats);
+    document.getElementById('stats-constructors').innerHTML = CC.buildTeamStatsTable(stats);
+}
+
+function renderProgression() {
+    const canvas = document.getElementById('progressionCanvas');
+    if (!canvas || canvas.offsetParent === null) return; // panel not visible yet
+    const modeEl = document.querySelector('input[name="progMode"]:checked');
+    const mode = modeEl ? modeEl.value : 'drivers';
+    progressionChart = CC.progressionChart(canvas, {
+        standings: mode === 'constructors' ? state.constructorStandings : state.driverStandings,
+        races: state.races, mode, chart: progressionChart
+    });
+}
+
+function setupProgression() {
+    document.querySelectorAll('input[name="progMode"]').forEach(el => {
+        el.addEventListener('change', renderProgression);
     });
 }
 

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="css/gp_select.css">
     <link rel="stylesheet" href="css/home-button.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div id="gp-header">
@@ -30,6 +31,8 @@
         <button class="gp-tab-btn" data-target="step-grid" style="display:none;">Starting Grid</button>
         <button class="gp-tab-btn championship-only" data-target="step-standings-drivers" style="display:none;">Driver Standings</button>
         <button class="gp-tab-btn championship-only" data-target="step-standings-constructors" style="display:none;">Constructor Standings</button>
+        <button class="gp-tab-btn championship-only" data-target="step-stats" style="display:none;">Stats</button>
+        <button class="gp-tab-btn championship-only" data-target="step-progression" style="display:none;">Progression</button>
         <button class="gp-tab-btn championship-only special-championship-only" data-target="step-standings-drivers-sprint" style="display:none;">Sprint Drivers</button>
         <button class="gp-tab-btn championship-only special-championship-only" data-target="step-standings-constructors-sprint" style="display:none;">Sprint Constructors</button>
     </div>
@@ -133,11 +136,33 @@
             <div class="accordion-header"></div>
             <div class="accordion-content" id="tab-constructors-sprint"></div>
         </div>
+        <div class="accordion-item championship-only" id="step-stats" style="display:none;">
+            <div class="accordion-header"></div>
+            <div class="accordion-content">
+                <div id="champ-stats-note" class="champ-chart-note" hidden></div>
+                <h3 class="champ-sub">Drivers</h3>
+                <div class="champ-stats-scroll" id="champ-stats-drivers"></div>
+                <h3 class="champ-sub">Constructors</h3>
+                <div class="champ-stats-scroll" id="champ-stats-constructors"></div>
+            </div>
+        </div>
+        <div class="accordion-item championship-only" id="step-progression" style="display:none;">
+            <div class="accordion-header"></div>
+            <div class="accordion-content">
+                <div class="champ-chart-controls">
+                    <label><input type="radio" name="champProgMode" value="drivers" checked> Drivers</label>
+                    <label><input type="radio" name="champProgMode" value="constructors"> Constructors</label>
+                </div>
+                <div class="champ-chart-wrap"><canvas id="champ-progression-canvas"></canvas></div>
+                <div class="champ-chart-note">Cumulative championship points. Up to 10 entries shown.</div>
+            </div>
+        </div>
     </div>
 
     <script src="js/weather.js"></script>
     <script src="js/home-button.js"></script>
     <script src="js/championship_save_select.js"></script>
+    <script src="js/championship_common.js"></script>
     <script src="js/index.js"></script>
 </body>
 </html>

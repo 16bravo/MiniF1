@@ -122,6 +122,53 @@
     justify-content: flex-end;
 }
 
+/* ---- Stats + progression (shared markup with the archive viewer) ---- */
+.stats-scroll {
+    overflow-x: auto;
+}
+
+.stats-scroll table {
+    font-size: 0.88em;
+}
+
+.stats-scroll th,
+.stats-scroll td {
+    padding: 8px 10px;
+}
+
+.chart-controls {
+    margin: 12px 0;
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-size: 0.85em;
+    color: #aaa;
+}
+
+.chart-wrap {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    height: 460px;
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 10px;
+    overflow: hidden;
+}
+
+#progressionCanvas {
+    display: block;
+    max-width: 100%;
+}
+
+.chart-note {
+    margin-top: 8px;
+    font-size: 0.8em;
+    color: #666;
+}
+
 /* ============================================================
    RESPONSIVE — small screens only. Desktop layout above is
    untouched.

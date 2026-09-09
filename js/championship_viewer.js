@@ -219,152 +219,29 @@ function renderRaceResult() {
 }
 
 // ------------------------------------------------------------
-// Stats (career-style aggregates over the championship)
+// Stats (career-style aggregates over the championship) - shared with the
+// end-of-season screen and the between-races standings tab (see championship_common.js)
 // ------------------------------------------------------------
 function renderStats() {
-    const { driverStats, teamStats, hasGridData, hasFastestLapData } =
-        CC.computeStats(races, results, featurePoints);
-
+    const stats = CC.computeStats(races, results, featurePoints);
     const note = document.getElementById('statsGridNote');
-    const missing = [];
-    if (!hasGridData) missing.push('Pole and Best Grid need qualifying data');
-    if (!hasFastestLapData) missing.push('Fastest Lap needs race lap timing');
-    note.hidden = missing.length === 0;
-    note.textContent = missing.join('; ') + ' — not recorded by this championship (run before that tracking existed).';
-
-    document.getElementById('stats-drivers').innerHTML = buildDriverStatsTable(driverStats, hasFastestLapData);
-    document.getElementById('stats-constructors').innerHTML = buildTeamStatsTable(teamStats, hasFastestLapData);
-}
-
-function fmtPos(n) { return n == null ? '—' : 'P' + n; }
-function fmtAvg(n) { return n == null ? '—' : n.toFixed(1); }
-function num(n) { return n ? String(n) : '-'; }
-
-function buildDriverStatsTable(rows, showFL) {
-    if (!rows.length) return `<p style="color:#888;padding:20px;">No data.</p>`;
-    let h = `<table><thead><tr>
-        <th>#</th><th>Driver</th><th>Team</th>
-        <th title="Grands Prix entered">GP</th>
-        <th title="Race finishes">Fin</th>
-        <th title="Retirements (DNF)">DNF</th>
-        <th title="Race wins">Wins</th>
-        <th title="Podium finishes (top 3)">Pod</th>
-        <th title="Points-scoring finishes">Scoring</th>
-        <th title="Pole positions (started 1st)">Pole</th>` +
-        (showFL ? `<th title="Fastest laps (feature races)">FL</th>` : '') + `
-        <th title="Best race finish">Best</th>
-        <th title="Best qualifying / grid slot">Grid</th>
-        <th title="Average finishing position">Avg</th>
-        <th title="Championship points">Points</th>
-    </tr></thead><tbody>`;
-    rows.forEach((r, i) => {
-        h += `<tr>` +
-            `<td>${i + 1}</td>` +
-            `<td>${CC.escapeHtml(r.name)}</td>` +
-            `<td>${CC.escapeHtml(r.team)}</td>` +
-            `<td>${r.entered}</td>` +
-            `<td>${r.finishes}</td>` +
-            `<td>${num(r.dnf)}</td>` +
-            `<td>${num(r.wins)}</td>` +
-            `<td>${num(r.podiums)}</td>` +
-            `<td>${num(r.pointFinishes)}</td>` +
-            `<td>${num(r.poles)}</td>` +
-            (showFL ? `<td>${num(r.fastestLaps)}</td>` : '') +
-            `<td>${fmtPos(r.bestFinish)}</td>` +
-            `<td>${fmtPos(r.bestGrid)}</td>` +
-            `<td>${fmtAvg(r.avgFinish)}</td>` +
-            `<td><b>${r.points}</b></td>` +
-            `</tr>`;
-    });
-    return h + `</tbody></table>`;
-}
-
-function buildTeamStatsTable(rows, showFL) {
-    if (!rows.length) return `<p style="color:#888;padding:20px;">No data.</p>`;
-    let h = `<table><thead><tr>
-        <th>#</th><th>Constructor</th>
-        <th title="Grands Prix entered">GP</th>
-        <th title="Car finishes">Fin</th>
-        <th title="Retirements (DNF)">DNF</th>
-        <th title="Race wins">Wins</th>
-        <th title="Podium finishes (per car)">Pod</th>
-        <th title="1-2 finishes">1-2</th>
-        <th title="Points-scoring finishes (per car)">Scoring</th>
-        <th title="Pole positions">Pole</th>` +
-        (showFL ? `<th title="Fastest laps (feature races)">FL</th>` : '') + `
-        <th title="Best race finish">Best</th>
-        <th title="Best qualifying / grid slot">Grid</th>
-        <th title="Championship points">Points</th>
-    </tr></thead><tbody>`;
-    rows.forEach((r, i) => {
-        h += `<tr>` +
-            `<td>${i + 1}</td>` +
-            `<td>${CC.escapeHtml(r.team)}</td>` +
-            `<td>${r.entered}</td>` +
-            `<td>${r.finishes}</td>` +
-            `<td>${num(r.dnf)}</td>` +
-            `<td>${num(r.wins)}</td>` +
-            `<td>${num(r.podiums)}</td>` +
-            `<td>${num(r.oneTwo)}</td>` +
-            `<td>${num(r.pointFinishes)}</td>` +
-            `<td>${num(r.poles)}</td>` +
-            (showFL ? `<td>${num(r.fastestLaps)}</td>` : '') +
-            `<td>${fmtPos(r.bestFinish)}</td>` +
-            `<td>${fmtPos(r.bestGrid)}</td>` +
-            `<td><b>${r.points}</b></td>` +
-            `</tr>`;
-    });
-    return h + `</tbody></table>`;
+    const txt = CC.statsNote(stats);
+    note.hidden = !txt;
+    note.textContent = txt;
+    document.getElementById('stats-drivers').innerHTML = CC.buildDriverStatsTable(stats);
+    document.getElementById('stats-constructors').innerHTML = CC.buildTeamStatsTable(stats);
 }
 
 // ------------------------------------------------------------
 // Points progression chart
 // ------------------------------------------------------------
 function renderProgression() {
-    if (typeof Chart === 'undefined') return;
     const canvas = document.getElementById('progressionCanvas');
     if (!canvas || canvas.offsetParent === null) return; // not visible yet
-
     const mode = document.querySelector('input[name="progMode"]:checked').value;
-    const source = mode === 'constructors' ? constructorStandings : driverStandings;
-    const rows = source.slice(0, 10);
-
-    const labels = races.map((r, i) => CC.raceCode(r) || `R${i + 1}`);
-
-    const datasets = rows.map((row, i) => {
-        let running = 0;
-        const cumulative = row.perRace.map(p => (running += (p || 0)));
-        const label = mode === 'constructors' ? row.team : row.name;
-        return {
-            label,
-            data: cumulative,
-            borderColor: row.color || '#888',
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            // dashed line for the 2nd entry sharing a colour (teammates)
-            borderDash: (mode === 'drivers' && i > 0 && rows[i - 1].color === row.color) ? [6, 4] : [],
-            tension: 0.15,
-            pointRadius: 2
-        };
-    });
-
-    if (progressionChart) progressionChart.destroy();
-    progressionChart = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: { labels, datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            scales: {
-                x: { grid: { color: '#1e1e1e' }, ticks: { color: '#999' } },
-                y: { grid: { color: '#1e1e1e' }, ticks: { color: '#999' }, beginAtZero: true }
-            },
-            plugins: {
-                legend: { labels: { color: '#ccc', boxWidth: 14, font: { size: 11 } } },
-                tooltip: { enabled: true }
-            }
-        }
+    progressionChart = CC.progressionChart(canvas, {
+        standings: mode === 'constructors' ? constructorStandings : driverStandings,
+        races, mode, chart: progressionChart
     });
 }
 
