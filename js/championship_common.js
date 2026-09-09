@@ -44,7 +44,26 @@ const ChampionshipCommon = (() => {
     // Returns { driverStandings, constructorStandings }, each row:
     //   drivers:      { code, name, team, color, perRace:[], total, countback:[] }
     //   constructors: { team, color, perRace:[], total, countback:[] }
-    function computeStandings(races, results, points) {
+    // Fastest-lap bonus: the driver code (if any) that earns +1 in this race.
+    // opts = { fastestLapPoint:bool, fastestLapTopN:number }  (topN <= 0 -> any position).
+    // Sprint races never award it; a retired holder never earns it.
+    function fastestLapWinner(race, result, opts) {
+        if (!opts || !opts.fastestLapPoint) return null;
+        if (race && race.isSprintRace) return null;
+        const rows = result || [];
+        const holder = rows.find(d => d && d.fastestLapOfRace);
+        if (!holder || holder.state === 'out') return null;
+        const topN = Number(opts.fastestLapTopN) || 0;
+        if (topN > 0) {
+            const classified = rows.filter(d => d.state !== 'out')
+                .sort((a, b) => b.totalLength - a.totalLength);
+            const pos = classified.findIndex(d => d.code === holder.code) + 1;
+            if (pos < 1 || pos > topN) return null;
+        }
+        return holder.code;
+    }
+
+    function computeStandings(races, results, points, opts) {
         points = normalizePoints(points);
         const nRaces = races.length;
 
@@ -84,6 +103,18 @@ const ChampionshipCommon = (() => {
                     (teamFeatPos[d.team] = teamFeatPos[d.team] || []).push(finishPos);
                 }
             });
+
+            // Fastest-lap bonus point (feature races only, when enabled)
+            const flCode = fastestLapWinner(race, results[raceIdx], opts);
+            if (flCode) {
+                const flRow = (results[raceIdx] || []).find(d => d.code === flCode);
+                if (!driverPts[flCode]) driverPts[flCode] = Array(nRaces).fill(0);
+                driverPts[flCode][raceIdx] += 1;
+                if (flRow && flRow.team) {
+                    if (!teamPts[flRow.team]) teamPts[flRow.team] = Array(nRaces).fill(0);
+                    teamPts[flRow.team][raceIdx] += 1;
+                }
+            }
         });
 
         const driverStandings = Object.entries(driverPts)
@@ -139,13 +170,15 @@ const ChampionshipCommon = (() => {
             .sort((a, b) => b.totalLength - a.totalLength)
             .map((d, i) => ({
                 pos: i + 1, code: d.code, name: d.name, team: d.team,
-                color: d.color || '#888', points: scale[i] || 0, retired: false
+                color: d.color || '#888', points: scale[i] || 0, retired: false,
+                fastestLap: !!d.fastestLapOfRace
             }));
         const retired = (result || [])
             .filter(d => d.state === 'out')
             .map(d => ({
                 pos: null, code: d.code, name: d.name, team: d.team,
-                color: d.color || '#888', points: 0, retired: true
+                color: d.color || '#888', points: 0, retired: true,
+                fastestLap: !!d.fastestLapOfRace
             }));
         return classified.concat(retired);
     }
@@ -162,6 +195,7 @@ const ChampionshipCommon = (() => {
         const drivers = {};
         const teams = {};
         let hasGridData = false;
+        let hasFastestLapData = false;
 
         const minDefined = (cur, val) => (val == null ? cur : (cur == null ? val : Math.min(cur, val)));
 
@@ -169,7 +203,7 @@ const ChampionshipCommon = (() => {
             if (!drivers[d.code]) drivers[d.code] = {
                 code: d.code, name: d.name, team: d.team, color: d.color || '#888',
                 entered: 0, finishes: 0, dnf: 0, wins: 0, podiums: 0, pointFinishes: 0,
-                poles: 0, bestFinish: null, bestGrid: null, points: 0, _finishPosSum: 0
+                poles: 0, fastestLaps: 0, bestFinish: null, bestGrid: null, points: 0, _finishPosSum: 0
             };
             return drivers[d.code];
         }
@@ -177,7 +211,7 @@ const ChampionshipCommon = (() => {
             if (!teams[d.team]) teams[d.team] = {
                 team: d.team, color: d.color || '#888',
                 entered: 0, finishes: 0, dnf: 0, wins: 0, podiums: 0, pointFinishes: 0,
-                poles: 0, oneTwo: 0, bestFinish: null, bestGrid: null, points: 0
+                poles: 0, fastestLaps: 0, oneTwo: 0, bestFinish: null, bestGrid: null, points: 0
             };
             return teams[d.team];
         }
@@ -239,6 +273,17 @@ const ChampionshipCommon = (() => {
             Object.entries(teamPodiumPos).forEach(([team, positions]) => {
                 if (positions.includes(1) && positions.includes(2)) teams[team].oneTwo++;
             });
+
+            // Fastest lap - a stat in its own right, counted for feature races only
+            // (sprints keep the on-track marker but not the championship record).
+            if (!race.isSprintRace) {
+                if (result.some(d => d && ('bestLap' in d))) hasFastestLapData = true;
+                const flh = result.find(d => d && d.fastestLapOfRace);
+                if (flh) {
+                    const sd = drivers[flh.code]; if (sd) sd.fastestLaps++;
+                    const st = teams[flh.team];   if (st) st.fastestLaps++;
+                }
+            }
         });
 
         Object.values(drivers).forEach(d => {
@@ -254,7 +299,8 @@ const ChampionshipCommon = (() => {
         return {
             driverStats: Object.values(drivers).sort(byPointsThenBest),
             teamStats: Object.values(teams).sort(byPointsThenBest),
-            hasGridData
+            hasGridData,
+            hasFastestLapData
         };
     }
 
@@ -456,7 +502,7 @@ const ChampionshipCommon = (() => {
     return {
         DEFAULT_POINTS, POINTS_SPRINT,
         sanitizePairs, normalizePoints,
-        computeStandings, positionHistogram, compareStandingRows, raceClassification,
+        computeStandings, fastestLapWinner, positionHistogram, compareStandingRows, raceClassification,
         computeStats,
         raceCode, buildStandingsTable, drawRecap,
         escapeHtml, escapeText, slugify, dateStamp, triggerDownload

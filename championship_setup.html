@@ -45,6 +45,20 @@
                     <span class="settings-toggle-desc">Sprint races: 22 → 1 points</span>
                 </div>
             </div>
+
+            <div class="settings-control-group" id="fastest-lap-group">
+                <label class="settings-toggle-label">
+                    <input type="checkbox" id="fastest-lap-toggle" />
+                    <span class="settings-toggle-slider"></span>
+                    <span class="settings-toggle-text">Point for fastest lap</span>
+                </label>
+                <label class="settings-toggle-desc" id="fastest-lap-topn-label">
+                    only if classified in the top
+                    <input type="number" id="fastest-lap-topn" min="0" max="30" value="10" />
+                    <span title="0 = any position">(0 = any)</span>
+                </label>
+            </div>
+
             <div id="points-container"></div>
             <button id="reset-points-btn" class="btn-reset-points">Reset to Defaults</button>
         </div>

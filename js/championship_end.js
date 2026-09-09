@@ -24,6 +24,7 @@ let state = {
     races: [],
     results: [],
     points: [...CC.DEFAULT_POINTS],
+    opts: { fastestLapPoint: false, fastestLapTopN: 10 },
     driverStandings: [],
     constructorStandings: [],
     slotName: 'Championship'
@@ -32,7 +33,7 @@ let state = {
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
 
-    const standings = CC.computeStandings(state.races, state.results, state.points);
+    const standings = CC.computeStandings(state.races, state.results, state.points, state.opts);
     state.driverStandings = standings.driverStandings;
     state.constructorStandings = standings.constructorStandings;
 
@@ -70,6 +71,11 @@ function loadData() {
     } catch (e) {
         state.points = [...CC.DEFAULT_POINTS];
     }
+
+    state.opts = {
+        fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
+        fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10')
+    };
 
     const slotNumber = parseInt(localStorage.getItem('championshipSlotNumber') || '0');
     if (slotNumber >= 1 && slotNumber <= 3) {
@@ -168,6 +174,7 @@ function downloadJson() {
         exportedAt: new Date().toISOString(),
         name: state.slotName,
         pointsScale: { feature: state.points, sprint: CC.POINTS_SPRINT },
+        options: { fastestLapPoint: state.opts.fastestLapPoint, fastestLapTopN: state.opts.fastestLapTopN },
         races: state.races,
         results: state.results,
         standings: {

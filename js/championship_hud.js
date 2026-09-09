@@ -18,8 +18,12 @@
 
         const clean = CC.sanitizePairs(races, results);
         points = CC.normalizePoints(points);
+        const opts = {
+            fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
+            fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10')
+        };
         let { driverStandings, constructorStandings } =
-            CC.computeStandings(clean.races, clean.results, points);
+            CC.computeStandings(clean.races, clean.results, points, opts);
 
         const totalRounds = clean.races.filter(r => !r.isSprintRace).length || clean.races.length;
         const roundsDone = clean.results.filter(r => Array.isArray(r) && r.length).length;

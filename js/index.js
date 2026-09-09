@@ -684,7 +684,11 @@ function renderChampionshipStandings() {
     let driverPointsTable = {}, teamPointsTable = {};
     let driverPointsTableSprint = {}, teamPointsTableSprint = {};
     let driverPointsTableFeature = {}, teamPointsTableFeature = {};
-    
+
+    // Fastest-lap bonus point (set in Championship Setup). Feature races only.
+    const flPointEnabled = localStorage.getItem('championshipFastestLapPoint') === 'true';
+    const flTopN = parseInt(localStorage.getItem('championshipFastestLapTopN') || '10') || 0;
+
     races.forEach((race, raceIdx) => {
         const results = championshipResults[raceIdx] || [];
         const pointsScale = race.isSprintRace ? pointsSprintToUse : POINTS;
@@ -718,6 +722,24 @@ function renderChampionshipStandings() {
                     teamPointsTableFeature[driver.team][raceIdx] += pointsScale[idx] || 0;
                 }
             });
+
+        // Fastest-lap bonus: +1 to the holder of this feature race, if classified
+        // within the configured top N (flTopN <= 0 = any position).
+        if (flPointEnabled && !race.isSprintRace) {
+            const order = results.filter(d => d.state !== 'out').sort((a, b) => b.totalLength - a.totalLength);
+            const flPos = order.findIndex(d => d.fastestLapOfRace);
+            if (flPos !== -1 && (flTopN <= 0 || flPos < flTopN)) {
+                const h = order[flPos];
+                [driverPointsTable, driverPointsTableFeature].forEach(tbl => {
+                    if (!tbl[h.code]) tbl[h.code] = Array(races.length).fill(0);
+                    tbl[h.code][raceIdx] += 1;
+                });
+                [teamPointsTable, teamPointsTableFeature].forEach(tbl => {
+                    if (!tbl[h.team]) tbl[h.team] = Array(races.length).fill(0);
+                    tbl[h.team][raceIdx] += 1;
+                });
+            }
+        }
     });
 
     // Calculate sprint championship points (based on overall sprint classification)

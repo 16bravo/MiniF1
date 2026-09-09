@@ -115,6 +115,20 @@ tr.dnf td {
     font-style: italic;
 }
 
+/* Fastest-lap badge in the per-race classification */
+.fl-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 5px;
+    font-size: 0.7em;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    color: #fff;
+    background: #a72bc5;
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
 /* Progression chart */
 .chart-controls {
     margin-bottom: 12px;

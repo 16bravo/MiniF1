@@ -17,6 +17,7 @@ let exportData = null;        // parsed export
 let races = [];
 let results = [];
 let featurePoints = [...CC.DEFAULT_POINTS];
+let championshipOpts = { fastestLapPoint: false, fastestLapTopN: 0 };
 let champName = 'Championship';
 let driverStandings = [];
 let constructorStandings = [];
@@ -94,8 +95,12 @@ function loadChampionship(parsed) {
     featurePoints = CC.normalizePoints(
         parsed.pointsScale && parsed.pointsScale.feature ? parsed.pointsScale.feature : null
     );
+    championshipOpts = {
+        fastestLapPoint: !!(parsed.options && parsed.options.fastestLapPoint),
+        fastestLapTopN: (parsed.options && Number(parsed.options.fastestLapTopN)) || 0
+    };
 
-    const standings = CC.computeStandings(races, results, featurePoints);
+    const standings = CC.computeStandings(races, results, featurePoints, championshipOpts);
     driverStandings = standings.driverStandings;
     constructorStandings = standings.constructorStandings;
 
@@ -195,14 +200,18 @@ function renderRaceResult() {
         return;
     }
 
+    // Who (if anyone) picked up the fastest-lap bonus in this race
+    const flBonusCode = CC.fastestLapWinner(race, results[idx], championshipOpts);
+
     let html = `<table><thead><tr><th>#</th><th>Driver</th><th>Team</th><th>Status</th><th>Points</th></tr></thead><tbody>`;
     rows.forEach(row => {
+        const pts = row.points + (flBonusCode && row.code === flBonusCode ? 1 : 0);
         html += `<tr class="${row.retired ? 'dnf' : ''}">` +
             `<td>${row.retired ? '—' : row.pos}</td>` +
-            `<td>${CC.escapeHtml(row.name)}</td>` +
+            `<td>${CC.escapeHtml(row.name)}${row.fastestLap ? ' <span class="fl-badge" title="Fastest lap">FL</span>' : ''}</td>` +
             `<td>${CC.escapeHtml(row.team)}</td>` +
             `<td>${row.retired ? 'DNF' : 'Finished'}</td>` +
-            `<td${row.points === 0 ? ' class="no-points"' : ''}><b>${row.points || '-'}</b></td>` +
+            `<td${pts === 0 ? ' class="no-points"' : ''}><b>${pts || '-'}</b></td>` +
             `</tr>`;
     });
     html += `</tbody></table>`;
@@ -213,22 +222,25 @@ function renderRaceResult() {
 // Stats (career-style aggregates over the championship)
 // ------------------------------------------------------------
 function renderStats() {
-    const { driverStats, teamStats, hasGridData } = CC.computeStats(races, results, featurePoints);
+    const { driverStats, teamStats, hasGridData, hasFastestLapData } =
+        CC.computeStats(races, results, featurePoints);
 
     const note = document.getElementById('statsGridNote');
-    note.hidden = hasGridData;
-    note.textContent = 'Pole and Best Grid need qualifying data, which this championship did not record ' +
-                       '(it was run before grid tracking was added).';
+    const missing = [];
+    if (!hasGridData) missing.push('Pole and Best Grid need qualifying data');
+    if (!hasFastestLapData) missing.push('Fastest Lap needs race lap timing');
+    note.hidden = missing.length === 0;
+    note.textContent = missing.join('; ') + ' — not recorded by this championship (run before that tracking existed).';
 
-    document.getElementById('stats-drivers').innerHTML = buildDriverStatsTable(driverStats);
-    document.getElementById('stats-constructors').innerHTML = buildTeamStatsTable(teamStats);
+    document.getElementById('stats-drivers').innerHTML = buildDriverStatsTable(driverStats, hasFastestLapData);
+    document.getElementById('stats-constructors').innerHTML = buildTeamStatsTable(teamStats, hasFastestLapData);
 }
 
 function fmtPos(n) { return n == null ? '—' : 'P' + n; }
 function fmtAvg(n) { return n == null ? '—' : n.toFixed(1); }
 function num(n) { return n ? String(n) : '-'; }
 
-function buildDriverStatsTable(rows) {
+function buildDriverStatsTable(rows, showFL) {
     if (!rows.length) return `<p style="color:#888;padding:20px;">No data.</p>`;
     let h = `<table><thead><tr>
         <th>#</th><th>Driver</th><th>Team</th>
@@ -238,7 +250,8 @@ function buildDriverStatsTable(rows) {
         <th title="Race wins">Wins</th>
         <th title="Podium finishes (top 3)">Pod</th>
         <th title="Points-scoring finishes">Scoring</th>
-        <th title="Pole positions (started 1st)">Pole</th>
+        <th title="Pole positions (started 1st)">Pole</th>` +
+        (showFL ? `<th title="Fastest laps (feature races)">FL</th>` : '') + `
         <th title="Best race finish">Best</th>
         <th title="Best qualifying / grid slot">Grid</th>
         <th title="Average finishing position">Avg</th>
@@ -256,6 +269,7 @@ function buildDriverStatsTable(rows) {
             `<td>${num(r.podiums)}</td>` +
             `<td>${num(r.pointFinishes)}</td>` +
             `<td>${num(r.poles)}</td>` +
+            (showFL ? `<td>${num(r.fastestLaps)}</td>` : '') +
             `<td>${fmtPos(r.bestFinish)}</td>` +
             `<td>${fmtPos(r.bestGrid)}</td>` +
             `<td>${fmtAvg(r.avgFinish)}</td>` +
@@ -265,7 +279,7 @@ function buildDriverStatsTable(rows) {
     return h + `</tbody></table>`;
 }
 
-function buildTeamStatsTable(rows) {
+function buildTeamStatsTable(rows, showFL) {
     if (!rows.length) return `<p style="color:#888;padding:20px;">No data.</p>`;
     let h = `<table><thead><tr>
         <th>#</th><th>Constructor</th>
@@ -276,7 +290,8 @@ function buildTeamStatsTable(rows) {
         <th title="Podium finishes (per car)">Pod</th>
         <th title="1-2 finishes">1-2</th>
         <th title="Points-scoring finishes (per car)">Scoring</th>
-        <th title="Pole positions">Pole</th>
+        <th title="Pole positions">Pole</th>` +
+        (showFL ? `<th title="Fastest laps (feature races)">FL</th>` : '') + `
         <th title="Best race finish">Best</th>
         <th title="Best qualifying / grid slot">Grid</th>
         <th title="Championship points">Points</th>
@@ -293,6 +308,7 @@ function buildTeamStatsTable(rows) {
             `<td>${num(r.oneTwo)}</td>` +
             `<td>${num(r.pointFinishes)}</td>` +
             `<td>${num(r.poles)}</td>` +
+            (showFL ? `<td>${num(r.fastestLaps)}</td>` : '') +
             `<td>${fmtPos(r.bestFinish)}</td>` +
             `<td>${fmtPos(r.bestGrid)}</td>` +
             `<td><b>${r.points}</b></td>` +

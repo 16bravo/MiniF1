@@ -644,6 +644,42 @@ body {
     color: #000;
 }
 
+/* ---- Fastest-lap point control ---- */
+#fastest-lap-group {
+    margin-bottom: 30px;
+}
+
+#fastest-lap-topn-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: none;
+}
+
+#fastest-lap-topn {
+    width: 46px;
+    padding: 4px 6px;
+    background: #1e1e1e;
+    color: #e10600;
+    border: 1px solid #2a2a2a;
+    border-radius: 3px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+#fastest-lap-topn:disabled {
+    opacity: 0.4;
+}
+
+#fastest-lap-topn::-webkit-outer-spin-button,
+#fastest-lap-topn::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 /* ============================================================
    RESPONSIVE — small screens only. Desktop layout above is
    untouched; this block only applies under 760px.

@@ -10,6 +10,31 @@ let currentPoints = [...DEFAULT_POINTS];
 let currentPointsSprint = [...DEFAULT_POINTS_SPRINT];
 let specialChampionshipMode = false;
 
+// Fastest-lap bonus point (feature races only). topN <= 0 means "any position".
+let fastestLapPoint = false;
+let fastestLapTopN = 10;
+
+// Reflect the fastest-lap state into its controls
+function renderFastestLapControls() {
+    const toggle = document.getElementById('fastest-lap-toggle');
+    const topn = document.getElementById('fastest-lap-topn');
+    if (!toggle || !topn) return;
+    toggle.checked = fastestLapPoint;
+    topn.value = fastestLapTopN;
+    topn.disabled = !fastestLapPoint;
+    if (!toggle.dataset.bound) {
+        toggle.dataset.bound = '1';
+        toggle.addEventListener('change', () => {
+            fastestLapPoint = toggle.checked;
+            topn.disabled = !fastestLapPoint;
+        });
+        topn.addEventListener('change', () => {
+            fastestLapTopN = Math.max(0, Math.min(30, parseInt(topn.value) || 0));
+            topn.value = fastestLapTopN;
+        });
+    }
+}
+
 // Auto-save races to slot if active
 function autoSaveRaces() {
     localStorage.setItem('championshipRaces', JSON.stringify(selectedRaces));
@@ -336,7 +361,13 @@ function loadPointsConfiguration() {
     currentPointsSprint = [...DEFAULT_POINTS_SPRINT];
     void savedSprint;
 
+    // Fastest-lap bonus point
+    fastestLapPoint = localStorage.getItem('championshipFastestLapPoint') === 'true';
+    const savedTopN = parseInt(localStorage.getItem('championshipFastestLapTopN'));
+    if (Number.isFinite(savedTopN)) fastestLapTopN = Math.max(0, Math.min(30, savedTopN));
+
     renderPointsConfiguration();
+    renderFastestLapControls();
     setupToggleListener();
 }
 
@@ -541,6 +572,8 @@ document.getElementById('start-championship-btn').onclick = function() {
     localStorage.setItem('championshipPoints', JSON.stringify(currentPoints));
     localStorage.setItem('championshipPointsSprint', JSON.stringify(currentPointsSprint));
     localStorage.setItem('championshipSpecialMode', specialChampionshipMode.toString());
+    localStorage.setItem('championshipFastestLapPoint', fastestLapPoint.toString());
+    localStorage.setItem('championshipFastestLapTopN', String(fastestLapTopN));
     
     localStorage.removeItem('teams'); // Force reload from default JSON on first GP
     localStorage.removeItem('drivers');  // Force reload from default JSON on first GP
@@ -558,6 +591,9 @@ document.getElementById('reset-points-btn').onclick = function() {
     currentPoints = [...DEFAULT_POINTS];
     currentPointsSprint = [...DEFAULT_POINTS_SPRINT];
     specialChampionshipMode = false;
+    fastestLapPoint = false;
+    fastestLapTopN = 10;
     renderPointsConfiguration();
+    renderFastestLapControls();
     setupToggleListener();
 };

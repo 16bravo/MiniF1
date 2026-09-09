@@ -98,6 +98,21 @@ function createNewSave(slotNumber) {
     });
 }
 
+// Restore the championship settings (points scale + fastest-lap rule) that were
+// saved with a slot. Older saves have no `settings` block - leave the current
+// localStorage values (or defaults) in place then.
+function applySavedChampionshipSettings(slotData) {
+    const s = slotData && slotData.data && slotData.data.settings;
+    if (!s) return;
+    if (Array.isArray(s.points))       localStorage.setItem('championshipPoints', JSON.stringify(s.points));
+    if (Array.isArray(s.pointsSprint)) localStorage.setItem('championshipPointsSprint', JSON.stringify(s.pointsSprint));
+    localStorage.setItem('championshipSpecialMode', (!!s.specialMode).toString());
+    localStorage.setItem('championshipFastestLapPoint', (!!s.fastestLapPoint).toString());
+    if (Number.isFinite(s.fastestLapTopN)) {
+        localStorage.setItem('championshipFastestLapTopN', String(s.fastestLapTopN));
+    }
+}
+
 // Load a save slot for setup (new championship)
 function loadSaveSlotToSetup(slotNumber) {
     const slotData = getSaveSlot(slotNumber);
@@ -123,6 +138,7 @@ function loadSaveSlotToSetup(slotNumber) {
     if (slotData.data.drivers) localStorage.setItem('drivers', JSON.stringify(slotData.data.drivers));
     if (slotData.data.weatherQuali) localStorage.setItem('weatherQuali', JSON.stringify(slotData.data.weatherQuali));
     if (slotData.data.weatherRace) localStorage.setItem('weatherRace', JSON.stringify(slotData.data.weatherRace));
+    applySavedChampionshipSettings(slotData);
 
     // Redirect to championship setup
     window.location.href = 'championship_setup.html';
@@ -153,6 +169,7 @@ function loadSaveSlot(slotNumber) {
     if (slotData.data.drivers) localStorage.setItem('drivers', JSON.stringify(slotData.data.drivers));
     if (slotData.data.weatherQuali) localStorage.setItem('weatherQuali', JSON.stringify(slotData.data.weatherQuali));
     if (slotData.data.weatherRace) localStorage.setItem('weatherRace', JSON.stringify(slotData.data.weatherRace));
+    applySavedChampionshipSettings(slotData);
 
     // Redirect to current race (resume championship)
     window.location.href = 'gp_select.html';
@@ -271,7 +288,14 @@ window.autoSaveChampionship = function() {
             teams: JSON.parse(localStorage.getItem('teams') || 'null'),
             drivers: JSON.parse(localStorage.getItem('drivers') || 'null'),
             weatherQuali: JSON.parse(localStorage.getItem('weatherQuali') || 'null'),
-            weatherRace: JSON.parse(localStorage.getItem('weatherRace') || 'null')
+            weatherRace: JSON.parse(localStorage.getItem('weatherRace') || 'null'),
+            settings: {
+                points: JSON.parse(localStorage.getItem('championshipPoints') || 'null'),
+                pointsSprint: JSON.parse(localStorage.getItem('championshipPointsSprint') || 'null'),
+                specialMode: localStorage.getItem('championshipSpecialMode') === 'true',
+                fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
+                fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10')
+            }
         }
     };
 
