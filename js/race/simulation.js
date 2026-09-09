@@ -480,13 +480,14 @@ function frame(interval) {
             }
 
             driver_position_X[i] -= variation_X / (fps*(duration/1000));
+            driver_position_X[i] = Math.max(0, driver_position_X[i]); // right edge of the animation zone: nothing sits ahead of the leader
             driver_position_Y[i] -= variation_Y / (fps*(duration/1000));
         
             circuit_minimap_position_live[i] = Math.round(circuit_minimap_position_previous[i] - 
                                                          variation_map * (currentFrame/frames)) % circuit_map_length;
             
             document.getElementById(pL).style.top = driver_position_Y[i] + 'px';
-            document.getElementById(pL).style.right = driver_position_X[i]+25 + 'px';
+            document.getElementById(pL).style.right = driver_position_X[i]+60 + 'px'; // +60: safety margin so the leader's car isn't clipped at the right edge
             document.getElementById(pX).style.top = driver_position_Y[i] + 'px';
             document.getElementById(t).style.top = driver_position_Y[i] + 'px';
             document.getElementById(ty).style.top = driver_position_Y[i] + 'px';
