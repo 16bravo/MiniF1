@@ -95,3 +95,58 @@ function showStartingGrid(onComplete) {
     overlay.addEventListener('click', finish);
     document.addEventListener('keydown', onKey);
 }
+
+// F1 start-lights sequence, shown right after the grid intro over the frozen
+// page: 4 columns light up one per second, hold for a random beat, then all
+// go out - and that is the start. onComplete() runs once, on lights-out (or
+// if the viewer clicks / presses Esc-Space to jump to it).
+function showStartLights(onComplete) {
+    const N = 4;
+    let done = false;
+    const timers = [];
+    const onKey = (e) => {
+        if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); lightsOut(); }
+    };
+    const finish = () => {
+        if (done) return;
+        done = true;
+        timers.forEach(clearTimeout);
+        document.removeEventListener('keydown', onKey);
+        const el = document.getElementById('start-lights');
+        if (el) { el.classList.add('sl-out'); setTimeout(() => el.remove(), 300); }
+        try { onComplete(); } catch (e) { console.error(e); }
+    };
+
+    const overlay = document.createElement('div');
+    overlay.id = 'start-lights';
+    let cols = '';
+    for (let i = 0; i < N; i++) {
+        cols += `<div class="sl-col"><span class="sl-lamp"></span><span class="sl-lamp"></span></div>`;
+    }
+    overlay.innerHTML = `<div class="sl-gantry">${cols}</div>`;
+    document.body.appendChild(overlay);
+    const colEls = Array.prototype.slice.call(overlay.querySelectorAll('.sl-col'));
+
+    let outFired = false;
+    const lightsOut = () => {
+        if (outFired) return;
+        outFired = true;
+        timers.forEach(clearTimeout);
+        colEls.forEach(c => c.classList.remove('on'));
+        overlay.classList.add('sl-go');
+        setTimeout(finish, 450);   // reaction-time beat, then the race is running
+    };
+
+    // Light up one column per second.
+    for (let i = 0; i < N; i++) {
+        timers.push(setTimeout(() => colEls[i].classList.add('on'), (i + 1) * 1000));
+    }
+    // All lit, then a random hold, then lights out = GO.
+    const hold = 500 + Math.random() * 2300;
+    timers.push(setTimeout(lightsOut, N * 1000 + hold));
+    // Backstop so the race always starts even if a timer is dropped.
+    timers.push(setTimeout(finish, N * 1000 + 3200 + 1500));
+
+    overlay.addEventListener('click', lightsOut);
+    document.addEventListener('keydown', onKey);
+}

@@ -205,3 +205,73 @@
     .gi-card { width: 190px; }
     .gi-pos { flex-basis: 38px; font-size: 1.5em; }
 }
+
+/* ============================================================
+   F1 START LIGHTS - plays right after the grid intro
+   ============================================================ */
+#start-lights {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 5, 7, 0.72);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    cursor: pointer;
+    animation: gi-fade 0.3s ease;
+    transition: background 0.35s ease, backdrop-filter 0.35s ease;
+}
+
+/* lights out -> clear the veil so the launching cars are crisp */
+#start-lights.sl-go {
+    background: rgba(5, 5, 7, 0);
+    -webkit-backdrop-filter: blur(0);
+    backdrop-filter: blur(0);
+}
+
+#start-lights.sl-out {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sl-gantry {
+    display: flex;
+    gap: min(3.5vw, 46px);
+    padding: 22px 30px;
+    background: linear-gradient(180deg, #1b1b1e, #0c0c0d);
+    border: 1px solid #000;
+    border-radius: 10px;
+    box-shadow: 0 24px 90px rgba(0, 0, 0, 0.7);
+}
+
+.sl-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    background: #0a0a0b;
+    border-radius: 8px;
+}
+
+.sl-lamp {
+    width: min(9vw, 62px);
+    height: min(9vw, 62px);
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 34%, #4a1414, #230808 70%);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
+    transition: background 0.08s linear, box-shadow 0.08s linear;
+}
+
+.sl-col.on .sl-lamp {
+    background: radial-gradient(circle at 38% 34%, #ff8a8a, #ff2b2b 55%, #c40000 100%);
+    box-shadow:
+        0 0 26px 4px rgba(226, 6, 0, 0.85),
+        inset 0 2px 6px rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 720px) {
+    .sl-gantry { gap: 18px; padding: 16px; }
+    .sl-col { padding: 9px; gap: 9px; }
+}

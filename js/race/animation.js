@@ -109,14 +109,18 @@ async function loadCircuitData(circuit) {
 }
 
 // Animation initialization function
-// Called after circuit data is fully loaded. The starting-grid intro plays
-// first (over the frozen page); the race starts when it finishes or is skipped.
+// Called after circuit data is fully loaded. Pre-race ceremony over the frozen
+// page: starting-grid intro -> F1 start lights -> the race starts on lights out.
 function initAnimation() {
     console.log("Starting animation...");
+    const lightsThenGo = () => {
+        if (typeof showStartLights === 'function') showStartLights(move);
+        else move();
+    };
     if (typeof showStartingGrid === 'function') {
-        showStartingGrid(move);
+        showStartingGrid(lightsThenGo);
     } else {
-        move();
+        lightsThenGo();
     }
 }
 
