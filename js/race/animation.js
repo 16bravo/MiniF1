@@ -109,10 +109,15 @@ async function loadCircuitData(circuit) {
 }
 
 // Animation initialization function
-// Called after circuit data is fully loaded
+// Called after circuit data is fully loaded. The starting-grid intro plays
+// first (over the frozen page); the race starts when it finishes or is skipped.
 function initAnimation() {
     console.log("Starting animation...");
-    move();
+    if (typeof showStartingGrid === 'function') {
+        showStartingGrid(move);
+    } else {
+        move();
+    }
 }
 
 // Main animation loop start

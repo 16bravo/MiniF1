@@ -169,6 +169,10 @@ if (driversData && driversData.length > 0) {
             // Grid slot = index in the (quali-ordered) driver list; kept in the saved
             // results so the championship archive can compute poles / best qualifying.
             startPosition: driver.startPosition || (gridIndex + 1),
+            // Best qualifying lap (from quali's ranking) - shown on the starting-grid
+            // intro; null when qualifying wasn't run (skip-quali / simple GP).
+            qualiTime: (typeof driver.displayBestTime === 'number' && driver.displayBestTime > 0)
+                ? driver.displayBestTime : null,
             team: driver.team,
             team_id: driver.team_id,
             color: driver.color,
