@@ -166,6 +166,13 @@ function frame(interval) {
             let driverLengthBefore = drivers[i].totalLength; // Store length before update for gap calculations
             const driver = drivers[i];
             if (driver.overtakeCooldown > 0) driver.overtakeCooldown--; // gap between pass attempts
+
+            // Fastest-lap eligibility: a lap is void the moment it sees a caution
+            // or a non-racing frame (in / out of the pits). Lap 1 still counts.
+            if (flagState === "yellow" || flagState === "safetycar" || flagState === "red" ||
+                driver.state !== "racing") {
+                driver._lapDirty = true;
+            }
             
             // ===== CAR PERFORMANCE =====
             driver.carPerf = computeCarPerf(driver.carState);
@@ -398,6 +405,49 @@ function frame(interval) {
             burnFuel(driver, driver.totalLength - driverLengthBefore);
             updateEngineStress(driver);
 
+            // ===== LAP TIMING & FASTEST LAP =====
+            // Detect a start/finish crossing now that this frame's position is final.
+            if (driver.state === "racing" || driver.state === "box") {
+                const lapIdxNow = Math.floor(driver.totalLength / circuitLength);
+                if (lapIdxNow > driver._lapCountSeen) {
+                    const moved = driver.totalLength - driverLengthBefore;
+                    const overshoot = driver.totalLength - lapIdxNow * circuitLength;
+                    // Fraction of a frame since the line was actually crossed.
+                    const crossFrame = raceFrame - (moved > 0 ? Math.min(1, overshoot / moved) : 0);
+                    const oneLap = lapIdxNow === driver._lapCountSeen + 1;
+                    const lapTime = crossFrame - driver._lapAnchorFrame;
+                    const pittedThisLap = driver.pitStops > driver._lapPitStops;
+
+                    // > 10: guards against the car wobbling back and forth across the
+                    // line (e.g. a mistake shove) registering as a ~1-frame "lap".
+                    if (oneLap && lapTime > 10) {
+                        driver.lastLap = lapTime;
+                        const cleanLap = !driver._lapDirty && !pittedThisLap && !driver._outLapPending;
+                        if (cleanLap && (driver.bestLap === null || lapTime < driver.bestLap)) {
+                            driver.bestLap = lapTime;
+                            if (lapTime < fastestLap.timeFrames) {
+                                fastestLap = {
+                                    driverIndex: i, code: driver.code, name: driver.name,
+                                    team: driver.team, color: driver.color,
+                                    timeFrames: lapTime, lap: lapIdxNow
+                                };
+                            }
+                        }
+                    }
+
+                    driver._outLapPending = pittedThisLap;   // the lap after a stop is the out lap
+                    driver._lapCountSeen = lapIdxNow;
+                    driver._lapAnchorFrame = crossFrame;
+                    driver._lapPitStops = driver.pitStops;
+                    driver._lapDirty = false;
+                } else if (lapIdxNow < driver._lapCountSeen) {
+                    // A mistake shoved the car back over the line - resync, don't score.
+                    driver._lapCountSeen = lapIdxNow;
+                    driver._lapAnchorFrame = raceFrame;
+                    driver._lapDirty = true;
+                }
+            }
+
             // This car becomes the "car ahead" for the next ones in the caution train.
             if (driver.state === "racing") {
                 cautionAheadLen = driver.totalLength;
@@ -444,6 +494,18 @@ function frame(interval) {
             // Circuit minimap positioning
             document.getElementById(p).style.left = cX[circuit_minimap_position_live[i]] / zoom - followX + 750 + 'px';
             document.getElementById(p).style.top = -cY[circuit_minimap_position_live[i]] / zoom + followY + 350 + 'px';
+        }
+
+        // ===== FASTEST-LAP MARKER (purple stopwatch) =====
+        // Rides on the row of whoever currently holds the fastest lap.
+        if (fastestLap.driverIndex !== null) {
+            const clk = document.getElementById('clock');
+            if (clk) {
+                clk.style.visibility = 'visible';
+                const cy = driver_position_Y[fastestLap.driverIndex];
+                if (Number.isFinite(cy)) clk.style.top = cy + 'px'; // keep last good spot if the row's Y is momentarily NaN
+                clk.title = `${fastestLap.code}  ${formatDriverTime(fastestLap.timeFrames)}`;
+            }
         }
 
         // ===== CHECK CUMULATIVE DAMAGE FOR RED FLAG =====
@@ -599,6 +661,13 @@ function renderFinalStandings() {
             t.style.color = "white";
             t.textContent = formatInterval(gapTime, gapLen / circuitLength);
         }
+
+        // Fastest-lap holder: purple driver code + the stopwatch parked on the row.
+        if (pX && fastestLap.driverIndex === i) {
+            pX.style.color = "#a72bc5";
+            const clk = document.getElementById("clock");
+            if (clk) { clk.style.visibility = "visible"; clk.style.top = y + "px"; }
+        }
     });
 }
 
@@ -611,7 +680,17 @@ function handleRaceEnd() {
     // Final classification (classified cars by distance, retired cars at the back) —
     // same order shown by renderFinalStandings() on the frozen frame.
     const sortedDrivers = getFinalClassification().map(i => drivers[i]);
-    
+
+    // Fastest lap: stamp the holder and tidy the internal timing scratch fields
+    // before the driver objects get serialised into championshipResults.
+    if (fastestLap.driverIndex !== null && drivers[fastestLap.driverIndex]) {
+        drivers[fastestLap.driverIndex].fastestLapOfRace = true;
+    }
+    drivers.forEach(d => {
+        delete d._lapCountSeen; delete d._lapAnchorFrame; delete d._lapDirty;
+        delete d._lapPitStops; delete d._outLapPending;
+    });
+
     if (isChampionship) {
         // Save race results
         let championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');

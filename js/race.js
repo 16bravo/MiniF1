@@ -200,6 +200,14 @@ if (driversData && driversData.length > 0) {
             tireManagement: driver.tireManagement || 85,
             crashRisk: 0,
             crossingLine: false,
+            // Lap timing / fastest lap
+            lastLap: null,          // last completed lap time, in frames (~seconds)
+            bestLap: null,          // driver's fastest clean lap, in frames
+            _lapCountSeen: 0,       // last lap boundary index processed
+            _lapAnchorFrame: 0,     // (fractional) frame the driver last crossed the line
+            _lapDirty: false,       // current lap can't count (caution / non-racing frame)
+            _lapPitStops: 0,        // driver.pitStops value at the start of the current lap
+            _outLapPending: false,  // next completed lap is an out lap - skip it too
             pitStops: 0,
             pitTimer: 0,
             waitingForRain: false, // Strategy: waiting for rain to pit
@@ -278,6 +286,10 @@ const frames = duration / (1000 / fps); // Total frames per cycle
 let currentFrame = 0; // Current frame counter
 let currentLap = 0; // Current lap number
 let laps; // Total laps in race
+
+// FASTEST LAP (purple stopwatch icon) - recomputed continuously during the race.
+// timeFrames is a lap time in frames (the sim clock runs ~1 frame = 1 second).
+let fastestLap = { driverIndex: null, code: null, name: null, team: null, color: null, timeFrames: Infinity, lap: null };
 let dist_per_pixel; // Distance in meters per pixel
 let pageWidth; // Page width for calculations
 

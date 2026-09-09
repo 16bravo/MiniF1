@@ -535,15 +535,19 @@ td {
 }
 
 #clock {
+    /* Fastest-lap marker: a bare purple stopwatch, flex-centred in a box the
+       same height as the #rank number so it lines up with whoever holds it. */
     position: absolute;
-    background-color: #a72bc5;
-    color: white;
-    left: 25px;
-    width: 30px;
-    text-align: center;
+    left: 35px;
+    width: 25px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a72bc5;
+    font-size: 20px;
     z-index: 100;
-    padding: 1px;
-    visibility:hidden;
+    visibility: hidden;
 }
 
 .tyre {
