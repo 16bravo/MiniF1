@@ -38,7 +38,8 @@ async function loadCircuitData(circuit) {
         // Calculate derived values
         laps = Math.ceil(raceLength / circuitLength);
         pageWidth = window.innerWidth || document.documentElement.clientWidth || 1920;
-        dist_per_pixel = circuitLength / pageWidth;
+        // Horizontal span of the car animation
+        dist_per_pixel = 15000 / pageWidth;
 
         // Update RaceRecorder with full circuit metadata
         if (!recorderMetadataSet) {
