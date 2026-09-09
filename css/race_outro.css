@@ -1,0 +1,197 @@
+/* RACE_OUTRO.CSS
+   End-of-race board settle + podium overlay (see js/race/race_outro.js). */
+
+/* Let the ranking rows glide to their final spot instead of snapping */
+#screen.race-over #driver-cars > *,
+#screen.race-over #driver-codes > *,
+#screen.race-over #driver-times > *,
+#screen.race-over #driver-tyres > * {
+    transition: top 0.65s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+#ind.ind-finish {
+    animation: ind-finish 0.6s ease;
+}
+
+@keyframes ind-finish {
+    from { opacity: 0.25; }
+    to   { opacity: 1; }
+}
+
+/* ---- Podium overlay ---- */
+#race-podium {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 8, 10, 0.55);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    font-family: 'Pixel Operator', 'Formula1 Display Regular', Arial, sans-serif;
+    font-size: 14px;
+}
+
+#race-podium.pod-in  { opacity: 1; }
+#race-podium.pod-out { opacity: 0; }
+
+.pod-frame {
+    width: min(92vw, 760px);
+    background: rgba(10, 10, 12, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6);
+    text-align: center;
+}
+
+.pod-checker {
+    height: 14px;
+    background: repeating-conic-gradient(#fff 0 25%, #111 0 50%) 0 0 / 28px 28px;
+}
+
+.pod-title {
+    color: #fff;
+    font-weight: bold;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 1.35em;
+    padding: 18px 12px 6px;
+}
+
+.pod-title span {
+    color: #8a8a8a;
+    font-size: 0.7em;
+    letter-spacing: 0.1em;
+}
+
+.pod-steps {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 14px;
+    padding: 20px 20px 8px;
+}
+
+.pod-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 190px;
+    transform: translateY(16px);
+    opacity: 0;
+    transition: transform 0.45s ease, opacity 0.45s ease;
+}
+
+#race-podium.pod-in .pod-slot { transform: translateY(0); opacity: 1; }
+#race-podium.pod-in .pod-slot.p2 { transition-delay: 0.05s; }
+#race-podium.pod-in .pod-slot.p1 { transition-delay: 0.18s; }
+#race-podium.pod-in .pod-slot.p3 { transition-delay: 0.30s; }
+
+.pod-card {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    background: linear-gradient(180deg, rgba(30, 30, 34, 0.95), rgba(18, 18, 20, 0.95));
+    border-left: 4px solid var(--tc, #bbb);
+    text-align: left;
+}
+
+.pod-name {
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.15em;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pod-team {
+    color: #84fbff;
+    font-size: 0.75em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pod-step {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10px;
+    background: linear-gradient(180deg, #2a2a2e, #17171a);
+    border-top: 3px solid #444;
+}
+
+.pod-slot.p1 .pod-step { height: 128px; border-top-color: #f5d016; }
+.pod-slot.p2 .pod-step { height: 92px;  border-top-color: #c9cdd2; }
+.pod-slot.p3 .pod-step { height: 66px;  border-top-color: #cd7f43; }
+
+.pod-num {
+    font-size: 2.4em;
+    font-weight: bold;
+    line-height: 1;
+}
+.pod-slot.p1 .pod-num { color: #f5d016; }
+.pod-slot.p2 .pod-num { color: #c9cdd2; }
+.pod-slot.p3 .pod-num { color: #cd7f43; }
+
+.pod-fl {
+    color: #cfcfcf;
+    font-size: 0.85em;
+    letter-spacing: 0.05em;
+    padding: 6px 12px 0;
+}
+.pod-fl-tag {
+    color: #a72bc5;
+    font-weight: bold;
+}
+.pod-fl-drv { margin-left: 10px; font-weight: bold; color: #fff; letter-spacing: 0.08em; }
+
+.pod-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    padding: 18px 12px 22px;
+}
+
+.pod-actions button {
+    padding: 10px 22px;
+    font-family: inherit;
+    font-size: 0.9em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.pod-results {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ddd;
+}
+.pod-results:hover { background: rgba(255, 255, 255, 0.18); }
+
+.pod-continue {
+    background: #e10600;
+    border-color: #e10600;
+    color: #fff;
+    font-weight: bold;
+}
+.pod-continue:hover { background: #ff1a0e; }
+
+@media (max-width: 720px) {
+    .pod-title { font-size: 1em; }
+    .pod-steps { gap: 8px; padding: 14px 10px 6px; }
+    .pod-slot { width: 33%; }
+    .pod-num { font-size: 1.8em; }
+    .pod-slot.p1 .pod-step { height: 96px; }
+    .pod-slot.p2 .pod-step { height: 70px; }
+    .pod-slot.p3 .pod-step { height: 52px; }
+}

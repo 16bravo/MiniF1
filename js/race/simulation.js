@@ -597,10 +597,15 @@ function frame(interval) {
             document.getElementById('ind').innerHTML = "<strong> END OF </br> THE RACE </strong>";
             document.getElementById('ind').style.color = "white";
             clearInterval(interval);
-            // Snap the display to the final classification BEFORE saving, so the
-            // frozen frame matches exactly what gets recorded for the championship.
-            renderFinalStandings();
+            // Save first (getFinalClassification re-sorts drivers, no render needed).
             handleRaceEnd();
+            // Then settle the board: a short glide to the final order + podium,
+            // or an instant snap if the outro module isn't loaded.
+            if (typeof showRaceOutro === 'function') {
+                showRaceOutro();
+            } else {
+                renderFinalStandings();
+            }
 
             // Add download button for race recording
             const recording = stopRecording();
