@@ -39,6 +39,8 @@ function showStartingGrid(onComplete) {
     const fmt = (t) => (typeof formatDriverTime === 'function' ? formatDriverTime(t) : t.toFixed(3));
 
     const gpName = (typeof grandPrix === 'string' && grandPrix) ? grandPrix : 'Grand Prix';
+    const isSprint = localStorage.getItem('isSprint') === 'true';
+    const sprintTag = isSprint ? '<span class="gi-sprint-tag">SPRINT</span>' : '';
 
     const tyres = (typeof TIRES !== 'undefined') ? TIRES : {};
     const card = (d, pos) => {
@@ -69,7 +71,7 @@ function showStartingGrid(onComplete) {
     overlay.innerHTML = `
         <div class="gi-frame">
             <div class="gi-checker"></div>
-            <div class="gi-title">${String(gpName).toUpperCase()} GP &nbsp;&middot;&nbsp; STARTING GRID</div>
+            <div class="gi-title">${String(gpName).toUpperCase()} GP ${sprintTag}&nbsp;&middot;&nbsp; STARTING GRID</div>
             <div class="gi-viewport"><div class="gi-strip">${cols}</div></div>
             <div class="gi-checker"></div>
         </div>
