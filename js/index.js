@@ -8,10 +8,18 @@ const MAX_TEAMS = 15;
 // Car pictures available for teams (used by the team editor).
 const TEAM_IMAGE_LIST = ["ALP1","ALP24","ALP25","AMR24","AMR25","ARR1","ARR201","ARR21","ARR31","AST1","BEL1","BEN1","BRA1","FER1","FER201","FER21","FER24","FER25","FRA1","GBR1","GER1","HAA1","HAA201","HAA21","HAA24","HAA25","HAA31","HAA41","HAA51","HON1","JAG1","JAG21","LOT1","LOT21","LOT31","MCL1","MCL201","MCL21","MCL24","MCL25","MCL31","MCL41","MER1","MER201","MER21","MER24","MER25","MER31","MERBLM1","PET1","PEU1","PEU2","POR1","POR21","POR31","POR41","RBR1","RBR201","RBR21","RBR24","RBR25","REN1","REN201","REN21","REN31","RENT201","RPT1","RPT201","RPT21","RPT31","SAT201","SAT21","SAU24","SAU25","STR1","VRB24","VRB25","WIL1","WIL201","WIL21","WIL24","WIL25","WIL31","WIL41","WILT201"];
 
-// Function to update the GP flag on the button
+// Sets the "Go to Qualifying / Next Race / Final Results…" button's label
+// without touching the flag/sprint-badge markup that sits next to it.
+function setGoButtonLabel(text) {
+    const textEl = document.getElementById('goToNextPageText');
+    if (textEl) textEl.textContent = text;
+}
+
+// Function to update the GP flag (and sprint badge) shown on the button -
+// the upcoming circuit in championship mode (or the selected one otherwise).
 function updateButtonFlag() {
     let circuitData = null;
-    
+
     // In championship mode, use the same logic as showOverview()
     const isChampionship = localStorage.getItem('championshipActive') === 'true';
     if (isChampionship) {
@@ -28,16 +36,27 @@ function updateButtonFlag() {
         const stored = localStorage.getItem('selectedCircuit');
         if (stored) circuitData = JSON.parse(stored);
     }
-    
+
+    const flagWrap = document.getElementById('buttonFlagWrap');
+    const flagImg = document.getElementById('buttonFlagImg');
+    const sprintBadge = document.getElementById('buttonSprintBadge');
+    if (!flagWrap || !flagImg || !sprintBadge) return;
+
     if (circuitData) {
-        const flagImg = document.getElementById('buttonFlagImg');
         const countryFile = circuitData.country.toLowerCase().replace(/ /g, "_");
         flagImg.src = `img/flags/${countryFile}.png`;
         flagImg.alt = circuitData.country;
-        flagImg.style.display = 'inline-block';
+        flagWrap.style.display = 'inline-flex';
+
+        // Championship: each race entry carries its own isSprintRace flag.
+        // Simple GP mode: there's no per-race entry, fall back to the
+        // Circuit tab's sprint toggle.
+        const isSprintRace = isChampionship
+            ? !!circuitData.isSprintRace
+            : localStorage.getItem('isSprint') === 'true';
+        sprintBadge.hidden = !isSprintRace;
     } else {
-        const flagImg = document.getElementById('buttonFlagImg');
-        flagImg.style.display = 'none';
+        flagWrap.style.display = 'none';
     }
 }
 
@@ -1201,23 +1220,33 @@ function toggleStartingGrid() {
     const gridSection = document.getElementById('step-grid');
     const gridTabBtn = document.querySelector('.gp-tab-btn[data-target="step-grid"]');
     const goBtn = document.getElementById('goToNextPage');
-    
+
     // Show/hide skip qualifying option based on mode
     if (skipQualifyingContainer) {
         skipQualifyingContainer.style.display = isChampionship ? 'none' : 'flex';
     }
-    
+
+    // In championship mode, once the current race already has a result, the
+    // page has moved on to "Next Race" / "Final Results" navigation (set by
+    // the championship init block below) - this function's job is choosing
+    // the button for the upcoming session, which no longer applies then.
+    if (isChampionship) {
+        const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
+        const championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
+        if (Array.isArray(championshipResults[currentRaceIndex])) return;
+    }
+
     // Show/hide grid section and tab based on skip qualifying toggle
     if (skipQualifyingCheckbox && gridSection && gridTabBtn && goBtn) {
         if (skipQualifyingCheckbox.checked) {
             gridSection.style.display = '';
             gridTabBtn.style.display = '';
-            goBtn.textContent = 'Start Race';
+            setGoButtonLabel('Start Race');
             renderStartingGrid();
         } else {
             gridSection.style.display = 'none';
             gridTabBtn.style.display = 'none';
-            goBtn.textContent = 'Go to Qualifying';
+            setGoButtonLabel('Go to Qualifying');
         }
     }
 }
@@ -1296,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (goBtn) {
                 if (currentRaceIndex < races.length - 1) {
                     // Not the last race: show "Next Race" button
-                    goBtn.innerHTML = 'Next Race';
+                    setGoButtonLabel('Next Race');
                     goBtn.onclick = () => {
                         const nextIndex = currentRaceIndex + 1;
                         localStorage.setItem('championshipCurrentRace', nextIndex.toString());
@@ -1314,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                 } else {
                     // Last race done: go to the end-of-championship recap screen
-                    goBtn.innerHTML = 'Final Results';
+                    setGoButtonLabel('Final Results');
                     goBtn.onclick = () => {
                         // Keep championshipActive true so the recap screen can read the data;
                         // the recap screen handles deleting the save when the user is done.
