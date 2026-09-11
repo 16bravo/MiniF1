@@ -3,15 +3,23 @@
 
 // Function to determine tire type based on track water conditions and team strategy
 function determineTireType(currentTrackWater, forecastTrackWater, driver) {
+    // A missing/invalid teamStratLevel (e.g. a driver whose team lookup failed)
+    // must not cascade into NaN below - fall back to a neutral mid-level value.
+    const stratLevel = Number.isFinite(driver.teamStratLevel) ? driver.teamStratLevel : 50;
+
     // Simulate judgment error with a normal distribution
     // Adjusted for team strategy level and weather forecast
     const adjustedRain = generateNormalRandom(
-        currentTrackWater * (1 - driver.teamStratLevel/100) + forecastTrackWater * (driver.teamStratLevel/100), 
+        currentTrackWater * (1 - stratLevel/100) + forecastTrackWater * (stratLevel/100),
         0.05
     );
-    
-    // Select tire based on adjusted rain/water level
-    if (adjustedRain < 0.3) {
+
+    // Select tire based on adjusted rain/water level. Any non-finite result
+    // (bad inputs slipping through) must default to the safe dry choice, not
+    // silently fall through every comparison into the worst case (Wet) - both
+    // `NaN < 0.3` and `NaN < 0.8` are false, so without this guard a bad
+    // number here always meant "W" regardless of the actual weather.
+    if (!Number.isFinite(adjustedRain) || adjustedRain < 0.3) {
         return "S"; // Soft
     } else if (adjustedRain < 0.8) {
         return "I"; // Intermediate
