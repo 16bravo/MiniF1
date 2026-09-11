@@ -234,27 +234,43 @@ const ChampionshipCommon = (() => {
                 return null;
             };
 
+            // Race-result stats (entered/finishes/dnf, podiums, best finish/grid,
+            // average finish, 1-2s) are feature races only - a sprint result
+            // shouldn't count as a "GP entered" or move a career best. Points and
+            // the win/pole counts are the exception: those already have their own
+            // sprint-specific counters (sprintWins/sprintPoles) tracked alongside.
             classified.forEach((d, idx) => {
                 const pos = idx + 1;
                 const pts = scale[idx] || 0;
                 const g = grid(d);
 
                 const sd = ensureDriver(d);
-                sd.entered++; sd.finishes++; sd.points += pts; sd._finishPosSum += pos;
-                if (pos === 1) (spr ? sd.sprintWins++ : sd.wins++);
+                sd.points += pts;
+                const st = ensureTeam(d);
+                st.points += pts;
+
+                if (spr) {
+                    if (pos === 1) sd.sprintWins++;
+                    if (g === 1) sd.sprintPoles++;
+                    if (pos === 1) st.sprintWins++;
+                    if (g === 1) st.sprintPoles++;
+                    return;
+                }
+
+                sd.entered++; sd.finishes++; sd._finishPosSum += pos;
+                if (pos === 1) sd.wins++;
                 if (pos <= 3) sd.podiums++;
                 if (pts > 0) sd.pointFinishes++;
-                if (g === 1) (spr ? sd.sprintPoles++ : sd.poles++);
+                if (g === 1) sd.poles++;
                 sd.bestFinish = minDefined(sd.bestFinish, pos);
                 sd.bestGrid = minDefined(sd.bestGrid, g);
 
-                const st = ensureTeam(d);
                 if (!teamsSeen.has(d.team)) { st.entered++; teamsSeen.add(d.team); }
-                st.finishes++; st.points += pts;
-                if (pos === 1) (spr ? st.sprintWins++ : st.wins++);
+                st.finishes++;
+                if (pos === 1) st.wins++;
                 if (pos <= 3) { st.podiums++; (teamPodiumPos[d.team] = teamPodiumPos[d.team] || []).push(pos); }
                 if (pts > 0) st.pointFinishes++;
-                if (g === 1) (spr ? st.sprintPoles++ : st.poles++);
+                if (g === 1) st.poles++;
                 st.bestFinish = minDefined(st.bestFinish, pos);
                 st.bestGrid = minDefined(st.bestGrid, g);
             });
@@ -262,14 +278,21 @@ const ChampionshipCommon = (() => {
             retired.forEach(d => {
                 const g = grid(d);
                 const sd = ensureDriver(d);
+                const st = ensureTeam(d);
+
+                if (spr) {
+                    if (g === 1) sd.sprintPoles++;
+                    if (g === 1) st.sprintPoles++;
+                    return;
+                }
+
                 sd.entered++; sd.dnf++;
-                if (g === 1) (spr ? sd.sprintPoles++ : sd.poles++);
+                if (g === 1) sd.poles++;
                 sd.bestGrid = minDefined(sd.bestGrid, g);
 
-                const st = ensureTeam(d);
                 if (!teamsSeen.has(d.team)) { st.entered++; teamsSeen.add(d.team); }
                 st.dnf++;
-                if (g === 1) (spr ? st.sprintPoles++ : st.poles++);
+                if (g === 1) st.poles++;
                 st.bestGrid = minDefined(st.bestGrid, g);
             });
 
