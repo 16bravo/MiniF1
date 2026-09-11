@@ -20,7 +20,8 @@
         points = CC.normalizePoints(points);
         const opts = {
             fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
-            fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10')
+            fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10'),
+            polePositionPoints: parseInt(localStorage.getItem('championshipPolePositionPoints') || '0')
         };
         let { driverStandings, constructorStandings } =
             CC.computeStandings(clean.races, clean.results, points, opts);

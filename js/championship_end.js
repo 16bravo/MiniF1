@@ -24,7 +24,7 @@ let state = {
     races: [],
     results: [],
     points: [...CC.DEFAULT_POINTS],
-    opts: { fastestLapPoint: false, fastestLapTopN: 10 },
+    opts: { fastestLapPoint: false, fastestLapTopN: 10, polePositionPoints: 0 },
     driverStandings: [],
     constructorStandings: [],
     slotName: 'Championship'
@@ -76,7 +76,8 @@ function loadData() {
 
     state.opts = {
         fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
-        fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10')
+        fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10'),
+        polePositionPoints: parseInt(localStorage.getItem('championshipPolePositionPoints') || '0')
     };
 
     const slotNumber = parseInt(localStorage.getItem('championshipSlotNumber') || '0');
@@ -209,7 +210,7 @@ function downloadJson() {
         exportedAt: new Date().toISOString(),
         name: state.slotName,
         pointsScale: { feature: state.points, sprint: CC.POINTS_SPRINT },
-        options: { fastestLapPoint: state.opts.fastestLapPoint, fastestLapTopN: state.opts.fastestLapTopN },
+        options: { fastestLapPoint: state.opts.fastestLapPoint, fastestLapTopN: state.opts.fastestLapTopN, polePositionPoints: state.opts.polePositionPoints },
         races: state.races,
         results: state.results,
         standings: {

@@ -45,8 +45,8 @@ const ChampionshipCommon = (() => {
     //   drivers:      { code, name, team, color, perRace:[], total, countback:[] }
     //   constructors: { team, color, perRace:[], total, countback:[] }
     // Fastest-lap bonus: the driver code (if any) that earns +1 in this race.
-    // opts = { fastestLapPoint:bool, fastestLapTopN:number }  (topN <= 0 -> any position).
-    // Sprint races never award it; a retired holder never earns it.
+    // opts = { fastestLapPoint:bool, fastestLapTopN:number, polePositionPoints:number }
+    // (topN <= 0 -> any position). Sprint races never award it; a retired holder never earns it.
     function fastestLapWinner(race, result, opts) {
         if (!opts || !opts.fastestLapPoint) return null;
         if (race && race.isSprintRace) return null;
@@ -61,6 +61,17 @@ const ChampionshipCommon = (() => {
             if (pos < 1 || pos > topN) return null;
         }
         return holder.code;
+    }
+
+    // Pole-position bonus: the driver code (if any) that starts P1 in this race.
+    // Feature races only (same scope as the fastest-lap bonus); awarded regardless
+    // of the race result, since it rewards qualifying, not the race outcome.
+    function polePositionWinner(race, result, opts) {
+        if (!opts || !opts.polePositionPoints) return null;
+        if (race && race.isSprintRace) return null;
+        const rows = result || [];
+        const poleRow = rows.find(d => d && d.startPosition === 1);
+        return poleRow ? poleRow.code : null;
     }
 
     function computeStandings(races, results, points, opts) {
@@ -113,6 +124,19 @@ const ChampionshipCommon = (() => {
                 if (flRow && flRow.team) {
                     if (!teamPts[flRow.team]) teamPts[flRow.team] = Array(nRaces).fill(0);
                     teamPts[flRow.team][raceIdx] += 1;
+                }
+            }
+
+            // Pole-position bonus points (feature races only, configurable amount)
+            const poleCode = polePositionWinner(race, results[raceIdx], opts);
+            if (poleCode) {
+                const poleAmount = Number(opts.polePositionPoints) || 0;
+                const poleRow = (results[raceIdx] || []).find(d => d.code === poleCode);
+                if (!driverPts[poleCode]) driverPts[poleCode] = Array(nRaces).fill(0);
+                driverPts[poleCode][raceIdx] += poleAmount;
+                if (poleRow && poleRow.team) {
+                    if (!teamPts[poleRow.team]) teamPts[poleRow.team] = Array(nRaces).fill(0);
+                    teamPts[poleRow.team][raceIdx] += poleAmount;
                 }
             }
         });
@@ -204,7 +228,7 @@ const ChampionshipCommon = (() => {
             if (!drivers[d.code]) drivers[d.code] = {
                 code: d.code, name: d.name, team: d.team, color: d.color || '#888',
                 entered: 0, finishes: 0, dnf: 0, wins: 0, sprintWins: 0, podiums: 0, pointFinishes: 0,
-                poles: 0, sprintPoles: 0, fastestLaps: 0, bestFinish: null, bestGrid: null, points: 0, _finishPosSum: 0
+                poles: 0, sprintPoles: 0, fastestLaps: 0, hatTricks: 0, bestFinish: null, bestGrid: null, points: 0, _finishPosSum: 0
             };
             return drivers[d.code];
         }
@@ -228,6 +252,7 @@ const ChampionshipCommon = (() => {
 
             const teamsSeen = new Set();
             const teamPodiumPos = {};
+            let winnerCode = null, winnerHadPole = false;
 
             const grid = d => {
                 if (typeof d.startPosition === 'number') { hasGridData = true; return d.startPosition; }
@@ -258,7 +283,7 @@ const ChampionshipCommon = (() => {
                 }
 
                 sd.entered++; sd.finishes++; sd._finishPosSum += pos;
-                if (pos === 1) sd.wins++;
+                if (pos === 1) { sd.wins++; winnerCode = d.code; winnerHadPole = g === 1; }
                 if (pos <= 3) sd.podiums++;
                 if (pts > 0) sd.pointFinishes++;
                 if (g === 1) sd.poles++;
@@ -308,6 +333,11 @@ const ChampionshipCommon = (() => {
                 if (flh) {
                     const sd = drivers[flh.code]; if (sd) sd.fastestLaps++;
                     const st = teams[flh.team];   if (st) st.fastestLaps++;
+
+                    // Hat-trick: pole + win + fastest lap, same GP (feature races only).
+                    if (winnerCode && winnerHadPole && flh.code === winnerCode) {
+                        sd.hatTricks++;
+                    }
                 }
             }
         });
@@ -350,6 +380,7 @@ const ChampionshipCommon = (() => {
         const rows = (stats && stats.driverStats) || [];
         if (!rows.length) return `<p style="color:#888;padding:20px;">No data yet.</p>`;
         const fl = stats.hasFastestLapData, sp = stats.hasSprintData;
+        const ht = stats.hasGridData && stats.hasFastestLapData;
         let h = `<table><thead><tr><th>#</th><th>Driver</th><th>Team</th>` +
             `<th title="Grands Prix entered">GP</th><th title="Race finishes">Fin</th>` +
             `<th title="Retirements (DNF)">DNF</th><th title="Feature-race wins">Wins</th>` +
@@ -358,6 +389,7 @@ const ChampionshipCommon = (() => {
             `<th title="Feature-race poles">Pole</th>` +
             (sp ? `<th title="Sprint poles">S·P</th>` : '') +
             (fl ? `<th title="Fastest laps (feature races)">FL</th>` : '') +
+            (ht ? `<th title="Hat-tricks: pole + win + fastest lap, same GP">HT</th>` : '') +
             `<th title="Best race finish">Best</th><th title="Best grid slot">Grid</th>` +
             `<th title="Average finishing position">Avg</th><th title="Championship points">Points</th>` +
             `</tr></thead><tbody>`;
@@ -368,6 +400,7 @@ const ChampionshipCommon = (() => {
                 `<td>${_n(r.podiums)}</td><td>${_n(r.pointFinishes)}</td><td>${_n(r.poles)}</td>` +
                 (sp ? `<td>${_n(r.sprintPoles)}</td>` : '') +
                 (fl ? `<td>${_n(r.fastestLaps)}</td>` : '') +
+                (ht ? `<td>${_n(r.hatTricks)}</td>` : '') +
                 `<td>${_fp(r.bestFinish)}</td><td>${_fp(r.bestGrid)}</td><td>${_fa(r.avgFinish)}</td>` +
                 `<td><b>${r.points}</b></td></tr>`;
         });
@@ -638,7 +671,7 @@ const ChampionshipCommon = (() => {
     return {
         DEFAULT_POINTS, POINTS_SPRINT,
         sanitizePairs, normalizePoints,
-        computeStandings, fastestLapWinner, positionHistogram, compareStandingRows, raceClassification,
+        computeStandings, fastestLapWinner, polePositionWinner, positionHistogram, compareStandingRows, raceClassification,
         computeStats, statsNote, buildDriverStatsTable, buildTeamStatsTable, progressionChart,
         raceCode, buildStandingsTable, drawRecap,
         escapeHtml, escapeText, slugify, dateStamp, triggerDownload

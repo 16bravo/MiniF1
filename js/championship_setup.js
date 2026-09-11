@@ -14,6 +14,9 @@ let specialChampionshipMode = false;
 let fastestLapPoint = false;
 let fastestLapTopN = 10;
 
+// Pole-position bonus point (feature races only). 0 = disabled (default).
+let polePositionPoints = 0;
+
 // Reflect the fastest-lap state into its controls
 function renderFastestLapControls() {
     const toggle = document.getElementById('fastest-lap-toggle');
@@ -31,6 +34,20 @@ function renderFastestLapControls() {
         topn.addEventListener('change', () => {
             fastestLapTopN = Math.max(0, Math.min(30, parseInt(topn.value) || 0));
             topn.value = fastestLapTopN;
+        });
+    }
+}
+
+// Reflect the pole-position bonus into its control
+function renderPolePositionControls() {
+    const input = document.getElementById('pole-position-points');
+    if (!input) return;
+    input.value = polePositionPoints;
+    if (!input.dataset.bound) {
+        input.dataset.bound = '1';
+        input.addEventListener('change', () => {
+            polePositionPoints = Math.max(0, Math.min(25, parseInt(input.value) || 0));
+            input.value = polePositionPoints;
         });
     }
 }
@@ -366,8 +383,13 @@ function loadPointsConfiguration() {
     const savedTopN = parseInt(localStorage.getItem('championshipFastestLapTopN'));
     if (Number.isFinite(savedTopN)) fastestLapTopN = Math.max(0, Math.min(30, savedTopN));
 
+    // Pole-position bonus point
+    const savedPolePoints = parseInt(localStorage.getItem('championshipPolePositionPoints'));
+    polePositionPoints = Number.isFinite(savedPolePoints) ? Math.max(0, Math.min(25, savedPolePoints)) : 0;
+
     renderPointsConfiguration();
     renderFastestLapControls();
+    renderPolePositionControls();
     setupToggleListener();
 }
 
@@ -574,7 +596,8 @@ document.getElementById('start-championship-btn').onclick = function() {
     localStorage.setItem('championshipSpecialMode', specialChampionshipMode.toString());
     localStorage.setItem('championshipFastestLapPoint', fastestLapPoint.toString());
     localStorage.setItem('championshipFastestLapTopN', String(fastestLapTopN));
-    
+    localStorage.setItem('championshipPolePositionPoints', String(polePositionPoints));
+
     localStorage.removeItem('teams'); // Force reload from default JSON on first GP
     localStorage.removeItem('drivers');  // Force reload from default JSON on first GP
     
@@ -593,7 +616,9 @@ document.getElementById('reset-points-btn').onclick = function() {
     specialChampionshipMode = false;
     fastestLapPoint = false;
     fastestLapTopN = 10;
+    polePositionPoints = 0;
     renderPointsConfiguration();
     renderFastestLapControls();
+    renderPolePositionControls();
     setupToggleListener();
 };

@@ -10,7 +10,7 @@
     { "circuit": "ESP", "name": "Barcelona-Catalunya", "code": "BAR" },
     { "circuit": "AUT", "name": "Austria", "code": "AUT" },
     { "circuit": "GBR", "name": "Great-Britain", "code": "GBR", "sprint": true },
-    { "circuit": "BEL", "name": "Belgium", "code": "BEL", "sprint": true },
+    { "circuit": "BEL", "name": "Belgium", "code": "BEL" },
     { "circuit": "HUN", "name": "Hungary", "code": "HUN" },
     { "circuit": "NED", "name": "Netherlands", "code": "NED", "sprint": true },
     { "circuit": "ITA", "name": "Italy", "code": "ITA" },

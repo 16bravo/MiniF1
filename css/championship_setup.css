@@ -680,6 +680,38 @@ body {
     margin: 0;
 }
 
+/* ---- Pole-position point control ---- */
+#pole-position-group {
+    margin-bottom: 30px;
+}
+
+#pole-position-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: none;
+}
+
+#pole-position-points {
+    width: 46px;
+    padding: 4px 6px;
+    background: #1e1e1e;
+    color: #e10600;
+    border: 1px solid #2a2a2a;
+    border-radius: 3px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+#pole-position-points::-webkit-outer-spin-button,
+#pole-position-points::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 /* ============================================================
    RESPONSIVE — small screens only. Desktop layout above is
    untouched; this block only applies under 760px.

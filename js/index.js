@@ -658,7 +658,8 @@ function ccChampionshipData() {
     const clean = ChampionshipCommon.sanitizePairs(races, results);
     const opts = {
         fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
-        fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10')
+        fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10'),
+        polePositionPoints: parseInt(localStorage.getItem('championshipPolePositionPoints') || '0')
     };
     return {
         races: clean.races,
@@ -739,6 +740,9 @@ function renderChampionshipStandings() {
     const flPointEnabled = localStorage.getItem('championshipFastestLapPoint') === 'true';
     const flTopN = parseInt(localStorage.getItem('championshipFastestLapTopN') || '10') || 0;
 
+    // Pole-position bonus points (set in Championship Setup). Feature races only.
+    const polePoints = parseInt(localStorage.getItem('championshipPolePositionPoints') || '0') || 0;
+
     races.forEach((race, raceIdx) => {
         const results = championshipResults[raceIdx] || [];
         const pointsScale = race.isSprintRace ? pointsSprintToUse : POINTS;
@@ -787,6 +791,22 @@ function renderChampionshipStandings() {
                 [teamPointsTable, teamPointsTableFeature].forEach(tbl => {
                     if (!tbl[h.team]) tbl[h.team] = Array(races.length).fill(0);
                     tbl[h.team][raceIdx] += 1;
+                });
+            }
+        }
+
+        // Pole-position bonus: configurable points to whoever starts P1 in this
+        // feature race, regardless of the race result (rewards qualifying).
+        if (polePoints && !race.isSprintRace) {
+            const poleHolder = results.find(d => d && d.startPosition === 1);
+            if (poleHolder) {
+                [driverPointsTable, driverPointsTableFeature].forEach(tbl => {
+                    if (!tbl[poleHolder.code]) tbl[poleHolder.code] = Array(races.length).fill(0);
+                    tbl[poleHolder.code][raceIdx] += polePoints;
+                });
+                [teamPointsTable, teamPointsTableFeature].forEach(tbl => {
+                    if (!tbl[poleHolder.team]) tbl[poleHolder.team] = Array(races.length).fill(0);
+                    tbl[poleHolder.team][raceIdx] += polePoints;
                 });
             }
         }

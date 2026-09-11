@@ -111,6 +111,9 @@ function applySavedChampionshipSettings(slotData) {
     if (Number.isFinite(s.fastestLapTopN)) {
         localStorage.setItem('championshipFastestLapTopN', String(s.fastestLapTopN));
     }
+    if (Number.isFinite(s.polePositionPoints)) {
+        localStorage.setItem('championshipPolePositionPoints', String(s.polePositionPoints));
+    }
 }
 
 // Load a save slot for setup (new championship)
@@ -294,7 +297,8 @@ window.autoSaveChampionship = function() {
                 pointsSprint: JSON.parse(localStorage.getItem('championshipPointsSprint') || 'null'),
                 specialMode: localStorage.getItem('championshipSpecialMode') === 'true',
                 fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
-                fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10')
+                fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10'),
+                polePositionPoints: parseInt(localStorage.getItem('championshipPolePositionPoints') || '0')
             }
         }
     };

@@ -17,7 +17,7 @@ let exportData = null;        // parsed export
 let races = [];
 let results = [];
 let featurePoints = [...CC.DEFAULT_POINTS];
-let championshipOpts = { fastestLapPoint: false, fastestLapTopN: 0 };
+let championshipOpts = { fastestLapPoint: false, fastestLapTopN: 0, polePositionPoints: 0 };
 let champName = 'Championship';
 let driverStandings = [];
 let constructorStandings = [];
@@ -97,7 +97,8 @@ function loadChampionship(parsed) {
     );
     championshipOpts = {
         fastestLapPoint: !!(parsed.options && parsed.options.fastestLapPoint),
-        fastestLapTopN: (parsed.options && Number(parsed.options.fastestLapTopN)) || 0
+        fastestLapTopN: (parsed.options && Number(parsed.options.fastestLapTopN)) || 0,
+        polePositionPoints: (parsed.options && Number(parsed.options.polePositionPoints)) || 0
     };
 
     const standings = CC.computeStandings(races, results, featurePoints, championshipOpts);
