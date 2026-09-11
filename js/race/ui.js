@@ -70,6 +70,21 @@ function generateDriverUIElements() {
 }
 
 /**
+ * Place every car sprite at its starting-grid slot right away, before the
+ * grid/lights ceremony plays. `.top` is already set at creation (above), but
+ * `.right` on the car image is otherwise left unset until the first
+ * simulation frame runs - i.e. exactly when the lights go out - so the cars
+ * visibly jumped into place at that instant instead of already sitting
+ * there (in grid order, just behind the blurred pre-race overlay).
+ */
+function renderInitialCarPositions() {
+    for (let i = 0; i < nb_driver; i++) {
+        const pL = document.getElementById('pL' + (i + 1));
+        if (pL) pL.style.right = (driver_position_X[i] + CAR_RIGHT_MARGIN) + 'px';
+    }
+}
+
+/**
  * Update dynamic container heights based on number of drivers
  * #tts height = nb_driver * 35 + 3
  * #ind height = nb_driver * 35 + 35

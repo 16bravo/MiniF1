@@ -251,6 +251,11 @@ if (driversData && driversData.length > 0) {
         // Initialize animation tracking arrays
         initializeAnimationArrays();
 
+        // Put every car sprite at its grid slot now, so it's already in place
+        // (behind the blurred grid/lights overlay) instead of jumping there
+        // when the race actually starts.
+        renderInitialCarPositions();
+
         // Update driver images and colors
         drivers.forEach((driver, index) => {
             const pLElement = document.getElementById("pL" + (index + 1));
@@ -287,6 +292,11 @@ let followY = -200;
 const fps = 60; // Frames per second
 const duration = 500; // Duration of animation cycle in milliseconds
 const frames = duration / (1000 / fps); // Total frames per cycle
+// Safety margin added to every car sprite's `right` offset (car images are
+// wider than their slot, so right:0 alone would clip them at the edge).
+// Shared between the initial grid placement (ui.js) and the live per-frame
+// positioning (simulation.js) - keep both in sync.
+const CAR_RIGHT_MARGIN = 60;
 let currentFrame = 0; // Current frame counter
 let currentLap = 0; // Current lap number
 let laps; // Total laps in race

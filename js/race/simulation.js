@@ -487,7 +487,7 @@ function frame(interval) {
                                                          variation_map * (currentFrame/frames)) % circuit_map_length;
             
             document.getElementById(pL).style.top = driver_position_Y[i] + 'px';
-            document.getElementById(pL).style.right = driver_position_X[i]+60 + 'px'; // +60: safety margin so the leader's car isn't clipped at the right edge
+            document.getElementById(pL).style.right = driver_position_X[i] + CAR_RIGHT_MARGIN + 'px';
             document.getElementById(pX).style.top = driver_position_Y[i] + 'px';
             document.getElementById(t).style.top = driver_position_Y[i] + 'px';
             document.getElementById(ty).style.top = driver_position_Y[i] + 'px';
