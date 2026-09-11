@@ -24,6 +24,7 @@ function showRaceOutro(recording) {
         if (!top.length) return;   // nobody classified - no podium
 
         const gp = (typeof grandPrix === 'string' && grandPrix) ? grandPrix.toUpperCase() : 'GRAND PRIX';
+        const isSprint = localStorage.getItem('isSprint') === 'true';
         const slots = [];
         if (top[1]) slots.push({ pos: 2, d: top[1], cls: 'p2' });
         if (top[0]) slots.push({ pos: 1, d: top[0], cls: 'p1' });
@@ -51,7 +52,7 @@ function showRaceOutro(recording) {
         ov.innerHTML = `
             <div class="pod-frame">
                 <div class="pod-checker"></div>
-                <div class="pod-title">${gp} GP <span>&middot; RACE RESULT</span></div>
+                <div class="pod-title">${gp} GP ${isSprint ? '<span class="pod-sprint-tag">SPRINT</span>' : ''}<span>&middot; RACE RESULT</span></div>
                 <div class="pod-steps">${slots.map(slotHtml).join('')}</div>
                 ${flHtml}
                 <div class="pod-actions">

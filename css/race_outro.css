@@ -66,6 +66,19 @@
     letter-spacing: 0.1em;
 }
 
+.pod-sprint-tag {
+    display: inline-block;
+    background: #ffd700;
+    color: #000 !important;
+    font-size: 0.55em !important;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin: 0 8px;
+}
+
 .pod-steps {
     display: flex;
     align-items: flex-end;
