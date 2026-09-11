@@ -118,6 +118,19 @@ function chooseNextTire(driver, currentTrackWater, distanceLeftKm, rainTargetTir
 }
 
 /**
+ * True if a team-mate is currently committed to a stop (box / in pit) and is
+ * within 20s on track - used to stop a team double-stacking its own pit box.
+ * @param {Object} driver
+ * @returns {boolean}
+ */
+function isTeammatePitting(driver) {
+    const sp = Math.max(0.01, driver.speed) * 30; // same length->seconds convention as simulation.js
+    return drivers.some(d => d !== driver && d.team_id === driver.team_id &&
+        (d.state === "box" || d.state === "in pit") &&
+        Math.abs(d.totalLength - driver.totalLength) / sp < 20);
+}
+
+/**
  * Main pit decision function.
  * Handles: rain strategy, 2-compound rule, mandatory stop ramp, end-of-race veto.
  * @param {Object} driver
@@ -130,6 +143,11 @@ function chooseNextTire(driver, currentTrackWater, distanceLeftKm, rainTargetTir
  */
 function evaluatePitDecision(driver, driverIndex, currentTrackWater, leaderDistanceLeft, forecastRef, rainTargetTire) {
     if (driver.state !== "racing") return false;
+
+    // ─── TEAM PIT CONFLICT: don't double-stack a team-mate within 20s ───
+    // Hold off this frame; the decision is re-evaluated every frame so the
+    // stop just happens as soon as the box/pit lane is clear.
+    if (isTeammatePitting(driver)) return false;
 
     // No mandatory pits in sprint races or rainy races
     const isSprint = localStorage.getItem('isSprint') === 'true';
@@ -294,7 +312,8 @@ function modeLevelBonus(driver)  { const v = MODE_LEVEL_BONUS[driver.mode]; retu
  * Picks a driver's driving mode for the next lap. Pure w.r.t. the driver;
  * a player-controlled car keeps whatever mode its input set.
  * @param {Object} driver
- * @param {{gapAheadSec:number, gapBehindSec:number}} ctx - gaps to the nearest rivals in race order
+ * @param {{gapAheadSec:number, gapBehindSec:number, teammateAhead:boolean, teammateBehind:boolean}} ctx
+ *   gaps and team-mate flags for the nearest rivals in race order
  * @returns {'gestion'|'normal'|'agressive'}
  */
 function evaluateRaceMode(driver, ctx) {
@@ -309,6 +328,12 @@ function evaluateRaceMode(driver, ctx) {
     const tyre = driver.tireState;
     const ahead = ctx.gapAheadSec, behind = ctx.gapBehindSec;
 
+    // Team orders: a team-mate battle never forces aggressive mode, unless the
+    // driver is skilled enough (>90) to be trusted to race their own team-mate.
+    const canIgnoreTeamOrders = (driver.driverLevel || 70) > 90;
+    const behindIsRival = !ctx.teammateBehind || canIgnoreTeamOrders;
+    const aheadIsRival = !ctx.teammateAhead || canIgnoreTeamOrders;
+
     if (flagState === "yellow" || flagState === "safetycar" || flagState === "red") {
         return "gestion";                                     // no overtaking anyway
     }
@@ -318,11 +343,12 @@ function evaluateRaceMode(driver, ctx) {
     if (tyre < 0.28 && fracLeft > 0.15 && !(behind > 0 && behind < defendReach)) {
         return "gestion";                                     // tyres nearly gone: nurse them (unless actively defending)
     }
-    if ((behind > 0 && behind < defendReach) || (ahead > 0 && ahead < attackReach)) {
-        return "agressive";                                   // nose-to-tail fight, either side
+    if ((behind > 0 && behind < defendReach && behindIsRival) ||
+        (ahead > 0 && ahead < attackReach && aheadIsRival)) {
+        return "agressive";                                   // nose-to-tail fight, either side (team-mates excepted)
     }
-    if (fracLeft < 0.12 && (ahead < 3 || behind < 3)) {
-        return "agressive";                                   // last laps, a place still within reach
+    if (fracLeft < 0.12 && ((ahead < 3 && aheadIsRival) || (behind < 3 && behindIsRival))) {
+        return "agressive";                                   // last laps, a place still within reach (team-mates excepted)
     }
     if (tyre < 0.40 || (ahead > 6 && behind > 6)) {
         return "gestion";                                     // worn tyres or clear track: ease off, save the car

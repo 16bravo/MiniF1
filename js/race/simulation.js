@@ -201,16 +201,25 @@ function frame(interval) {
             if (driver._stratLap !== driverLap && (driver.state === "racing" || driver.state === "box")) {
                 driver._stratLap = driverLap;
                 let gapAheadSec = Infinity, gapBehindSec = Infinity;
+                let teammateAhead = false, teammateBehind = false;
                 const sp = Math.max(0.01, driver.speed) * 30;
                 for (let q = pos - 1; q >= 0; q--) {
                     const a = drivers[sorted_indices[q]];
-                    if (a.state !== "out") { gapAheadSec = (a.totalLength - driver.totalLength) / sp; break; }
+                    if (a.state !== "out") {
+                        gapAheadSec = (a.totalLength - driver.totalLength) / sp;
+                        teammateAhead = a.team_id === driver.team_id;
+                        break;
+                    }
                 }
                 for (let q = pos + 1; q < sorted_indices.length; q++) {
                     const b = drivers[sorted_indices[q]];
-                    if (b.state !== "out") { gapBehindSec = (driver.totalLength - b.totalLength) / sp; break; }
+                    if (b.state !== "out") {
+                        gapBehindSec = (driver.totalLength - b.totalLength) / sp;
+                        teammateBehind = b.team_id === driver.team_id;
+                        break;
+                    }
                 }
-                const raceCtx = { gapAheadSec, gapBehindSec };
+                const raceCtx = { gapAheadSec, gapBehindSec, teammateAhead, teammateBehind };
                 decideEffort(driver, raceCtx);
                 driver.mode = evaluateRaceMode(driver, raceCtx);
 
