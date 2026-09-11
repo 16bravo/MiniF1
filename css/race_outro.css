@@ -178,6 +178,18 @@
 }
 .pod-results:hover { background: rgba(255, 255, 255, 0.18); }
 
+.pod-save {
+    background: rgba(132, 251, 255, 0.08);
+    border-color: rgba(132, 251, 255, 0.35);
+    color: #84fbff;
+}
+.pod-save:hover { background: rgba(132, 251, 255, 0.16); }
+.pod-save:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+.pod-save:disabled:hover { background: rgba(132, 251, 255, 0.08); }
+
 .pod-continue {
     background: #e10600;
     border-color: #e10600;
@@ -194,4 +206,6 @@
     .pod-slot.p1 .pod-step { height: 96px; }
     .pod-slot.p2 .pod-step { height: 70px; }
     .pod-slot.p3 .pod-step { height: 52px; }
+    .pod-actions { flex-wrap: wrap; gap: 8px; }
+    .pod-actions button { padding: 9px 16px; }
 }

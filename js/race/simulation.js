@@ -600,21 +600,21 @@ function frame(interval) {
             clearInterval(interval);
             // Save first (getFinalClassification re-sorts drivers, no render needed).
             handleRaceEnd();
-            // Then settle the board: a short glide to the final order + podium,
-            // or an instant snap if the outro module isn't loaded.
+            const recording = stopRecording();
+            // Then settle the board: a short glide to the final order + podium
+            // (the record-download action lives in the podium's action bar), or
+            // an instant snap + a plain fallback button if the outro module
+            // isn't loaded.
             if (typeof showRaceOutro === 'function') {
-                showRaceOutro();
+                showRaceOutro(recording);
             } else {
                 renderFinalStandings();
+                const downloadBtn = document.createElement('button');
+                downloadBtn.textContent = 'Download Race Record';
+                downloadBtn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;font-size:1.1em;cursor:pointer;background:#4CAF50;color:white;border:none;border-radius:5px;';
+                downloadBtn.onclick = () => downloadRaceRecording(recording);
+                document.body.appendChild(downloadBtn);
             }
-
-            // Add download button for race recording
-            const recording = stopRecording();
-            const downloadBtn = document.createElement('button');
-            downloadBtn.textContent = 'Download Race Record';
-            downloadBtn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;font-size:1.1em;cursor:pointer;background:#4CAF50;color:white;border:none;border-radius:5px;';
-            downloadBtn.onclick = () => downloadRaceRecording(recording);
-            document.body.appendChild(downloadBtn);
         }
     }
 

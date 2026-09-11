@@ -628,22 +628,27 @@ i,
     position: fixed;
     bottom: 30px;
     right: 30px;
-    font-size: 1.2em;
-    padding: 15px 40px;
-    background: #e00;
+    padding: 14px 34px;
+    font-family: 'Pixel Operator', 'Formula1 Display Regular', 'Gill Sans', sans-serif;
+    font-size: 1em;
+    font-weight: bold;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: #e10600;
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 4px;
     z-index: 9999;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    transition: background 0.2s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    transition: background 0.15s, transform 0.1s;
 }
 
 #championshipResultsBtn:hover,
 .raceEndBtn:hover {
-    background: #fff;
-    color: #e00;
+    background: #ff1a0e;
+    color: #fff;
+    transform: translateY(-2px);
 }
 
 /* =====================================================

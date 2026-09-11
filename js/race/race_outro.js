@@ -3,7 +3,7 @@
 // (instead of snapping), then bring up a broadcast-style podium for the top 3.
 // showRaceOutro() is called from simulation.js when the race finishes.
 
-function showRaceOutro() {
+function showRaceOutro(recording) {
     const screen = document.getElementById('screen');
     if (screen) screen.classList.add('race-over');          // enables a CSS transition on the rows
     if (typeof renderFinalStandings === 'function') renderFinalStandings();
@@ -55,6 +55,7 @@ function showRaceOutro() {
                 <div class="pod-steps">${slots.map(slotHtml).join('')}</div>
                 ${flHtml}
                 <div class="pod-actions">
+                    <button class="pod-save" type="button" ${recording ? '' : 'disabled'}>SAVE RECORD</button>
                     <button class="pod-results" type="button">VIEW RESULTS</button>
                     <button class="pod-continue" type="button">CONTINUE &#9656;</button>
                 </div>
@@ -63,6 +64,12 @@ function showRaceOutro() {
         document.body.appendChild(ov);
         setTimeout(() => ov.classList.add('pod-in'), 30);   // trigger the fade/rise-in
 
+        // SAVE RECORD downloads the race recording captured at race end - moved
+        // here (instead of a standalone button dropped on the screen) so it
+        // lives with the rest of the end-of-race actions.
+        if (recording) {
+            ov.querySelector('.pod-save').addEventListener('click', () => downloadRaceRecording(recording));
+        }
         // CONTINUE reuses the existing end-of-race navigation button.
         ov.querySelector('.pod-continue').addEventListener('click', () => {
             const b = document.getElementById('raceEndBtn');
