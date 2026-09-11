@@ -124,11 +124,45 @@ function initAnimation() {
     }
 }
 
+// ===== TURBO (fast-forward) =====
+// Toggled by the "Skip" button (js/turbo_toggle.js). Doesn't jump to the
+// result: it just runs several ticks per real-world timer callback instead
+// of one, so the race keeps animating, only much faster. move() re-creates
+// its interval at every ~30-tick chunk boundary regardless of mode, so a
+// toggle takes effect within one chunk (well under a second) without
+// anything else needing to react to it.
+let turboMode = false;
+const TURBO_TICK_MS = 0;  // browsers clamp this to a few ms once nested anyway
+const TURBO_BATCH = 3;    // ticks driven per callback in turbo mode - the extra multiplier on top of TURBO_TICK_MS
+
+function toggleTurboMode() {
+    turboMode = !turboMode;
+    return turboMode;
+}
+
 // Main animation loop start
 // Sets up the main interval that calls frame() repeatedly
 function move() {
     currentFrame = 0;
     let interval = setInterval(function() {
-        frame(interval);
-    }, 1000 / fps);
+        if (turboMode) {
+            // Drive several ticks per callback. Stop feeding this interval
+            // the moment either becomes true:
+            //  - a chunk boundary was hit and the race continues: frame()
+            //    already cleared this interval and recursed into a fresh
+            //    move() of its own (currentFrame drops back to 0 - further
+            //    calls here would belong to that new interval, not this one);
+            //  - the race just ended: frame() has already run its one-time
+            //    RACE ENDED branch (podium, save, etc) - calling it again
+            //    would duplicate all of that.
+            for (let k = 0; k < TURBO_BATCH; k++) {
+                const before = currentFrame;
+                frame(interval);
+                const stillRacing = leader_total_length <= raceLength && raceTimeLeft > 0 && eventTimeLeft > 0;
+                if (currentFrame < before || !stillRacing) break;
+            }
+        } else {
+            frame(interval);
+        }
+    }, turboMode ? TURBO_TICK_MS : (1000 / fps));
 }

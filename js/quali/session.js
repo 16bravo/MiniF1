@@ -60,10 +60,41 @@ function advanceSession() {
     } else {
         // Qualification completed
         clearInterval(intervalId);
+        intervalId = null;
         document.getElementById('session-info').innerText =
             (localStorage.getItem('isSprint') === 'true') ? "End of Sprint Qualifying" : "End of Qualification";
         setTimeout(showRaceButton, 500);
     }
+}
+
+// ===== TURBO (fast-forward) =====
+// Toggled by the "Skip" button (js/turbo_toggle.js). Doesn't jump to the
+// result: it drives several ticks per real-world timer callback instead of
+// one, so the session keeps animating, only much faster. Unlike the race
+// page, quali's timer loop is one long-lived interval (not re-created
+// between sessions), so the toggle has to explicitly restart it to switch
+// between the two callbacks below.
+let turboMode = false;
+const TURBO_TICK_MS = 0;  // browsers clamp this to a few ms once nested anyway
+const TURBO_BATCH = 3;    // ticks driven per callback in turbo mode - the extra multiplier on top of TURBO_TICK_MS
+
+function turboTick() {
+    // Stop early if qualifying just wrapped up mid-batch: advanceSession()
+    // clears intervalId once every session is done, and calling updateTimer()
+    // again after that would re-run its "qualification completed" branch
+    // (which would schedule a second "Go to Race" button, etc).
+    for (let k = 0; k < TURBO_BATCH && intervalId !== null; k++) {
+        updateTimer();
+    }
+}
+
+function toggleTurboMode() {
+    turboMode = !turboMode;
+    if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = setInterval(turboMode ? turboTick : updateTimer, turboMode ? TURBO_TICK_MS : (1000 / 60));
+    }
+    return turboMode;
 }
 
 // Function to create and display the "Go to Race" button after qualification
