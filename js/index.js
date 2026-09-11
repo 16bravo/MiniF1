@@ -736,6 +736,12 @@ function renderChampionshipStandings() {
     let driverPointsTableSprint = {}, teamPointsTableSprint = {};
     let driverPointsTableFeature = {}, teamPointsTableFeature = {};
 
+    // Feature-race finishing positions, for the FIA countback tie-break
+    // (most wins, then 2nds, then 3rds…) - same rule and same feature-only
+    // scope as ChampionshipCommon.computeStandings(), which the Stats/
+    // Progression tabs already use.
+    let driverFeatPos = {}, teamFeatPos = {};
+
     // Fastest-lap bonus point (set in Championship Setup). Feature races only.
     const flPointEnabled = localStorage.getItem('championshipFastestLapPoint') === 'true';
     const flTopN = parseInt(localStorage.getItem('championshipFastestLapTopN') || '10') || 0;
@@ -751,13 +757,15 @@ function renderChampionshipStandings() {
             .forEach((driver, idx) => {
                 if (!driverPointsTable[driver.code]) driverPointsTable[driver.code] = Array(races.length).fill(0);
                 driverPointsTable[driver.code][raceIdx] = pointsScale[idx] || 0;
-                
+
                 if (race.isSprintRace) {
                     if (!driverPointsTableSprint[driver.code]) driverPointsTableSprint[driver.code] = Array(races.length).fill(0);
                     driverPointsTableSprint[driver.code][raceIdx] = pointsScale[idx] || 0;
                 } else {
                     if (!driverPointsTableFeature[driver.code]) driverPointsTableFeature[driver.code] = Array(races.length).fill(0);
                     driverPointsTableFeature[driver.code][raceIdx] = pointsScale[idx] || 0;
+                    (driverFeatPos[driver.code] = driverFeatPos[driver.code] || []).push(idx + 1);
+                    (teamFeatPos[driver.team] = teamFeatPos[driver.team] || []).push(idx + 1);
                 }
             });
         
@@ -854,7 +862,7 @@ function renderChampionshipStandings() {
         : races.map((_, i) => i);
 
     // Generic renderer used for both drivers and constructors
-    const renderStandingsTable = (nameHeader, pointsSource, featureSource, sprintChampPoints, nameFn, sortByProjected) => {
+    const renderStandingsTable = (nameHeader, pointsSource, featureSource, sprintChampPoints, nameFn, sortByProjected, featPosSource) => {
         let table = `<table><thead><tr><th>#</th><th>${nameHeader}</th>`;
         columnRaces.forEach(r => table += `<th>${colLabel(r)}</th>`);
         table += `<th class="standings-sort-total" onclick="window.standingsSortMode = false; renderChampionshipStandings()">Total</th>`;
@@ -872,14 +880,17 @@ function renderChampionshipStandings() {
                 key,
                 cols,
                 total: cols.reduce((x, y) => x + y, 0),
-                sprintChampPts: sprintChampPoints[key] || 0
+                sprintChampPts: sprintChampPoints[key] || 0,
+                countback: ChampionshipCommon.positionHistogram(featPosSource && featPosSource[key])
             };
         });
 
         if (sortByProjected && specialMode) {
             rows.sort((a, b) => (b.total + b.sprintChampPts) - (a.total + a.sprintChampPts));
         } else {
-            rows.sort((a, b) => b.total - a.total);
+            // FIA countback tie-break on equal points (most wins, then 2nds,
+            // then 3rds…) - same rule the Stats/Progression tabs already use.
+            rows.sort(ChampionshipCommon.compareStandingRows);
         }
 
         rows.forEach(({ key, cols, total, sprintChampPts }, idx) => {
@@ -897,11 +908,11 @@ function renderChampionshipStandings() {
 
     const renderDriverStandings = (sortByProjected = false) =>
         renderStandingsTable('Driver', driverPointsTable, driverPointsTableFeature,
-            driverSprintChampPoints, code => allDrivers[code] || code, sortByProjected);
+            driverSprintChampPoints, code => allDrivers[code] || code, sortByProjected, driverFeatPos);
 
     const renderTeamStandings = (sortByProjected = false) =>
         renderStandingsTable('Constructor', teamPointsTable, teamPointsTableFeature,
-            teamSprintChampPoints, team => team, sortByProjected);
+            teamSprintChampPoints, team => team, sortByProjected, teamFeatPos);
 
     const sortByProjected = window.standingsSortMode === true;
     const driverTable = renderDriverStandings(sortByProjected);
