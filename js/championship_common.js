@@ -82,7 +82,10 @@ const ChampionshipCommon = (() => {
         const teamColor = {};    // team -> color
         results.forEach(race => {
             (race || []).forEach(d => {
-                if (!driverInfo[d.code]) driverInfo[d.code] = { name: d.name, team: d.team, color: d.color };
+                // Overwritten on every occurrence (races are processed in
+                // chronological order) so a mid-season transfer leaves the
+                // driver's most recently known team/color, not their first.
+                driverInfo[d.code] = { name: d.name, team: d.team, color: d.color };
                 if (d.team && !teamColor[d.team]) teamColor[d.team] = d.color;
             });
         });
@@ -230,7 +233,14 @@ const ChampionshipCommon = (() => {
                 entered: 0, finishes: 0, dnf: 0, wins: 0, sprintWins: 0, podiums: 0, pointFinishes: 0,
                 poles: 0, sprintPoles: 0, fastestLaps: 0, hatTricks: 0, bestFinish: null, bestGrid: null, points: 0, _finishPosSum: 0
             };
-            return drivers[d.code];
+            // Keep the driver's most recently seen team/color (races are
+            // processed in chronological order), so a mid-season transfer
+            // shows their latest team rather than whichever one they had
+            // on their first race.
+            const sd = drivers[d.code];
+            sd.team = d.team;
+            sd.color = d.color || '#888';
+            return sd;
         }
         function ensureTeam(d) {
             if (!teams[d.team]) teams[d.team] = {
