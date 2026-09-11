@@ -7,7 +7,8 @@
         "teamSS": 91,
         "teamFB": 73,
         "color": "#ffaa55",
-        "image": "MCL26"
+        "image": "MCL26",
+        "flag": "uk.png"
     },
     {
         "team_id": 2,
@@ -17,7 +18,8 @@
         "teamSS": 97,
         "teamFB": 86,
         "color": "#1BE3B5",
-        "image": "MER26"
+        "image": "MER26",
+        "flag": "germany.png"
     },
     {
         "team_id": 3,
@@ -27,7 +29,8 @@
         "teamSS": 94,
         "teamFB": 82,
         "color": "#392F90",
-        "image": "RBR26"
+        "image": "RBR26",
+        "flag": "austria.png"
     },
     {
         "team_id": 4,
@@ -37,7 +40,8 @@
         "teamSS": 95,
         "teamFB": 91,
         "color": "#E62B2B",
-        "image": "FER26"
+        "image": "FER26",
+        "flag": "italy.png"
     },
     {
         "team_id": 5,
@@ -47,7 +51,8 @@
         "teamSS": 79,
         "teamFB": 82,
         "color": "#46A0EA",
-        "image": "WIL26"
+        "image": "WIL26",
+        "flag": "uk.png"
     },
     {
         "team_id": 6,
@@ -57,7 +62,8 @@
         "teamSS": 83,
         "teamFB": 86,
         "color": "#3700ff",
-        "image": "VRB26"
+        "image": "VRB26",
+        "flag": "italy.png"
     },
     {
         "team_id": 7,
@@ -67,7 +73,8 @@
         "teamSS": 70,
         "teamFB": 60,
         "color": "#2d7955",
-        "image": "AST26"
+        "image": "AST26",
+        "flag": "uk.png"
     },
     {
         "team_id": 8,
@@ -77,7 +84,8 @@
         "teamSS": 70,
         "teamFB": 86,
         "color": "#bdbdbd",
-        "image": "HAA26"
+        "image": "HAA26",
+        "flag": "usa.png"
     },
     {
         "team_id": 9,
@@ -87,7 +95,8 @@
         "teamSS": 85,
         "teamFB": 73,
         "color": "#f00",
-        "image": "AUD26"
+        "image": "AUD26",
+        "flag": "germany.png"
     },
     {
         "team_id": 10,
@@ -97,7 +106,8 @@
         "teamSS": 88,
         "teamFB": 95,
         "color": "#ff7ec9",
-        "image": "ALP26"
+        "image": "ALP26",
+        "flag": "france.png"
     },
     {
         "team_id": 11,
@@ -107,6 +117,7 @@
         "teamSS": 66,
         "teamFB": 56,
         "color": "#fff",
-        "image": "CAD26"
+        "image": "CAD26",
+        "flag": "usa.png"
     }
 ]

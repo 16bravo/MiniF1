@@ -177,6 +177,8 @@ if (driversData && driversData.length > 0) {
             team_id: driver.team_id,
             color: driver.color,
             image: driver.image,
+            flag: driver.flag,
+            teamFlag: driver.teamFlag,
             driverLevel: driver.driverLevel,
             level: driverLevel,
             circuitStats: driverCircuitStats,

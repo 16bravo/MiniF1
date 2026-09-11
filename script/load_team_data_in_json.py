@@ -19,6 +19,7 @@ for i in range(0, len(df)):
     teamFB = int(df.iloc[i]['FIA'])
     color = str(df.iloc[i]['color'])
     image = str(df.iloc[i]['image'])
+    flag = str(df.iloc[i]['flag'])
 
     # Ajouter les informations du circuit à la liste
     team_data = {
@@ -30,6 +31,7 @@ for i in range(0, len(df)):
         "teamFB": teamFB,
         "color": color,
         "image": image,
+        "flag": flag,
     }
     data_list.append(team_data)
 

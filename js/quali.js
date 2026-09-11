@@ -139,6 +139,8 @@ document.addEventListener("DOMContentLoaded", function() {
         team_id: driver.team_id,
         color: driver.color,
         image: driver.image,
+        flag: driver.flag,
+        teamFlag: driver.teamFlag,
         driverLevel: driver.driverLevel,
         teamStratLevel: driver.teamSPD, // Team strategy level
         teamSPD: driver.teamSPD,

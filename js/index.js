@@ -8,6 +8,11 @@ const MAX_TEAMS = 15;
 // Car pictures available for teams (used by the team editor).
 const TEAM_IMAGE_LIST = ["ALP1","ALP24","ALP25","AMR24","AMR25","ARR1","ARR201","ARR21","ARR31","AST1","BEL1","BEN1","BRA1","FER1","FER201","FER21","FER24","FER25","FRA1","GBR1","GER1","HAA1","HAA201","HAA21","HAA24","HAA25","HAA31","HAA41","HAA51","HON1","JAG1","JAG21","LOT1","LOT21","LOT31","MCL1","MCL201","MCL21","MCL24","MCL25","MCL31","MCL41","MER1","MER201","MER21","MER24","MER25","MER31","MERBLM1","PET1","PEU1","PEU2","POR1","POR21","POR31","POR41","RBR1","RBR201","RBR21","RBR24","RBR25","REN1","REN201","REN21","REN31","RENT201","RPT1","RPT201","RPT21","RPT31","SAT201","SAT21","SAU24","SAU25","STR1","VRB24","VRB25","WIL1","WIL201","WIL21","WIL24","WIL25","WIL31","WIL41","WILT201"];
 
+// Flags available for drivers (nationality) and teams (constructor), from img/flags/*.png.
+// Countries that have actually raced in F1 (and so are the most likely picks)
+// come first, alphabetically; everything else follows, also alphabetically.
+const FLAG_LIST = ["argentina","australia","austria","belgium","brazil","canada","chile","china","colombia","czechia","denmark","finland","france","germany","hungary","india","indonesia","ireland","italy","japan","liechtenstein","malaysia","mexico","monaco","netherlands","new_zealand","poland","portugal","russia","south_africa","spain","sweden","switzerland","thailand","uk","uruguay","usa","venezuela","afghanistan","albania","algeria","andorra","angola","anguilla","antigua","armenia","aruba","azerbaijan","bahamas","bahrain","bangladesh","barbados","belarus","belize","benin","bermuda","bhutan","bolivia","bonaire","bosnia","botswana","brunei","bulgaria","burkina_faso","burundi","caledonia","cambodia","cameroon","cape_verde","cayman","chad","comoros","congo","cook","costa_rica","croatia","cta","cuba","curacao","cyprus","djibouti","dominica","dominican_rep","dr_congo","ecuador","egypt","england","eq_guinea","eritrea","estonia","eswatini","ethiopia","faroe","fiji","fr_guiana","gabon","gambia","gdr","georgia","ghana","gibraltar","greece","greenland","grenada","guam","guatemala","guinea","guinea_bissau","guyana","haiti","honduras","hong_kong","iceland","iran","iraq","israel","ivory_coast","jamaica","jordan","kazakhstan","kenya","kiribati","kitts","korea","kosovo","kuwait","kyrgyzstan","laos","latvia","lebanon","lesotho","liberia","libya","lithuania","luxembourg","macao","macedonia","madagascar","malawi","maldives","mali","malta","mariana","martinique","mauritania","mauritius","micronesia","moldova","mongolia","montenegro","montserrat","morocco","mozambique","myanmar","namibia","nepal","nicaragua","niger","nigeria","niue","north_korea","north_vietnam","north_yemen","northern_cyprus","northern_ireland","norway","oman","pakistan","palau","palestine","panama","papua","paraguay","peru","philippines","puerto_rico","qatar","reunion","romania","rwanda","salvador","samoa","san_marino","sao_tome","saudi_arabia","scotland","senegal","serbia","seychelles","sierra_leone","singapore","slovakia","slovenia","solomon","somalia","south_korea","south_sudan","sri_lanka","st_eustatius","st_lucia","st_maarten","st_vincent","sudan","suriname","syria","tahiti","taiwan","tajikistan","tanzania","timor","togo","tonga","trinidad","tunisia","turkey","turkmenistan","turks_caicos","tuvalu","uae","uganda","ukraine","us_samoa","us_virgin","ussr","uzbekistan","vanuatu","vatican","vietnam","wales","wallis","yemen","yugoslavia","zambia","zimbabwe"];
+
 // Sets the "Go to Qualifying / Next Race / Final Results…" button's label
 // without touching the flag/sprint-badge markup that sits next to it.
 function setGoButtonLabel(text) {
@@ -158,6 +163,7 @@ function renumberTeamRows() {
 function makeTeamRow(team, position) {
     const teamName  = team.team ?? team.name ?? `Team ${position}`;
     const teamImage = (team.image || 'MER24').replace(/^img\/cars\//, '').replace(/\.png$/, '');
+    const teamFlag  = (team.flag || 'uk').replace(/^img\/flags\//, '').replace(/\.png$/, '');
     const row = document.createElement('tr');
     row.classList.add('team-row');
     row.innerHTML = `
@@ -170,6 +176,11 @@ function makeTeamRow(team, position) {
         <td><input type="number" value="${team.teamSS ?? 70}" class="team-data" /></td>
         <td><input type="number" value="${team.teamFB ?? 70}" class="team-data" /></td>
         <td><input type="color" value="${team.color || '#888888'}" class="team-data" /></td>
+        <td>
+            <div class="image-container">
+                <img src="img/flags/${teamFlag}.png" alt="${teamFlag}" class="flag-image team-flag-image" />
+            </div>
+        </td>
         <td>
             <div class="image-container">
                 <img src="img/cars/${teamImage}.png" alt="${teamName}" class="team-image" />
@@ -199,13 +210,44 @@ function makeTeamRow(team, position) {
     const imgElement = row.querySelector('.team-image');
     imgElement.addEventListener('click', (e) => {
         e.stopPropagation();
-        document.querySelectorAll('.image-dropdown').forEach(d => { if (d !== imageDropdown) d.style.display = 'none'; });
+        document.querySelectorAll('.image-dropdown, .flag-dropdown').forEach(d => { if (d !== imageDropdown) d.style.display = 'none'; });
         const rect = imgElement.getBoundingClientRect();
         imageDropdown.style.display = 'flex';
         let left = rect.left;
         if (left + 340 > window.innerWidth - 8) left = window.innerWidth - 348;
         imageDropdown.style.top = (rect.bottom + 6) + 'px';
         imageDropdown.style.left = left + 'px';
+    });
+
+    // Team-flag dropdown (constructor nationality)
+    const teamFlagDropdown = document.createElement('div');
+    teamFlagDropdown.className = 'image-dropdown flag-dropdown';
+    document.body.appendChild(teamFlagDropdown);
+    row._teamFlagDropdown = teamFlagDropdown; // removed with the row
+    FLAG_LIST.forEach(flagName => {
+        const opt = document.createElement('img');
+        opt.src = `img/flags/${flagName}.png`;
+        opt.alt = flagName;
+        opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const img = row.querySelector('.team-flag-image');
+            img.setAttribute('src', `img/flags/${flagName}.png`);
+            img.alt = flagName;
+            teamFlagDropdown.style.display = 'none';
+            updateDriverTeamOptions();
+        });
+        teamFlagDropdown.appendChild(opt);
+    });
+    const teamFlagElement = row.querySelector('.team-flag-image');
+    teamFlagElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.image-dropdown, .flag-dropdown').forEach(d => { if (d !== teamFlagDropdown) d.style.display = 'none'; });
+        const rect = teamFlagElement.getBoundingClientRect();
+        teamFlagDropdown.style.display = 'grid';
+        let left = rect.left;
+        if (left + 260 > window.innerWidth - 8) left = window.innerWidth - 268;
+        teamFlagDropdown.style.top = (rect.bottom + 6) + 'px';
+        teamFlagDropdown.style.left = left + 'px';
     });
 
     row.querySelector('.team-remove').addEventListener('click', () => removeTeamAt(row));
@@ -224,13 +266,51 @@ function makeDriverRow(driver, index, teamName) {
     const shownTeam = teamName
         || (teamNames && teamNames[driver.team_id - 1] && teamNames[driver.team_id - 1].name)
         || '';
+    const driverFlag = (driver.flag || 'uk').replace(/^img\/flags\//, '').replace(/\.png$/, '');
     row.innerHTML = `
         <td class="driver-handle">&#8942;&#8942;</td>
+        <td>
+            <div class="image-container">
+                <img src="img/flags/${driverFlag}.png" alt="${driverFlag}" class="flag-image driver-flag-image" />
+            </div>
+        </td>
         <td><input type="text" value="${driver.name ?? ''}" class="team-data" /></td>
         <td><input type="text" value="${driver.code ?? ''}" class="team-data" /></td>
         <td><input type="number" value="${driver.driverLevel ?? 70}" class="team-data" /></td>
         <td id="teamNameDriver">${shownTeam}</td>
     `;
+
+    // Driver-flag dropdown (nationality)
+    const driverFlagDropdown = document.createElement('div');
+    driverFlagDropdown.className = 'image-dropdown flag-dropdown';
+    document.body.appendChild(driverFlagDropdown);
+    row._flagDropdown = driverFlagDropdown; // removed with the row
+    FLAG_LIST.forEach(flagName => {
+        const opt = document.createElement('img');
+        opt.src = `img/flags/${flagName}.png`;
+        opt.alt = flagName;
+        opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const img = row.querySelector('.driver-flag-image');
+            img.setAttribute('src', `img/flags/${flagName}.png`);
+            img.alt = flagName;
+            driverFlagDropdown.style.display = 'none';
+            updateDriverTeamOptions();
+        });
+        driverFlagDropdown.appendChild(opt);
+    });
+    const driverFlagElement = row.querySelector('.driver-flag-image');
+    driverFlagElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.image-dropdown, .flag-dropdown').forEach(d => { if (d !== driverFlagDropdown) d.style.display = 'none'; });
+        const rect = driverFlagElement.getBoundingClientRect();
+        driverFlagDropdown.style.display = 'grid';
+        let left = rect.left;
+        if (left + 260 > window.innerWidth - 8) left = window.innerWidth - 268;
+        driverFlagDropdown.style.top = (rect.bottom + 6) + 'px';
+        driverFlagDropdown.style.left = left + 'px';
+    });
+
     row.querySelectorAll('.team-data').forEach(inp => inp.addEventListener('input', updateDriverTeamOptions));
     return row;
 }
@@ -238,17 +318,21 @@ function makeDriverRow(driver, index, teamName) {
 // A generic team + its two generic drivers (used by the "add team" button).
 function genericTeam(position) {
     const img = TEAM_IMAGE_LIST[(position * 7) % TEAM_IMAGE_LIST.length];
+    const flag = FLAG_LIST[(position * 11) % FLAG_LIST.length];
     return {
         team: `New Team ${position}`,
         teamSPD: 70, teamFS: 70, teamSS: 70, teamFB: 70,
         color: '#888888',
-        image: img
+        image: img,
+        flag: flag
     };
 }
 function genericDrivers(position) {
+    const flagA = FLAG_LIST[((position * 2 - 1) * 13) % FLAG_LIST.length];
+    const flagB = FLAG_LIST[((position * 2) * 13) % FLAG_LIST.length];
     return [
-        { name: `Driver ${position * 2 - 1}`, code: `D${position * 2 - 1}`, driverLevel: 70 },
-        { name: `Driver ${position * 2}`,     code: `D${position * 2}`,     driverLevel: 70 }
+        { name: `Driver ${position * 2 - 1}`, code: `D${position * 2 - 1}`, driverLevel: 70, flag: flagA },
+        { name: `Driver ${position * 2}`,     code: `D${position * 2}`,     driverLevel: 70, flag: flagB }
     ];
 }
 
@@ -275,10 +359,15 @@ function removeTeamAt(teamRow) {
     const pos = rows.indexOf(teamRow); // 0-based
     if (pos < 0) return;
     if (teamRow._imageDropdown) teamRow._imageDropdown.remove();
+    if (teamRow._teamFlagDropdown) teamRow._teamFlagDropdown.remove();
     teamRow.remove();
     // Drop that team's two drivers (rows pos*2 and pos*2+1)
     const driverRows = [...document.querySelectorAll('#driverTable .driver-row')];
-    [driverRows[pos * 2 + 1], driverRows[pos * 2]].forEach(r => r && r.remove());
+    [driverRows[pos * 2 + 1], driverRows[pos * 2]].forEach(r => {
+        if (!r) return;
+        if (r._flagDropdown) r._flagDropdown.remove();
+        r.remove();
+    });
     renumberTeamRows();
     refreshTeamCountControls();
     updateDriverTeamOptions();
@@ -438,7 +527,8 @@ function updateDriverTeamOptions() {
             teamSS: cells[3].querySelector('input[type="number"]').value, // Get slow corners input value
             teamFB: cells[4].querySelector('input[type="number"]').value, // Get reliability input value
             color: cells[5].querySelector('input[type="color"]').value, // Get color input value
-            image: cells[6].querySelector('.team-image').getAttribute('src') // Get team image src attribute
+            flag: cells[6].querySelector('.team-flag-image').getAttribute('src'), // Get team flag src attribute
+            image: cells[7].querySelector('.team-image').getAttribute('src') // Get team image src attribute
         };
     
         // Add line data to main array
@@ -472,11 +562,13 @@ function updateDriverTeamOptions() {
         //console.log(cells);
     
         // Create an object to store data for the current line
-        // Note: cells[0] is now the drag handle, so inputs are at indices 1, 2, 3
+        // Note: cells[0] is the drag handle and cells[1] the flag picker, so
+        // the text/number inputs are at indices 2, 3, 4
         const rowData = {
-            name: cells[1].querySelector('input[type="text"]').value, 
-            code: cells[2].querySelector('input[type="text"]').value,
-            level: cells[3].querySelector('input[type="number"]').value,
+            flag: cells[1].querySelector('.driver-flag-image').getAttribute('src'),
+            name: cells[2].querySelector('input[type="text"]').value,
+            code: cells[3].querySelector('input[type="text"]').value,
+            level: cells[4].querySelector('input[type="number"]').value,
             team_id: Math.ceil((index+1)/2),
         };
     
@@ -489,6 +581,7 @@ function updateDriverTeamOptions() {
         name: driver.name,
         code: driver.code,
         driverLevel: driver.level,
+        flag: driver.flag, // driver's own nationality flag
         team_id: driver.team_id,
         team: teamNames.find(team => team.id === driver.team_id)?.name,
         teamSPD: teamNames.find(team => team.id === driver.team_id)?.teamSPD,
@@ -497,6 +590,7 @@ function updateDriverTeamOptions() {
         teamFB: teamNames.find(team => team.id === driver.team_id)?.teamFB,
         color: teamNames.find(team => team.id === driver.team_id)?.color,
         image: teamNames.find(team => team.id === driver.team_id)?.image,
+        teamFlag: teamNames.find(team => team.id === driver.team_id)?.flag, // team's constructor flag
     }));
 
     // Save driver data in localStorage
@@ -742,13 +836,27 @@ function renderChampionshipStandings() {
         pointsSprintToUse = SPECIAL_CHAMPIONSHIP_POINTS;
     }
 
-    let allDrivers = {}, allTeams = {};
+    let allDrivers = {}, allTeams = {}, allDriverFlags = {}, allTeamFlags = {};
     championshipResults.forEach(race => {
         race.forEach(d => {
             allDrivers[d.code] = d.name;
+            if (d.flag) allDriverFlags[d.code] = d.flag;
             if (!allTeams[d.team]) allTeams[d.team] = d.team;
+            if (d.teamFlag && !allTeamFlags[d.team]) allTeamFlags[d.team] = d.teamFlag;
         });
     });
+
+    // Standings-only: flag shown before the driver/team name (not in Stats).
+    // Wrapped in a flex cell so the flag centers vertically against the name
+    // regardless of its rendered height (flags keep their own aspect ratio).
+    const nameWithFlag = (flagRaw, label) => {
+        let flagHtml = '';
+        if (flagRaw) {
+            const name = String(flagRaw).replace(/^img\/flags\//, '').replace(/\.png$/, '');
+            flagHtml = `<img class="standings-flag" src="img/flags/${name}.png" alt="">`;
+        }
+        return `<span class="standings-name-cell">${flagHtml}${label}</span>`;
+    };
 
     // Tables for all races (both feature and sprint)
     let driverPointsTable = {}, teamPointsTable = {};
@@ -927,11 +1035,11 @@ function renderChampionshipStandings() {
 
     const renderDriverStandings = (sortByProjected = false) =>
         renderStandingsTable('Driver', driverPointsTable, driverPointsTableFeature,
-            driverSprintChampPoints, code => allDrivers[code] || code, sortByProjected, driverFeatPos);
+            driverSprintChampPoints, code => nameWithFlag(allDriverFlags[code], allDrivers[code] || code), sortByProjected, driverFeatPos);
 
     const renderTeamStandings = (sortByProjected = false) =>
         renderStandingsTable('Constructor', teamPointsTable, teamPointsTableFeature,
-            teamSprintChampPoints, team => team, sortByProjected, teamFeatPos);
+            teamSprintChampPoints, team => nameWithFlag(allTeamFlags[team], team), sortByProjected, teamFeatPos);
 
     const sortByProjected = window.standingsSortMode === true;
     const driverTable = renderDriverStandings(sortByProjected);

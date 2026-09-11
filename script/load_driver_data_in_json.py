@@ -15,6 +15,7 @@ for i in range(0, len(df)):
     code = str(df.iloc[i]['code'])
     driverLevel = int(df.iloc[i]['driverLevel'])
     team_id = int(df.iloc[i]['team_id'])
+    flag = str(df.iloc[i]['flag'])
 
     # Ajouter les informations du pilote à la liste
     driver_data = {
@@ -22,6 +23,7 @@ for i in range(0, len(df)):
         "code": code,
         "team_id": team_id,
         "driverLevel": driverLevel,
+        "flag": flag,
     }
     data_list.append(driver_data)
 
