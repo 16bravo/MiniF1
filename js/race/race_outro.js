@@ -17,6 +17,14 @@ function showRaceOutro(recording) {
         return (p.length > 1 ? p.slice(1).join(' ') : p[0] || '').toUpperCase();
     }
 
+    // Driver's nationality flag (same img/flags/<name>.png pattern used for
+    // standings elsewhere, e.g. js/index.js's nameWithFlag).
+    function flagImg(flagRaw) {
+        if (!flagRaw) return '';
+        const name = String(flagRaw).replace(/^img\/flags\//, '').replace(/\.png$/, '');
+        return `<img class="pod-flag" src="img/flags/${name}.png" alt="">`;
+    }
+
     function buildPodium() {
         let order = [];
         try { order = getFinalClassification(); } catch (e) {}
@@ -33,7 +41,7 @@ function showRaceOutro(recording) {
         const slotHtml = (s) => `
             <div class="pod-slot ${s.cls}">
                 <div class="pod-card" style="--tc:${s.d.color || '#bbb'}">
-                    <div class="pod-name">${surname(s.d.name) || s.d.code || ''}</div>
+                    <div class="pod-name">${flagImg(s.d.flag)}<span class="pod-name-text">${surname(s.d.name) || s.d.code || ''}</span></div>
                     <div class="pod-team">${s.d.team || ''}</div>
                 </div>
                 <div class="pod-step"><span class="pod-num">${s.pos}</span></div>

@@ -56,7 +56,7 @@
         const hud = document.createElement('div');
         hud.id = 'champ-hud';
         hud.innerHTML = `
-            <button id="champ-hud-icon" type="button" title="Championship standings" aria-label="Championship standings">&#127942;</button>
+            <button id="champ-hud-icon" type="button" title="Championship standings" aria-label="Championship standings"><i class="fas fa-trophy"></i></button>
             <div id="champ-hud-popup" hidden>
                 <div class="champ-hud-head">Championship &middot; ${roundsDone} / ${totalRounds} round${totalRounds !== 1 ? 's' : ''} done</div>
                 <div class="champ-hud-tabs">
@@ -67,9 +67,6 @@
                 <div id="champ-hud-c" hidden>${listHtml(constructorStandings, r => r.team)}</div>
             </div>`;
         document.body.appendChild(hud);
-
-        // Position clear of a page header if there is one (quali).
-        if (document.querySelector('.container > .header')) hud.style.top = '64px';
 
         const popup = hud.querySelector('#champ-hud-popup');
         let hideTimer = null;

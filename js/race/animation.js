@@ -21,7 +21,11 @@ async function loadCircuitData(circuit) {
         raceLength = circuitData.total;
         baseSpeed = circuitData.speed;
         country = circuitData.country;
-        grandPrix = circuitData.grandPrix;
+        // grandPrix is deliberately NOT overwritten here: race.js already set it
+        // from selectedCircuit.grandPrix, which carries the championship's custom
+        // display name (edited on the setup screen) - circuitData is the raw,
+        // un-customized data/circuits.json entry, so reassigning it here silently
+        // reverted the grid intro / podium title to the default GP name.
 
         // Apply sprint mode divisor if activated
         const isSprint = localStorage.getItem('isSprint') === 'true';

@@ -1,14 +1,15 @@
 /* TURBO_TOGGLE.CSS
    Fast-forward icon button injected by js/turbo_toggle.js on the race and
-   qualifying pages. Top-right corner, same row as #champ-hud (top:10/
-   right:10, championship mode only) but to its left, and above the first
-   car row (starts around y=75px) - clear of both. Muted by default, like
-   the home button. */
+   qualifying pages. Top-right corner, same row as the home button (css/
+   champ_hud.css moves it here, rightmost) and #champ-hud's icon (right:54,
+   championship mode only) - this one sits furthest left of the three, and
+   above the first car row (starts around y=75px) - clear of both. Muted
+   by default, like the home button. */
 
 .turboSkipBtn {
     position: fixed;
     top: 10px;
-    right: 54px;
+    right: 98px;
     z-index: 998;
     width: 34px;
     height: 34px;
@@ -46,7 +47,7 @@
 @media (max-width: 760px) {
     .turboSkipBtn {
         top: 8px;
-        right: 46px;
+        right: 84px;
         width: 30px;
         height: 30px;
         font-size: 0.9em;

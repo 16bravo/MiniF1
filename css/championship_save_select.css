@@ -260,6 +260,19 @@ body {
     border-color: #e10600;
 }
 
+.modal-year-row {
+    margin-bottom: 4px;
+}
+
+.modal-label {
+    display: block;
+    font-size: 0.75em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 6px;
+}
+
 .modal-buttons {
     display: flex;
     gap: 12px;

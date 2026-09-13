@@ -26,6 +26,11 @@
             <span class="btn-label">Championship</span>
             <span class="btn-desc">Full season across multiple circuits</span>
         </button>
+        <button class="home-btn" id="careerBtn">
+            <span class="btn-icon">&#9733;</span>
+            <span class="btn-label">Career</span>
+            <span class="btn-desc">Take on a long-term role in F1</span>
+        </button>
         <button class="home-btn" id="replayBtn">
             <span class="btn-icon">&#9654;</span>
             <span class="btn-label">Replay Race</span>
@@ -43,6 +48,7 @@
             window.location.href = 'gp_select.html';
         };
         document.getElementById('championshipBtn').onclick = () => window.location.href = 'championship_save_select.html';
+        document.getElementById('careerBtn').onclick = () => window.location.href = 'career_select.html';
         document.getElementById('replayBtn').onclick = () => window.location.href = 'replay.html';
         document.getElementById('archiveBtn').onclick = () => window.location.href = 'championship_viewer.html';
     </script>

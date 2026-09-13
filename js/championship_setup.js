@@ -60,11 +60,30 @@ function autoSaveRaces() {
     }
 }
 
+// True once a career (God Mode) has played at least one season - season 1 of
+// a brand-new career has no prior season to carry anything over from.
+function isContinuingCareerSeason() {
+    return localStorage.getItem('careerMode') === 'true' &&
+        parseInt(localStorage.getItem('careerSeasonNumber') || '1') > 1;
+}
+
 async function loadCircuits() {
     const response = await fetch('data/circuits.json');
     allCircuits = await response.json();
 
-    selectedRaces = await buildDefaultCalendar();
+    // A continuing career keeps the exact calendar the previous season ended
+    // up with (order, added/removed rounds, sprint toggles, display names) -
+    // championship_end.js's startNextSeason() carries it forward in
+    // 'championshipRaces' rather than clearing it. Everything else (a brand
+    // new career's first season, Simple GP, a one-shot Championship) still
+    // builds the default calendar fresh, as before.
+    if (isContinuingCareerSeason()) {
+        let saved = [];
+        try { saved = JSON.parse(localStorage.getItem('championshipRaces') || '[]'); } catch (e) { saved = []; }
+        selectedRaces = Array.isArray(saved) && saved.length ? saved : await buildDefaultCalendar();
+    } else {
+        selectedRaces = await buildDefaultCalendar();
+    }
 
     renderSelectedRaces();
     renderRaceOptions();
@@ -121,6 +140,34 @@ async function buildDefaultCalendar() {
 }
 
 let dragSrcIdx = null;
+let dragSrcLen = null;
+
+// The [start, length] of the 1-or-2-entry block (sprint race + its feature
+// race, or a standalone feature race) that contains selectedRaces[idx].
+// Reordering must always move whole blocks - moving just the feature race
+// (e.g. via "move up" swapping it past its own preceding sprint entry) leaves
+// the sprint race behind, detached from any feature race. Once detached it
+// has no visible row of its own (renderSelectedRaces hides sprint entries)
+// and no way to be removed - it just lingers in the championship forever.
+function raceBlockAt(idx) {
+    if (selectedRaces[idx].isSprintRace) return [idx, 2];
+    const hasSprintBefore = idx > 0 &&
+        selectedRaces[idx - 1].isSprintRace &&
+        selectedRaces[idx - 1].circuit === selectedRaces[idx].circuit;
+    return hasSprintBefore ? [idx - 1, 2] : [idx, 1];
+}
+
+// Self-heal any sprint entry that's already been left detached (e.g. a save
+// from before this fix) - it can never be shown or removed through the UI
+// otherwise, so it would silently sit in the championship forever.
+function sanitizeSprintPairs() {
+    const clean = selectedRaces.filter((r, i) => {
+        if (!r.isSprintRace) return true;
+        const next = selectedRaces[i + 1];
+        return next && !next.isSprintRace && next.circuit === r.circuit;
+    });
+    if (clean.length !== selectedRaces.length) selectedRaces = clean;
+}
 
 // Apply a display-only change (grandPrix name / short code) to a feature race
 // and, if it has one, its sprint counterpart — then persist. No re-render, so
@@ -137,9 +184,10 @@ function applyRaceDisplay(idx, patch) {
 }
 
 function renderSelectedRaces() {
+    sanitizeSprintPairs();
     const ul = document.getElementById('selected-races');
     ul.innerHTML = '';
-    
+
     // Track displayed race index (sprint races are hidden but still in selectedRaces)
     let displayedIndex = 0;
     
@@ -193,13 +241,20 @@ function renderSelectedRaces() {
         const actions = document.createElement('span');
         actions.className = 'race-actions';
 
+        // Move up / down: swap this race's whole block (its sprint race, if
+        // any, travels with it) against the adjacent block, never just the
+        // feature race alone - see raceBlockAt().
+        const [blockStart, blockLen] = raceBlockAt(actualIdx);
+
         // Move up button
         const upBtn = document.createElement('button');
         upBtn.textContent = '↑';
         upBtn.className = 'btn-move';
-        upBtn.disabled = actualIdx === 0;
+        upBtn.disabled = blockStart === 0;
         upBtn.onclick = () => {
-            [selectedRaces[actualIdx - 1], selectedRaces[actualIdx]] = [selectedRaces[actualIdx], selectedRaces[actualIdx - 1]];
+            const [prevStart] = raceBlockAt(blockStart - 1);
+            const block = selectedRaces.splice(blockStart, blockLen);
+            selectedRaces.splice(prevStart, 0, ...block);
             renderSelectedRaces();
             renderRaceOptions();
             autoSaveRaces();
@@ -209,9 +264,11 @@ function renderSelectedRaces() {
         const downBtn = document.createElement('button');
         downBtn.textContent = '↓';
         downBtn.className = 'btn-move';
-        downBtn.disabled = actualIdx === selectedRaces.length - 1;
+        downBtn.disabled = blockStart + blockLen >= selectedRaces.length;
         downBtn.onclick = () => {
-            [selectedRaces[actualIdx], selectedRaces[actualIdx + 1]] = [selectedRaces[actualIdx + 1], selectedRaces[actualIdx]];
+            const [, nextLen] = raceBlockAt(blockStart + blockLen);
+            const block = selectedRaces.splice(blockStart, blockLen);
+            selectedRaces.splice(blockStart + nextLen, 0, ...block);
             renderSelectedRaces();
             renderRaceOptions();
             autoSaveRaces();
@@ -222,12 +279,8 @@ function renderSelectedRaces() {
         delBtn.textContent = '✕';
         delBtn.className = 'btn-del';
         delBtn.onclick = () => {
-            // If this race has a sprint race before it, remove the sprint too
-            if (actualIdx > 0 && selectedRaces[actualIdx - 1].circuit === circuit.circuit && selectedRaces[actualIdx - 1].isSprintRace) {
-                selectedRaces.splice(actualIdx - 1, 2);
-            } else {
-                selectedRaces.splice(actualIdx, 1);
-            }
+            // Removes this race's whole block - its sprint race too, if it has one.
+            selectedRaces.splice(blockStart, blockLen);
             renderSelectedRaces();
             renderRaceOptions();
             autoSaveRaces();
@@ -269,7 +322,8 @@ function renderSelectedRaces() {
 
         // ---- Drag & drop events ----
         li.addEventListener('dragstart', (e) => {
-            dragSrcIdx = actualIdx;
+            dragSrcIdx = blockStart;
+            dragSrcLen = blockLen;
             e.dataTransfer.effectAllowed = 'move';
             li.classList.add('dragging');
         });
@@ -293,13 +347,16 @@ function renderSelectedRaces() {
         li.addEventListener('drop', (e) => {
             e.preventDefault();
             li.classList.remove('drag-over');
-            const destIdx = actualIdx;
-            if (dragSrcIdx === null || dragSrcIdx === destIdx) return;
+            const destStart = blockStart;
+            if (dragSrcIdx === null || dragSrcIdx === destStart) return;
 
-            // Reorder selectedRaces array — this is what gets saved
-            const moved = selectedRaces.splice(dragSrcIdx, 1)[0];
-            selectedRaces.splice(destIdx, 0, moved);
+            // Reorder selectedRaces array — this is what gets saved. Moves the
+            // whole dragged block (a sprint race travels with its feature race).
+            const block = selectedRaces.splice(dragSrcIdx, dragSrcLen);
+            const adjDest = destStart > dragSrcIdx ? destStart - dragSrcLen : destStart;
+            selectedRaces.splice(adjDest, 0, ...block);
             dragSrcIdx = null;
+            dragSrcLen = null;
 
             renderSelectedRaces();
             renderRaceOptions();
@@ -546,6 +603,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCircuits();
     loadPointsConfiguration();
     setupTabSwitching();
+
+    const yearBadge = document.getElementById('career-year-badge');
+    if (yearBadge && localStorage.getItem('careerMode') === 'true') {
+        const startYear = parseInt(localStorage.getItem('careerStartYear') || '0', 10);
+        const season = parseInt(localStorage.getItem('careerSeasonNumber') || '1', 10);
+        yearBadge.textContent = String((startYear || 2026) + (season - 1));
+        yearBadge.hidden = false;
+    }
 });
 
 document.getElementById('add-race-btn').onclick = function() {
@@ -598,8 +663,16 @@ document.getElementById('start-championship-btn').onclick = function() {
     localStorage.setItem('championshipFastestLapTopN', String(fastestLapTopN));
     localStorage.setItem('championshipPolePositionPoints', String(polePositionPoints));
 
-    localStorage.removeItem('teams'); // Force reload from default JSON on first GP
-    localStorage.removeItem('drivers');  // Force reload from default JSON on first GP
+    // In a career (God Mode) continuing into season 2+, teams/drivers must carry
+    // over as they stood at the end of the previous season instead of resetting
+    // to the default rosters. Season 1 of a brand-new career has nothing yet to
+    // carry over, so it must still reset - otherwise it would pick up whatever
+    // 'teams'/'drivers' happen to be lying around from an unrelated earlier
+    // session (a Simple GP, another save, ...).
+    if (!isContinuingCareerSeason()) {
+        localStorage.removeItem('teams'); // Force reload from default JSON on first GP
+        localStorage.removeItem('drivers');  // Force reload from default JSON on first GP
+    }
     
     // Auto-save to slot if active
     if (window.autoSaveChampionship) {

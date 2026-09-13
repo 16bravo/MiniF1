@@ -117,6 +117,17 @@
     color: #ffffff;
 }
 
+.end-btn-primary {
+    background: #1e8a3a;
+    color: #ffffff;
+    border: 2px solid #1e8a3a;
+}
+
+.end-btn-primary:hover {
+    background: #24a745;
+    border-color: #24a745;
+}
+
 #header-actions {
     flex-wrap: wrap;
     justify-content: flex-end;

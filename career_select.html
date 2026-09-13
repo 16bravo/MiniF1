@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniF1 - Career</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/index_home.css">
+    <link rel="stylesheet" href="css/home-button.css">
+</head>
+<body>
+    <div id="home-header">
+        <div id="home-logo">
+            <span class="logo-bar"></span>
+            Career
+        </div>
+        <div id="home-subtitle">Select a career mode</div>
+    </div>
+    <div id="home-menu">
+        <button class="home-btn" id="godModeBtn">
+            <span class="btn-icon">&#9812;</span>
+            <span class="btn-label">God Mode</span>
+            <span class="btn-desc">Control every team at once</span>
+        </button>
+        <button class="home-btn" id="teamPrincipalBtn" disabled>
+            <span class="btn-icon">&#9881;</span>
+            <span class="btn-label">Team Principal</span>
+            <span class="btn-desc">Run a single team across seasons</span>
+        </button>
+        <button class="home-btn" id="driverBtn" disabled>
+            <span class="btn-icon">&#9679;</span>
+            <span class="btn-label">Driver</span>
+            <span class="btn-desc">Live the career of a single driver</span>
+        </button>
+    </div>
+
+    <script src="js/home-button.js"></script>
+    <script>
+        document.getElementById('godModeBtn').onclick = () => window.location.href = 'championship_save_select.html?mode=career';
+    </script>
+</body>
+</html>

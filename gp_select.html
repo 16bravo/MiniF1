@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="css/gp_select.css">
     <link rel="stylesheet" href="css/home-button.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
+        integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -14,6 +17,7 @@
         <div id="gp-title">
             <span class="logo-bar"></span>
             Grand Prix Overview
+            <span id="career-year-badge" class="career-year-badge" hidden></span>
         </div>
         <div id="gp-header-actions">
             <button id="goToNextPage">
@@ -36,6 +40,7 @@
         <button class="gp-tab-btn championship-only" data-target="step-standings-drivers" style="display:none;">Driver Standings</button>
         <button class="gp-tab-btn championship-only" data-target="step-stats" style="display:none;">Stats</button>
         <button class="gp-tab-btn championship-only" data-target="step-progression" style="display:none;">Progression</button>
+        <button class="gp-tab-btn career-only" data-target="step-career-stats" style="display:none;">History Stats</button>
         <button class="gp-tab-btn championship-only special-championship-only" data-target="step-standings-constructors-sprint" style="display:none;">Sprint Constructors</button>
         <button class="gp-tab-btn championship-only special-championship-only" data-target="step-standings-drivers-sprint" style="display:none;">Sprint Drivers</button>
     </div>
@@ -162,12 +167,19 @@
                 <div class="champ-chart-note">Cumulative championship points. Up to 10 entries shown.</div>
             </div>
         </div>
+        <div class="accordion-item career-only" id="step-career-stats" style="display:none;">
+            <div class="accordion-header"></div>
+            <div class="accordion-content">
+                <div id="tab-career-stats"></div>
+            </div>
+        </div>
     </div>
 
     <script src="js/weather.js"></script>
     <script src="js/home-button.js"></script>
     <script src="js/championship_save_select.js"></script>
     <script src="js/championship_common.js"></script>
+    <script src="js/career_stats.js"></script>
     <script src="js/index.js"></script>
 </body>
 </html>

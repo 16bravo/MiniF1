@@ -496,16 +496,29 @@ function swapDriverRows(row1, row2) {
     const row2Name = row2Inputs[0].value;
     const row2Code = row2Inputs[1].value;
     const row2Level = row2Inputs[2].value;
-    
+
     // Swap the values
     row1Inputs[0].value = row2Name;
     row1Inputs[1].value = row2Code;
     row1Inputs[2].value = row2Level;
-    
+
     row2Inputs[0].value = row1Name;
     row2Inputs[1].value = row1Code;
     row2Inputs[2].value = row1Level;
-    
+
+    // The nationality flag is an <img>, not an input, so it's not covered by
+    // the swap above - without this it stayed behind on the old row while
+    // every other field moved with the drag.
+    const row1Flag = row1.querySelector('.driver-flag-image');
+    const row2Flag = row2.querySelector('.driver-flag-image');
+    if (row1Flag && row2Flag) {
+        const row1Src = row1Flag.getAttribute('src'), row1Alt = row1Flag.alt;
+        row1Flag.setAttribute('src', row2Flag.getAttribute('src'));
+        row1Flag.alt = row2Flag.alt;
+        row2Flag.setAttribute('src', row1Src);
+        row2Flag.alt = row1Alt;
+    }
+
     // Update the data in storage
     updateDriverTeamOptions();
 }
@@ -597,6 +610,22 @@ function updateDriverTeamOptions() {
     localStorage.setItem('selectedDrivers', JSON.stringify(driversData));
     console.log(JSON.parse(localStorage.getItem('selectedDrivers')));
 
+    // Persist the raw roster too (same shape as data/driver_default.json) so
+    // loadDrivers() picks up added/removed teams' driver slots on the next
+    // load - 'selectedDrivers' above is the enriched shape used elsewhere and
+    // was never actually read back by loadDrivers().
+    // Guarded on driversArray having rows: this function also runs from
+    // loadTeams(), BEFORE loadDrivers() has populated the driver table on
+    // initial page load - writing at that moment would overwrite the real
+    // saved roster with an empty array.
+    if (localStorage.getItem('championshipActive') === 'true' && driversArray.length > 0) {
+        const rawDrivers = driversArray.map(driver => ({
+            name: driver.name, code: driver.code, driverLevel: driver.level,
+            flag: driver.flag, team_id: driver.team_id
+        }));
+        localStorage.setItem('drivers', JSON.stringify(rawDrivers));
+    }
+
     // Auto-save championship if active
     if (window.autoSaveChampionship) {
         window.autoSaveChampionship();
@@ -625,9 +654,17 @@ async function loadDrivers() {
             drivers = await response.json();
         }
 
-        // A team carries exactly 2 drivers, so cap the list at the team count.
+        // A team carries exactly 2 drivers, so keep the list matched to the team
+        // count: trim if it's too long, or pad with generic drivers for any team
+        // added since 'drivers' was last saved (see updateDriverTeamOptions()).
         const maxDrivers = teamRowCount() * 2 || (drivers.length);
-        if (drivers.length > maxDrivers) drivers = drivers.slice(0, maxDrivers);
+        if (drivers.length > maxDrivers) {
+            drivers = drivers.slice(0, maxDrivers);
+        } else if (isChampionship && drivers.length < maxDrivers) {
+            for (let pos = Math.floor(drivers.length / 2) + 1; drivers.length < maxDrivers; pos++) {
+                genericDrivers(pos).forEach(d => { d.team_id = pos; drivers.push(d); });
+            }
+        }
 
         const driverTableBody = document.getElementById('driverTable').querySelector('tbody');
         driverTableBody.innerHTML = '';
@@ -754,6 +791,7 @@ function activateTab(stepId) {
     if (stepId.includes('standings')) renderChampionshipStandings();
     if (stepId === 'step-stats') renderChampionshipStats();
     if (stepId === 'step-progression') renderChampionshipProgression();
+    if (stepId === 'step-career-stats') renderCareerStats();
 }
 
 // ---- Championship stats + points progression (shared helpers: championship_common.js) ----
@@ -807,9 +845,16 @@ function renderChampionshipProgression() {
 
 // Render championship standings into the standings tab panels
 function renderChampionshipStandings() {
-    const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
-    // Sprint race points: 8,7,6,5,4,3,2,1 then 0 for every other position.
-    const POINTS_SPRINT = [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    // Read the championship's real configured scale (set on the Setup screen's
+    // Settings tab) - this used to be hardcoded to the default top-10 scale
+    // here, silently ignoring any customization even though every other tab
+    // (Stats, Progression, History Stats) already read the real value.
+    let savedPoints;
+    try { savedPoints = JSON.parse(localStorage.getItem('championshipPoints') || 'null'); } catch (e) { savedPoints = null; }
+    const POINTS = ChampionshipCommon.normalizePoints(savedPoints);
+    // Sprint points are fixed (not user-configurable) - same shared constant
+    // every other tab uses.
+    const POINTS_SPRINT = ChampionshipCommon.POINTS_SPRINT;
     const SPECIAL_CHAMPIONSHIP_POINTS = Array.from({length: 22}, (_, i) => 22 - i);
     const SPRINT_CHAMPIONSHIP_POINTS = [100, 75, 60, 50, 42, 35, 28, 22, 18, 14, 10, 6, 3, 2, 1, ...Array(7).fill(0)];
     
@@ -824,6 +869,9 @@ function renderChampionshipStandings() {
     const validPairs = races
         .map((r, i) => ({ race: r, result: championshipResults[i], i }))
         .filter(({ race, result }) => race != null && (result == null || Array.isArray(result)));
+    // Captured before the `?? []` below erases the null/not-yet-run marker -
+    // used later to know which races still count toward maxRemaining.
+    const racePlayed = validPairs.map(p => p.result != null);
     races = validPairs.map(p => p.race);
     championshipResults = validPairs.map(p => p.result ?? []);
 
@@ -980,6 +1028,30 @@ function renderChampionshipStandings() {
     // Column header for a race: short code, with a ·S suffix for sprint races.
     const colLabel = r => `${String(r.displayCode || r.circuit).toUpperCase()}${r.isSprintRace ? '·S' : ''}`;
 
+    // Maximum points anyone could still add per remaining (not-yet-run) race,
+    // for the "title clinched" indicator below: the biggest possible swing is
+    // the leader scoring zero (e.g. DNF) while a rival takes the full points
+    // on offer - fastest-lap/pole bonuses included, since either could land
+    // on the same still-unraced weekend. A team can put two cars on the
+    // podium at once, so its per-race max is a 1-2 finish (P1+P2), not just
+    // P1. Sprints never carry the fastest-lap/pole bonus (feature races only).
+    let driverMaxRemaining = 0, teamMaxRemaining = 0;
+    races.forEach((race, raceIdx) => {
+        if (racePlayed[raceIdx]) return; // already run
+        const scale = race.isSprintRace ? pointsSprintToUse : POINTS;
+        const p1 = scale[0] || 0, p2 = scale[1] || 0;
+        const bonus = race.isSprintRace ? 0 : (flPointEnabled ? 1 : 0) + (polePoints || 0);
+        driverMaxRemaining += p1 + bonus;
+        teamMaxRemaining += p1 + p2 + bonus;
+    });
+
+    // A driver/team has mathematically clinched the title once their lead
+    // over 2nd place exceeds the most anyone still racing could make up.
+    const isClinched = (rows, maxRemaining) => {
+        if (rows.length <= 1) return true;
+        return (rows[0].total - rows[1].total) > maxRemaining;
+    };
+
     // In CLASSIC mode every race (feature + sprint) counts toward the single
     // championship table. In SPECIAL mode only feature races are shown here;
     // sprints keep their separate tabs and feed a "projected total".
@@ -989,12 +1061,12 @@ function renderChampionshipStandings() {
         : races.map((_, i) => i);
 
     // Generic renderer used for both drivers and constructors
-    const renderStandingsTable = (nameHeader, pointsSource, featureSource, sprintChampPoints, nameFn, sortByProjected, featPosSource) => {
+    const renderStandingsTable = (nameHeader, pointsSource, featureSource, sprintChampPoints, nameFn, sortByProjected, featPosSource, maxRemaining) => {
         let table = `<table><thead><tr><th>#</th><th>${nameHeader}</th>`;
         columnRaces.forEach(r => table += `<th>${colLabel(r)}</th>`);
-        table += `<th class="standings-sort-total" onclick="window.standingsSortMode = false; renderChampionshipStandings()">Total</th>`;
+        table += `<th class="standings-sort-total${specialMode ? '' : ' standings-total-col'}" onclick="window.standingsSortMode = false; renderChampionshipStandings()">Total</th>`;
         if (specialMode) {
-            table += `<th>Sprint Pts</th><th class="standings-sort-projected" onclick="window.standingsSortMode = true; renderChampionshipStandings()">Projected Total</th>`;
+            table += `<th>Sprint Pts</th><th class="standings-sort-projected standings-total-col" onclick="window.standingsSortMode = true; renderChampionshipStandings()">Projected Total</th>`;
         }
         table += `</tr></thead><tbody>`;
 
@@ -1020,12 +1092,22 @@ function renderChampionshipStandings() {
             rows.sort(ChampionshipCommon.compareStandingRows);
         }
 
+        // Only meaningful for the classic total (special mode's "projected
+        // total" folds in a separate sprint-championship scale this doesn't
+        // account for) - and only once at least one race has actually been run.
+        const clinched = !specialMode && !sortByProjected &&
+            Object.values(pointsSource).some(arr => arr.some(v => v > 0)) &&
+            isClinched(rows, maxRemaining);
+
         rows.forEach(({ key, cols, total, sprintChampPts }, idx) => {
-            table += `<tr><td>${idx + 1}</td><td>${nameFn(key)}</td>`;
+            const clinchedTag = idx === 0 && clinched
+                ? ' <span class="standings-clinched-tag" title="Title mathematically clinched — no remaining result can give anyone else enough points to catch up"><i class="fas fa-trophy"></i></span>'
+                : '';
+            table += `<tr><td>${idx + 1}</td><td>${nameFn(key)}${clinchedTag}</td>`;
             cols.forEach(pts => table += `<td${pts === 0 ? ' class="no-points"' : ''}>${pts === 0 ? '-' : pts}</td>`);
-            table += `<td><b>${total}</b></td>`;
+            table += `<td${specialMode ? '' : ' class="standings-total-col"'}><b>${total}</b></td>`;
             if (specialMode) {
-                table += `<td>${sprintChampPts}</td><td><b>${total + sprintChampPts}</b></td>`;
+                table += `<td>${sprintChampPts}</td><td class="standings-total-col"><b>${total + sprintChampPts}</b></td>`;
             }
             table += `</tr>`;
         });
@@ -1035,11 +1117,11 @@ function renderChampionshipStandings() {
 
     const renderDriverStandings = (sortByProjected = false) =>
         renderStandingsTable('Driver', driverPointsTable, driverPointsTableFeature,
-            driverSprintChampPoints, code => nameWithFlag(allDriverFlags[code], allDrivers[code] || code), sortByProjected, driverFeatPos);
+            driverSprintChampPoints, code => nameWithFlag(allDriverFlags[code], allDrivers[code] || code), sortByProjected, driverFeatPos, driverMaxRemaining);
 
     const renderTeamStandings = (sortByProjected = false) =>
         renderStandingsTable('Constructor', teamPointsTable, teamPointsTableFeature,
-            teamSprintChampPoints, team => nameWithFlag(allTeamFlags[team], team), sortByProjected, teamFeatPos);
+            teamSprintChampPoints, team => nameWithFlag(allTeamFlags[team], team), sortByProjected, teamFeatPos, teamMaxRemaining);
 
     const sortByProjected = window.standingsSortMode === true;
     const driverTable = renderDriverStandings(sortByProjected);
@@ -1394,6 +1476,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Show championship standings tabs
         document.querySelectorAll('.championship-only').forEach(el => el.style.display = '');
+
+        // Career (God Mode) only tabs
+        const isCareer = localStorage.getItem('careerMode') === 'true';
+        document.querySelectorAll('.career-only').forEach(el => el.style.display = isCareer ? '' : 'none');
+
+        const yearBadge = document.getElementById('career-year-badge');
+        if (yearBadge) {
+            yearBadge.hidden = !isCareer;
+            if (isCareer) {
+                const startYear = parseInt(localStorage.getItem('careerStartYear') || '0', 10);
+                const season = parseInt(localStorage.getItem('careerSeasonNumber') || '1', 10);
+                yearBadge.textContent = String((startYear || 2026) + (season - 1));
+            }
+        }
 
         // Show/hide sprint tabs based on special championship mode
         const specialMode = localStorage.getItem('championshipSpecialMode') === 'true';

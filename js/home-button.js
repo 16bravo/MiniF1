@@ -5,8 +5,12 @@ document.addEventListener('DOMContentLoaded', function() {
     homeBtn.href = 'index.html';
     homeBtn.className = 'home-button';
     homeBtn.title = 'Back to Home';
-    homeBtn.innerHTML = '⌂';
-    
+    // Use the Font Awesome house icon (matches the trophy icon in the quali/
+    // race top-right row) on pages that load it; fall back to the plain
+    // glyph elsewhere, since most pages don't pull in Font Awesome.
+    const hasFontAwesome = !!document.querySelector('link[href*="font-awesome"], link[href*="fontawesome"]');
+    homeBtn.innerHTML = hasFontAwesome ? '<i class="fas fa-home"></i>' : '⌂';
+
     // Add button to body
     document.body.insertBefore(homeBtn, document.body.firstChild);
 });

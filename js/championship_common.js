@@ -380,6 +380,91 @@ const ChampionshipCommon = (() => {
     }
 
     // ------------------------------------------------------------
+    // Compact per-season archive (career mode / God Mode)
+    // ------------------------------------------------------------
+    // A closed-out season's full races/results (every driver's full result
+    // object, per round, sprints included) can run to hundreds of KB - kept
+    // forever across a looping career, that blows through the localStorage
+    // quota after only a handful of seasons. This reduces one season down to
+    // the small set of numbers a career-long leaderboard actually needs: each
+    // driver's/team's totals for that season, plus who won the title. A few
+    // KB per season instead, regardless of calendar length or race detail.
+    // computeStats()'s `entered` counts one per races[] entry - a sprint
+    // weekend is two entries (sprint + feature) for the same real Grand Prix,
+    // so it over-counts GP starts by one per sprint weekend. That's fine for
+    // the Stats tab (entered is shown there as-is, deliberately session-based
+    // - see buildDriverStatsTable), but a career's all-time GP count needs to
+    // line up with the historical baseline, which counts one GP per weekend
+    // regardless of format. This counts distinct circuits instead.
+    function countGpWeekends(races, results) {
+        const driverGps = {}, teamGps = {};
+        const driverSeen = {}, teamSeen = {};
+        races.forEach((race, ri) => {
+            (results[ri] || []).forEach(d => {
+                if (d.name) {
+                    const seen = (driverSeen[d.name] = driverSeen[d.name] || new Set());
+                    if (!seen.has(race.circuit)) { seen.add(race.circuit); driverGps[d.name] = (driverGps[d.name] || 0) + 1; }
+                }
+                if (d.team) {
+                    const seen = (teamSeen[d.team] = teamSeen[d.team] || new Set());
+                    if (!seen.has(race.circuit)) { seen.add(race.circuit); teamGps[d.team] = (teamGps[d.team] || 0) + 1; }
+                }
+            });
+        });
+        return { driverGps, teamGps };
+    }
+
+    // computeStats() doesn't carry a driver's/team's flag through to its
+    // output (it only tracks it for the live Standings tab's own rendering) -
+    // pulled straight from the race results instead, most-recently-seen wins.
+    // Needed so a driver/team who's since left the roster and has no
+    // historical-baseline match keeps SOME flag once archived, rather than
+    // losing it the moment they're no longer in the live 'drivers'/'teams'.
+    function extractFlags(races, results) {
+        const driverFlags = {}, teamFlags = {};
+        results.forEach(result => {
+            (result || []).forEach(d => {
+                if (d.name && d.flag) driverFlags[d.name] = d.flag;
+                if (d.team && d.teamFlag) teamFlags[d.team] = d.teamFlag;
+            });
+        });
+        return { driverFlags, teamFlags };
+    }
+
+    function summarizeSeasonArchive(races, results, points, opts) {
+        const clean = sanitizePairs(races, results);
+        const stats = computeStats(clean.races, clean.results, points);
+        const standings = computeStandings(clean.races, clean.results, points, opts || {});
+        const gpWeekends = countGpWeekends(clean.races, clean.results);
+        const flags = extractFlags(clean.races, clean.results);
+
+        // driverStandings/constructorStandings are already sorted best-to-worst
+        // (FIA countback) - this season's finishing position for a name/team is
+        // just its index in that array, +1. Needed for the History Stats
+        // year-by-year timeline (a season only has a "final classification"
+        // once it's over, which is exactly when this function runs).
+        const driverPosition = {}, teamPosition = {};
+        standings.driverStandings.forEach((row, i) => { driverPosition[row.name] = i + 1; });
+        standings.constructorStandings.forEach((row, i) => { teamPosition[row.team] = i + 1; });
+
+        return {
+            driverStats: stats.driverStats.map(d => ({
+                name: d.name, team: d.team, wins: d.wins, poles: d.poles, podiums: d.podiums,
+                points: d.points, fastestLaps: d.fastestLaps, hatTricks: d.hatTricks,
+                gpWeekends: gpWeekends.driverGps[d.name] || 0, bestGrid: d.bestGrid, bestFinish: d.bestFinish,
+                flag: flags.driverFlags[d.name] || null, position: driverPosition[d.name] || null
+            })),
+            teamStats: stats.teamStats.map(t => ({
+                team: t.team, wins: t.wins, poles: t.poles, podiums: t.podiums,
+                points: t.points, fastestLaps: t.fastestLaps, gpWeekends: gpWeekends.teamGps[t.team] || 0,
+                flag: flags.teamFlags[t.team] || null, position: teamPosition[t.team] || null
+            })),
+            championDriverName: (standings.driverStandings[0] && standings.driverStandings[0].name) || null,
+            championTeamName: (standings.constructorStandings[0] && standings.constructorStandings[0].team) || null
+        };
+    }
+
+    // ------------------------------------------------------------
     // Stats tables + points-progression chart (shared: archive viewer,
     // end-of-season screen, and the between-races standings tab)
     // ------------------------------------------------------------
@@ -510,14 +595,14 @@ const ChampionshipCommon = (() => {
         races.forEach(r => {
             html += `<th title="${escapeHtml(r.grandPrix || r.circuit || '')}${r.isSprintRace ? ' (Sprint)' : ''}">${escapeHtml(raceCode(r))}</th>`;
         });
-        html += `<th>Total</th></tr></thead><tbody>`;
+        html += `<th class="standings-total-col">Total</th></tr></thead><tbody>`;
 
         rows.forEach((row, idx) => {
             html += `<tr><td>${idx + 1}</td><td>${nameFn(row)}</td>`;
             row.perRace.forEach(pts => {
                 html += `<td${pts === 0 ? ' class="no-points"' : ''}>${pts === 0 ? '-' : pts}</td>`;
             });
-            html += `<td><b>${row.total}</b></td></tr>`;
+            html += `<td class="standings-total-col"><b>${row.total}</b></td></tr>`;
         });
         html += `</tbody></table>`;
         return html;
@@ -690,7 +775,7 @@ const ChampionshipCommon = (() => {
         DEFAULT_POINTS, POINTS_SPRINT,
         sanitizePairs, normalizePoints,
         computeStandings, fastestLapWinner, polePositionWinner, positionHistogram, compareStandingRows, raceClassification,
-        computeStats, statsNote, buildDriverStatsTable, buildTeamStatsTable, progressionChart,
+        computeStats, countGpWeekends, extractFlags, summarizeSeasonArchive, statsNote, buildDriverStatsTable, buildTeamStatsTable, progressionChart,
         raceCode, buildStandingsTable, drawRecap,
         escapeHtml, escapeText, slugify, dateStamp, triggerDownload
     };
