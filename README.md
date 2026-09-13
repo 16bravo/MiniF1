@@ -1,7 +1,7 @@
 # MiniF1
 
 **MiniF1** is an ultra-simplified Formula 1 simulation engine.  
-Build your own F1 seasons, customize teams & drivers, and watch realistic qualifying and race simulations unfold in your browser – with full championship tracking, race replays, and point systems.
+Build your own F1 seasons, customize teams & drivers, and watch realistic qualifying and race simulations unfold in your browser – with full championship tracking, multi-season careers, race replays, and point systems.
 
 ---
 
@@ -15,11 +15,19 @@ Build your own F1 seasons, customize teams & drivers, and watch realistic qualif
 - Option to enable **sprint race mode**
 
 ### 🏆 **Championship** – Full Season Mode
-- Configure multi-circuit championship seasons
-- **Point system** tracking across all races
-- **Driver & team standings** updated after each race
+- Configure multi-circuit championship seasons, with optional **sprint race weekends**
+- Fully **customizable points system**, including fastest-lap and pole-position bonus points
+- **Driver & team standings** updated after each race, with live stats and points-progression charts
+- A discreet indicator flags a title as mathematically clinched as soon as it's out of reach
 - Save and load championship progress
 - Access qualifying and race data for every round
+
+### 🏁 **Career** – Long-Term Mode
+- Play a multi-season career as an overall manager across the whole grid (God Mode)
+- Teams and drivers carry over automatically from one season to the next, reordered to match the previous season's constructors' standings
+- **History Stats**: a career-long leaderboard for every driver and team, each with a detail popup showing full career totals and a year-by-year finishing-position timeline, blended with real F1 history
+- Dedicated career save slots, separate from one-off Championships
+- Team Principal and Driver career modes are planned (see [Roadmap](#-roadmap))
 
 ### 🎬 **Replay** – Watch Your Races
 - Instant replay of any recorded race
@@ -59,6 +67,12 @@ You can:
 4. View live standings and championship progression
 5. Save your progress and continue later
 
+### 🏁 Career
+1. Create or load a career save slot
+2. Play each season as a full championship
+3. At season's end, teams, drivers and the calendar carry over automatically into the next season
+4. Track long-term records in the History Stats tab
+
 ### 🎬 Replay
 1. Select a previously recorded race
 2. Watch the full event unfold again
@@ -97,26 +111,24 @@ It's not meant to be professional but it is open to curious and kind people.
 
 ## 🧭 Roadmap
 
-### v1 – Sprint Weekends (In Progress)
-- Sprint race weekend configuration & simulation
-- Combined qualifying + sprint + main race weekend format
+### ✅ Done
+- Sprint race weekends (qualifying + sprint + main race format)
+- Career mode: multi-season progression as an overall manager (God Mode), with career statistics and historical records
 
-### v2 – Career Mode
-- Multi-season career progression
-- Evolving driver and team rosters
-- Career statistics and historical records
-- Advanced season customization
+### 🔜 Next – Career: Team Principal Mode
+- Play a career from inside a single team instead of managing the whole grid
+- Team-level decisions and long-term development
 
-### v3 – Player Control & Game Mode
+### 🔮 Later – Career: Driver Mode & Game Mode
 - Take control of one pilot
 - Interactive mini-games to influence performance
 - Player choices affecting race outcomes
-- Competitive career progression system
+- Competitive career progression as a driver
 
 ---
 
 ## 📄 License
 
-To be defined – for now: personal and educational use encouraged.
+MIT License – see [LICENSE](LICENSE) for details.
 
 ---
