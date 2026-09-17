@@ -1261,30 +1261,27 @@ document.getElementById('goToNextPage').addEventListener('click', () => {
     }
 
     if (isChamp) {
-        const races = JSON.parse(localStorage.getItem('championshipRaces') || '[]');
         const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
         const championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
-        
-        const raceJustPlayed = Array.isArray(championshipResults[currentRaceIndex]);
-        
-        if (raceJustPlayed) {
-            // Current race is done, advance to next
-            if (currentRaceIndex < races.length - 1) {
-                const nextIndex = currentRaceIndex + 1;
-                localStorage.setItem('championshipCurrentRace', nextIndex.toString());
-                localStorage.setItem('selectedCircuit', JSON.stringify(races[nextIndex]));
-                // Synchronize isSprint flag with championship race config
-                localStorage.setItem('isSprint', (races[nextIndex].isSprintRace || false).toString());
-                generateAndStoreWeather(races[nextIndex].rain);
-            }
-        }
-        
+
+        // Once the current race has a result, this button's "Next Race" /
+        // "Final Results" behavior (advancing the index and navigating to
+        // gp_select.html or championship_end.html) is entirely handled by
+        // the .onclick handler the DOMContentLoaded block below attaches -
+        // same guard as toggleStartingGrid() uses for the same reason. This
+        // listener must stay out of the way here: it always falls through to
+        // an unconditional quali.html/race.html navigation for the CURRENT
+        // (already-played) circuit, which - if it ever won the race against
+        // the other handler (e.g. a double-click) - would silently replay
+        // the last race instead of reaching the championship recap.
+        if (Array.isArray(championshipResults[currentRaceIndex])) return;
+
         // Auto-save before leaving
         if (window.autoSaveChampionship) {
             window.autoSaveChampionship();
         }
     }
-    
+
     const selectedCircuit = localStorage.getItem('selectedCircuit');
     if (selectedCircuit) {
         if (skipQualifying) {
