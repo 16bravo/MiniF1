@@ -113,6 +113,7 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 .tp-eng-num { display: inline-flex; align-items: center; gap: 4px; }
 .tp-section { margin: 28px 0 10px; font-size: 0.95em; letter-spacing: 0.1em; text-transform: uppercase; color: #aaa; }
 .tp-local { max-width: 300px; }
+.tp-section-note { color: #666; font-size: 0.8em; text-transform: none; letter-spacing: 0; margin-left: 8px; }
 .tp-eng-columns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
 @media (max-width: 1000px) { .tp-eng-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .tp-eng-columns { grid-template-columns: 1fr; } }
@@ -141,17 +142,16 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 .tp-eng-flag { height: 14px; }
 .tp-eng-name { font-weight: bold; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tp-rarity { color: var(--rarity); font-weight: bold; font-size: 0.85em; }
-/* value | cost | heart req | star req | seasons left | contract - same cells on every card. */
+/* cost | heart req | star req | seasons left | contract - same cells on every card. */
 .tp-eng-meta {
     display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 2.4fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 2.2fr) minmax(0, 2.2fr);
+    grid-template-columns: minmax(0, 2.4fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 2.2fr) minmax(0, 2.2fr);
     align-items: center;
     column-gap: 6px;
     margin-top: 6px;
     color: #aaa;
     white-space: nowrap;
 }
-.tp-eng-value { color: #fff; font-weight: bold; }
 .tp-eng-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-height: 22px; }
 .tp-eng-reason { color: #ff5a6e; font-size: 0.85em; }
 .tp-eng-btn {
@@ -160,6 +160,48 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 }
 .tp-eng-btn.hire { background: #e10600; color: #fff; }
 .tp-eng-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Drivers reuse the engineer columns/cards; this is a not-yet-available value. */
+.tp-eng-ph { color: #555; }
+
+/* ---- Hiring dialog ---- */
+.tp-modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+}
+.tp-modal {
+    width: min(420px, 92vw);
+    padding: 18px 20px;
+    background: #141414;
+    border: 1px solid #333;
+    border-radius: 10px;
+    color: #e8e8e8;
+}
+.tp-modal-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.tp-modal-name { font-weight: bold; font-size: 1.15em; }
+.tp-modal-role { width: 100%; color: #aaa; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.06em; }
+.tp-modal-role small { color: #777; letter-spacing: 0; }
+.tp-modal-note { color: #ccc; margin: 6px 0 12px; }
+.tp-modal-warn { color: #ff9f2e; margin: 6px 0 12px; font-size: 0.9em; }
+.tp-neg-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.tp-neg-label { width: 70px; color: #aaa; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; }
+.tp-neg-value { min-width: 32px; text-align: center; font-weight: bold; font-size: 1.1em; }
+.tp-neg-coins { min-width: 90px; }
+.tp-neg-unit { color: #888; font-size: 0.85em; }
+.tp-step {
+    width: 28px; height: 28px; border: 0; border-radius: 4px; background: #2a2a2a; color: #fff;
+    font-size: 1.1em; cursor: pointer;
+}
+.tp-step:disabled { opacity: 0.3; cursor: not-allowed; }
+.tp-verdict {
+    margin: 14px 0 4px; padding: 6px 12px; border-radius: 6px; text-align: center;
+    font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em;
+}
+.tp-verdict.accept   { background: rgba(63, 207, 110, 0.18); color: #3fcf6e; }
+.tp-verdict.hesitant { background: rgba(255, 159, 46, 0.18); color: #ff9f2e; }
+.tp-verdict.closed   { background: rgba(255, 90, 110, 0.18); color: #ff5a6e; }
+.tp-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
 /* ---- Team picker (team_principal_select.html) ---- */
 .tp-pick-grid {

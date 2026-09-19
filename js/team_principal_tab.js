@@ -25,7 +25,8 @@ function tpEngineerCard(state, team, e, kind, slot) {
     const flag = e.country.replace(/\.png$/, '');
     const g = TeamPrincipal.teamGauges(team);
     const c = TP_CONFIG.engineers;
-    const cost = TPE.effectiveCost(state, e);
+    // A signed engineer shows his contract salary; a card shows what this team would be asked.
+    const cost = kind === 'hired' && slot && slot.cost !== undefined ? slot.cost : TPE.costFor(state, team, e);
     // Same unit as the finance gauge: one coin = 1 $, so a cost of 0.5 is a half coin.
     const costIcons = TeamPrincipal.gaugeIcons(cost, '$', 'tp-finance tp-cost', c.costIcons);
     const seasonsLeft = TPE.lastSeason(e) - state.year + 1;
@@ -35,8 +36,8 @@ function tpEngineerCard(state, team, e, kind, slot) {
     if (kind === 'hired') {
         action = `<button type="button" class="tp-eng-btn" data-action="fire" data-role="${e.stat}">Dismiss</button>`;
     } else {
-        const elig = TPE.eligibility(state, team, e);
-        if (!elig.ok) reason = 'Not enough $';
+        const elig = TPE.canApproach(state, team, e);
+        if (!elig.ok) reason = elig.reason === 'dismissed' ? "Won't come back this season" : 'Not enough $';
         action = `<button type="button" class="tp-eng-btn hire" data-action="hire" data-id="${e.engineer_id}" ${elig.ok ? '' : 'disabled'}>Hire</button>`;
     }
     // Fixed cells (empty when not applicable) so each stat lines up from card to card.
@@ -53,7 +54,6 @@ function tpEngineerCard(state, team, e, kind, slot) {
             </div>
             ${kind === 'local' ? `<div class="tp-eng-spec">${TP_CONFIG.engineers.roleNames[e.stat]} <small>${e.stat}</small></div>` : ''}
             <div class="tp-eng-meta">
-                <span class="tp-eng-value">${e.value}</span>
                 ${costIcons}
                 <span class="tp-eng-req">${reqHeart}</span>
                 <span class="tp-eng-req">${reqStar}</span>
@@ -62,6 +62,18 @@ function tpEngineerCard(state, team, e, kind, slot) {
             </div>
             <div class="tp-eng-actions">${action}${reason ? `<span class="tp-eng-reason">${reason}</span>` : ''}</div>
         </div>`;
+}
+
+// A race has been played this season (played races carry a non-empty result list).
+function tpSeasonStarted() {
+    let results = [];
+    try { results = JSON.parse(localStorage.getItem('championshipResults') || '[]'); } catch (e) {}
+    return Array.isArray(results) && results.some(r => Array.isArray(r) && r.length > 0);
+}
+
+// The local offer only lasts until the first race: after that it joins the general deck.
+function tpExpireLocalIfSeasonStarted(engineerState) {
+    return !!engineerState.local && tpSeasonStarted() && TPE.expireLocal(engineerState);
 }
 
 // Current car performance: the four team stats, one per engineer position.
@@ -80,6 +92,52 @@ function tpCarStatsHtml(team) {
     return `<div class="tp-carstats" style="--team-color:${tpEscape(tpHexColor(team.color))}"><div class="tp-carstats-title">Car</div>${rows}</div>`;
 }
 
+// The team's 2 race drivers plus the reserve slot, laid out exactly like the engineer columns
+// (same grid, same card, same cells). Read-only for now: contract, cost, requirements and
+// retirement don't exist for drivers yet (they come with the drivers phase), so those cells
+// are placeholders in the position they will take.
+function tpDriversHtml(teams, team) {
+    let drivers = [];
+    try { drivers = JSON.parse(localStorage.getItem('drivers') || '[]'); } catch (e) {}
+    // team_id is the team's position in the grid (1-based), as everywhere in the game.
+    const teamId = teams.findIndex(t => t.teamUid === team.teamUid) + 1;
+    const mine = drivers.filter(d => parseInt(d.team_id, 10) === teamId).slice(0, 2);
+
+    const ph = '<span class="tp-eng-ph">–</span>';
+    const card = d => {
+        if (!d) return '<div class="tp-eng tp-vacant">Vacant position</div>';
+        const flag = String(d.flag || 'uk').replace(/^img\/flags\//, '').replace(/\.png$/, '');
+        return `
+            <div class="tp-eng">
+                <div class="tp-eng-top">
+                    <img class="tp-eng-flag" src="img/flags/${flag}.png" alt="${flag}">
+                    <span class="tp-eng-name">${tpEscape(d.name || '')}</span>
+                    <span class="tp-rarity">${tpEscape(d.code || '')}</span>
+                </div>
+                <div class="tp-eng-meta">
+                    ${ph}
+                    <span class="tp-eng-req"></span>
+                    <span class="tp-eng-req"></span>
+                    <span class="tp-eng-num">${TP_SVG_LIFE}–</span>
+                    <span class="tp-eng-num">${TP_SVG_CONTRACT}–</span>
+                </div>
+                <div class="tp-eng-actions"></div>
+            </div>`;
+    };
+    const column = (title, d) => `
+        <div class="tp-eng-col">
+            <div class="tp-col-title">${title}</div>
+            ${card(d)}
+        </div>`;
+    return `
+        <h3 class="tp-section">Drivers</h3>
+        <div class="tp-eng-columns">
+            ${column('Driver 1', mine[0])}
+            ${column('Driver 2', mine[1])}
+            ${column('Reserve', null)}
+        </div>`;
+}
+
 function tpRenderTab(host) {
     const slot = TeamPrincipal.readCurrentSlot();
     let teams = [];
@@ -96,6 +154,7 @@ function tpRenderTab(host) {
     let dirty = false;
     if (!slot.data.engineerState) { slot.data.engineerState = TPE.initState(teams, year, team); dirty = true; }
     else if (slot.data.engineerState.year < year) { TPE.advanceYear(slot.data.engineerState, year, team); dirty = true; }
+    if (tpExpireLocalIfSeasonStarted(slot.data.engineerState)) dirty = true;
     if (dirty) TeamPrincipal.writeCurrentSlot(slot);
     const state = slot.data.engineerState;
 
@@ -106,18 +165,20 @@ function tpRenderTab(host) {
     const committed = TPE.committed(state, team.teamUid);
     const slots = TPE.teamSlots(state, team.teamUid);
 
-    const localHtml = state.local
-        ? tpEngineerCard(state, team, TPE.get(state.local.id), 'local')
-        : '<div class="tp-empty">No local offer this season.</div>';
+    // Only shown while the offer is open (start of the season, before the first race).
+    const localHtml = state.local ? `
+        <h3 class="tp-section">Local offer</h3>
+        <div class="tp-local">${tpEngineerCard(state, team, TPE.get(state.local.id), 'local')}</div>` : '';
 
     const columns = TPE.ROLES.map(role => {
         const cur = slots[role];
         const curHtml = cur
             ? tpEngineerCard(state, team, TPE.get(cur.id), 'hired', cur)
             : '<div class="tp-eng tp-vacant">Vacant position</div>';
-        // Only cards this team can actually take are shown.
+        // Only cards this team can actually take are shown - plus an engineer it just dismissed,
+        // who is in the pool (first) but won't come back before the season ends.
         const deckHtml = state.decks[role].map(id => TPE.get(id))
-            .filter(e => TPE.eligibility(state, team, e).ok)
+            .filter(e => { const r = TPE.canApproach(state, team, e); return r.ok || r.reason === 'dismissed'; })
             .map(e => tpEngineerCard(state, team, e, 'market')).join('')
             || '<div class="tp-empty">No card available.</div>';
         return `
@@ -150,8 +211,8 @@ function tpRenderTab(host) {
         </div>
         ${tpCarStatsHtml(team)}
         </div>
-        <h3 class="tp-section">Local offer</h3>
-        <div class="tp-local">${localHtml}</div>
+        ${tpDriversHtml(teams, team)}
+        ${localHtml}
         <h3 class="tp-section">Engineers</h3>
         <div class="tp-eng-columns">${columns}</div>
     `;
@@ -201,31 +262,148 @@ function tpHandleAction(e) {
     const state = slot.data.engineerState;
     if (!team || !state) return;
 
-    let result;
-    if (btn.dataset.action === 'fire') {
-        const role = btn.dataset.role;
-        const cur = TPE.get(TPE.teamSlots(state, team.teamUid)[role].id);
-        const loss = TP_CONFIG.engineers.dismissalConfidenceLoss;
-        if (!confirm(`Dismiss ${cur.name}? The team loses ${loss} confidence.`)) return;
-        result = TPE.fire(state, team, role);
-    } else {
-        const id = parseInt(btn.dataset.id, 10);
-        const hiring = TPE.get(id);
-        const cur = TPE.teamSlots(state, team.teamUid)[hiring.stat];
-        if (cur) {
-            const loss = TP_CONFIG.engineers.dismissalConfidenceLoss;
-            if (!confirm(`Hiring ${hiring.name} replaces ${TPE.get(cur.id).name}. This counts as a dismissal: the team loses ${loss} confidence.`)) return;
-        }
-        result = TPE.hire(state, team, id);
+    // Stale page: the offer closed since it was drawn.
+    if (tpExpireLocalIfSeasonStarted(state)) {
+        TeamPrincipal.writeCurrentSlot(slot);
+        renderTeamManagement();
+        return;
     }
 
+    if (btn.dataset.action === 'hire') {
+        tpOpenNegotiation(parseInt(btn.dataset.id, 10));
+        return;
+    }
+
+    // fire
+    const role = btn.dataset.role;
+    const cur = TPE.get(TPE.teamSlots(state, team.teamUid)[role].id);
+    const loss = TP_CONFIG.engineers.dismissalConfidenceLoss;
+    if (!confirm(`Dismiss ${cur.name}? The team loses ${loss} confidence.`)) return;
+    const result = TPE.fire(state, team, role);
     if (result.ok) {
         TeamPrincipal.writeCurrentSlot(slot);
-        if (result.confidenceLoss) {
-            tpSetTeamGauge(team.teamUid, 'confidence', TeamPrincipal.teamGauges(team).confidence - result.confidenceLoss);
-        }
+        tpSetTeamGauge(team.teamUid, 'confidence', TeamPrincipal.teamGauges(team).confidence - result.confidenceLoss);
     }
     renderTeamManagement();
+}
+
+// ---- hiring dialog: contract length, salary and the engineer's reaction ----
+
+const TP_VERDICT = {
+    accept:   { label: 'Enthusiastic', cls: 'accept' },
+    hesitant: { label: 'Hesitant', cls: 'hesitant' },
+    closed:   { label: 'Closed', cls: 'closed' }
+};
+
+function tpCloseModal() {
+    const m = document.getElementById('tp-modal');
+    if (m) m.remove();
+}
+
+function tpOpenNegotiation(engineerId) {
+    tpCloseModal();
+    const slot = TeamPrincipal.readCurrentSlot();
+    let teams = [];
+    try { teams = JSON.parse(localStorage.getItem('teams') || '[]'); } catch (err) {}
+    const team = TeamPrincipal.findTeamByUid(teams, slot.data.teamPrincipal.teamUid);
+    const state = slot.data.engineerState;
+    const e = TPE.get(engineerId);
+    if (!team || !state || !e) return;
+
+    const first = TPE.assess(state, team, e, TPE.baseSeasons(e), TPE.costFor(state, team, e));
+    const maxSeasons = TPE.maxSeasons(state, e);
+    const baseCost = first.baseCost;
+    const maxCost = TPE.maxOfferCost(state, team, e);
+    const occupant = TPE.teamSlots(state, team.teamUid)[e.stat];
+    const c = TP_CONFIG.engineers;
+
+    const offer = {
+        seasons: Math.min(maxSeasons, first.negotiate ? first.targetSeasons : first.baseSeasons),
+        cost: baseCost
+    };
+
+    const modal = document.createElement('div');
+    modal.id = 'tp-modal';
+    modal.className = 'tp-modal-backdrop';
+    document.body.appendChild(modal);
+
+    function coins(v) { return TeamPrincipal.gaugeIcons(v, '$', 'tp-finance tp-cost', Math.max(c.costIcons, Math.ceil(v - 1e-9))); }
+
+    // The salary moves in half-coin steps, from the base value up to the cap (or what the free $ allow).
+    const step = c.negotiation.salaryStep;
+    const costCap = Math.min(Math.max(baseCost, c.negotiation.salaryMax), maxCost);
+    function nextCost(v) { return Math.round((v + step) * 100) / 100; }
+
+    function draw() {
+        const a = TPE.assess(state, team, e, offer.seasons, offer.cost);
+        const v = TP_VERDICT[a.verdict];
+        const flag = e.country.replace(/\.png$/, '');
+        modal.innerHTML = `
+            <div class="tp-modal" role="dialog">
+                <div class="tp-modal-head">
+                    <img class="tp-eng-flag" src="img/flags/${flag}.png" alt="${flag}">
+                    <span class="tp-modal-name">${tpEscape(e.name)}</span>
+                    <span class="tp-rarity rarity-${tpEscape(e.rarity)}">${tpEscape(e.rarity)}</span>
+                    <span class="tp-modal-role">${c.roleNames[e.stat]} <small>${e.stat}</small></span>
+                </div>
+                ${occupant ? `<div class="tp-modal-warn">Replaces ${tpEscape(TPE.get(occupant.id).name)}: - ${c.dismissalConfidenceLoss} ♥</div>` : ''}
+                <div class="tp-neg-row">
+                    <span class="tp-neg-label">Contract</span>
+                    <button type="button" class="tp-step" data-neg="seasons-" ${offer.seasons <= 1 ? 'disabled' : ''}>−</button>
+                    <span class="tp-neg-value" data-testid="seasons">${offer.seasons}</span>
+                    <button type="button" class="tp-step" data-neg="seasons+" ${offer.seasons >= maxSeasons ? 'disabled' : ''}>+</button>
+                    <span class="tp-neg-unit">season${offer.seasons > 1 ? 's' : ''}</span>
+                </div>
+                <div class="tp-neg-row">
+                    <span class="tp-neg-label">Salary</span>
+                    <button type="button" class="tp-step" data-neg="cost-" ${offer.cost <= baseCost + 1e-9 ? 'disabled' : ''}>−</button>
+                    <span class="tp-neg-value tp-neg-coins" data-testid="salary">${coins(offer.cost)}</span>
+                    <button type="button" class="tp-step" data-neg="cost+" ${nextCost(offer.cost) > costCap + 1e-9 ? 'disabled' : ''}>+</button>
+                </div>
+                <div class="tp-verdict ${v.cls}" data-testid="verdict">${v.label}</div>
+                <div class="tp-modal-actions">
+                    <button type="button" class="tp-eng-btn" data-neg="cancel">Cancel</button>
+                    <button type="button" class="tp-eng-btn hire" data-neg="submit">${a.negotiate ? 'Send offer' : 'Sign contract'}</button>
+                </div>
+            </div>`;
+    }
+
+    function submit() {
+        const result = TPE.hire(state, team, engineerId, { seasons: offer.seasons, cost: offer.cost });
+        if (result.ok || result.refused) {
+            TeamPrincipal.writeCurrentSlot(slot);
+            if (result.confidenceLoss) {
+                tpSetTeamGauge(team.teamUid, 'confidence', TeamPrincipal.teamGauges(team).confidence - result.confidenceLoss);
+            }
+        }
+        if (result.refused) {
+            modal.innerHTML = `
+                <div class="tp-modal" role="dialog">
+                    <div class="tp-modal-head"><span class="tp-modal-name">${tpEscape(e.name)}</span></div>
+                    <div class="tp-modal-warn" data-testid="refused">He refused your offer. The team loses ${result.confidenceLoss} confidence and he won't talk to you again this season.</div>
+                    <div class="tp-modal-actions"><button type="button" class="tp-eng-btn hire" data-neg="done">OK</button></div>
+                </div>`;
+            return;
+        }
+        tpCloseModal();
+        renderTeamManagement();
+    }
+
+    modal.addEventListener('click', ev => {
+        if (ev.target === modal) { tpCloseModal(); return; }
+        const b = ev.target.closest('[data-neg]');
+        if (!b || b.disabled) return;
+        const act = b.dataset.neg;
+        if (act === 'cancel') { tpCloseModal(); return; }
+        if (act === 'done') { tpCloseModal(); renderTeamManagement(); return; }
+        if (act === 'submit') { submit(); return; }
+        if (act === 'seasons-') offer.seasons = Math.max(1, offer.seasons - 1);
+        if (act === 'seasons+') offer.seasons = Math.min(maxSeasons, offer.seasons + 1);
+        if (act === 'cost-') offer.cost = Math.max(baseCost, Math.round((offer.cost - step) * 100) / 100);
+        if (act === 'cost+' && nextCost(offer.cost) <= costCap + 1e-9) offer.cost = nextCost(offer.cost);
+        draw();
+    });
+    draw();
 }
 
 function renderTeamManagement() {

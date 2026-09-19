@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <div id="gp-sticky-bar">
     <div id="gp-header">
         <div id="gp-title">
             <span class="logo-bar"></span>
@@ -33,6 +34,7 @@
 
     <div class="gp-tabs" id="gp-tabs">
         <button class="gp-tab-btn active" data-target="step4">Overview</button>
+        <button class="gp-tab-btn tp-only" data-target="step-team-management" style="display:none;">Team Management</button>
         <button class="gp-tab-btn" data-target="step1">Circuit</button>
         <button class="gp-tab-btn" data-target="step2">Team Edit</button>
         <button class="gp-tab-btn" data-target="step3">Driver Edit</button>
@@ -42,9 +44,9 @@
         <button class="gp-tab-btn championship-only" data-target="step-stats" style="display:none;">Stats</button>
         <button class="gp-tab-btn championship-only" data-target="step-progression" style="display:none;">Progression</button>
         <button class="gp-tab-btn career-only" data-target="step-career-stats" style="display:none;">History Stats</button>
-        <button class="gp-tab-btn tp-only" data-target="step-team-management" style="display:none;">Team Management</button>
         <button class="gp-tab-btn championship-only special-championship-only" data-target="step-standings-constructors-sprint" style="display:none;">Sprint Constructors</button>
         <button class="gp-tab-btn championship-only special-championship-only" data-target="step-standings-drivers-sprint" style="display:none;">Sprint Drivers</button>
+    </div>
     </div>
 
     <div class="accordion">

@@ -89,7 +89,8 @@ const TeamPrincipalEngineers = (function () {
 
     // teams: the grid; playerTeam: the managed team (gets the local card).
     function initState(teams, year, playerTeam) {
-        const state = { year: year, teams: {}, decks: { SPD: [], FS: [], SS: [], FB: [] }, local: null };
+        const state = { year: year, teams: {}, decks: { SPD: [], FS: [], SS: [], FB: [] }, local: null, closed: {},
+                        dismissed: {}, grudges: {} };
         const uidByName = {};
         teams.forEach(t => { uidByName[TeamPrincipal.teamName(t)] = t.teamUid; });
         cache.list.forEach(e => {
@@ -105,15 +106,26 @@ const TeamPrincipalEngineers = (function () {
 
     // Season rollover: an unhired local card falls into its position's deck,
     // retirees leave the decks, a new local card is drawn, decks are refilled.
+    // The local offer is only open before the season's first race. Left on the
+    // table, the card joins its position's general deck (and loses its advantages).
+    function expireLocal(state, year) {
+        if (!state.local) return false;
+        const e = get(state.local.id);
+        state.local = null;
+        if (e && isAlive(e, year === undefined ? state.year : year)) addToDeck(state, e.stat, e.engineer_id);
+        return true;
+    }
+
     function advanceYear(state, year, playerTeam) {
-        if (state.local) {
-            const e = get(state.local.id);
-            if (e && isAlive(e, year)) addToDeck(state, e.stat, e.engineer_id);
-            state.local = null;
-        }
+        expireLocal(state, year);
         ROLES.forEach(r => { state.decks[r] = state.decks[r].filter(id => isAlive(get(id), year)); });
         drawLocal(state, year, playerTeam);
         fillDecks(state, year);
+        state.closed = {}; // refusals only last until the end of the season
+        // Engineers dismissed this season may be approached again, but they hold a grudge:
+        // that team pays them more to come back.
+        Object.keys(state.dismissed || {}).forEach(uid => state.dismissed[uid].forEach(id => listAdd(state, 'grudges', uid, id)));
+        state.dismissed = {};
         state.year = year;
     }
 
@@ -124,28 +136,110 @@ const TeamPrincipalEngineers = (function () {
         return local ? e.cost * cfg().localCostMultiplier : e.cost;
     }
 
+    // What a contract blocks: the salary agreed when signing (falls back to the card's base cost).
+    function slotCost(slot) { return slot ? (slot.cost !== undefined ? slot.cost : get(slot.id).cost) : 0; }
+
     // $ locked by this team's contracts (drivers join in a later phase).
     function committed(state, uid) {
         const slots = teamSlots(state, uid);
-        return ROLES.reduce((sum, r) => sum + (slots[r] ? get(slots[r].id).cost : 0), 0);
+        return ROLES.reduce((sum, r) => sum + slotCost(slots[r]), 0);
     }
 
     function freeFinance(state, team) {
         return Math.max(0, TeamPrincipal.teamGauges(team).finance - committed(state, team.teamUid));
     }
 
-    // { ok, reason } - reason is 'confidence' | 'prestige' | 'finance'.
-    function eligibility(state, team, e) {
+    function round2(x) { return Math.round(x * 100) / 100; }
+
+    // ---- contract negotiation (spec section 8.3) ----
+
+    function baseSeasons(e) { return e.contract_seasons || cfg().negotiation.defaultBaseSeasons; }
+
+    // Longest contract that can be offered: the global cap, and never past his retirement.
+    function maxSeasons(state, e) {
+        return Math.max(1, Math.min(cfg().negotiation.maxSeasons, lastSeason(e) - state.year + 1));
+    }
+
+    // Per-team lists of engineer ids kept in the state (state.closed / dismissed / grudges).
+    function listHas(state, key, uid, id) {
+        return !!(state[key] && state[key][uid] && state[key][uid].indexOf(id) >= 0);
+    }
+    function listAdd(state, key, uid, id) {
+        if (!state[key]) state[key] = {};
+        if (!state[key][uid]) state[key][uid] = [];
+        if (state[key][uid].indexOf(id) < 0) state[key][uid].push(id);
+    }
+    function listRemove(state, key, uid, id) {
+        if (listHas(state, key, uid, id)) state[key][uid].splice(state[key][uid].indexOf(id), 1);
+    }
+
+    // Refused the team's offer this season: he won't talk to it again until the season ends.
+    function isClosed(state, uid, id) { return listHas(state, 'closed', uid, id); }
+    // Dismissed by the team this season: visible in the market but won't come back before it ends.
+    function isDismissed(state, uid, id) { return listHas(state, 'dismissed', uid, id); }
+    // Dismissed by the team in an earlier season: he comes back, at a premium.
+    function hasGrudge(state, uid, id) { return listHas(state, 'grudges', uid, id); }
+
+    // The base salary this team is asked for: the card's value (local offer discount applied),
+    // plus the premium of an engineer it dismissed before.
+    function costFor(state, team, e) {
+        return round2(effectiveCost(state, e) + (hasGrudge(state, team.teamUid, e.engineer_id) ? cfg().rehirePremium : 0));
+    }
+
+    // The team's margin over what the engineer expects. A surplus of trust makes up for
+    // a lack of prestige and the other way round; he accepts slightly under his thresholds.
+    function margin(team, e) {
+        const r = cfg().negotiation.acceptRatio;
         const g = TeamPrincipal.teamGauges(team);
-        // The yearly local card is take-it-or-leave-it: only its price can stop you.
-        const isLocal = state.local && state.local.id === e.engineer_id;
-        if (!isLocal && g.confidence < e.min_confidence) return { ok: false, reason: 'confidence' };
-        if (!isLocal && g.prestige < e.min_prestige) return { ok: false, reason: 'prestige' };
-        const slots = teamSlots(state, team.teamUid);
-        const replaced = slots[e.stat] ? get(slots[e.stat].id).cost : 0;
-        const free = TeamPrincipal.teamGauges(team).finance - committed(state, team.teamUid) + replaced;
-        if (free + 1e-9 < effectiveCost(state, e)) return { ok: false, reason: 'finance' };
+        return (g.confidence - r * e.min_confidence) + (g.prestige - r * e.min_prestige);
+    }
+
+    // The most that can be offered as salary: free $ plus what the replaced engineer frees.
+    function maxOfferCost(state, team, e) {
+        const replaced = slotCost(teamSlots(state, team.teamUid)[e.stat]);
+        return round2(TeamPrincipal.teamGauges(team).finance - committed(state, team.teamUid) + replaced);
+    }
+
+    // Step 1 - eligibility, i.e. can the engineer be approached at all (this is what the market
+    // shows): he hasn't refused us this season; trust OR prestige reaches his threshold (an
+    // engineer joins a less prestigious team if he believes in the project, and a prestigious
+    // team can win him without trust); and his base salary fits in the free $.
+    // The yearly local offer has no threshold. Step 2 is the negotiation (assess / hire).
+    function canApproach(state, team, e) {
+        if (isClosed(state, team.teamUid, e.engineer_id)) return { ok: false, reason: 'closed' };
+        if (isDismissed(state, team.teamUid, e.engineer_id)) return { ok: false, reason: 'dismissed' };
+        const g = TeamPrincipal.teamGauges(team);
+        const isLocal = !!state.local && state.local.id === e.engineer_id;
+        if (!isLocal && g.confidence < e.min_confidence && g.prestige < e.min_prestige) {
+            return { ok: false, reason: 'requirements' };
+        }
+        if (maxOfferCost(state, team, e) + 1e-9 < costFor(state, team, e)) return { ok: false, reason: 'finance' };
         return { ok: true };
+    }
+
+    // How an offer (seasons, salary) is received.
+    //   negotiate:false -> accepted at base terms (no negotiation: margin >= 0, or the local offer)
+    //   verdict: 'accept' | 'hesitant' | 'closed', odds: chance of a deal (1 / 0.75-0.25 / 0).
+    function assess(state, team, e, seasons, cost) {
+        const n = cfg().negotiation;
+        const baseCost = costFor(state, team, e);
+        const isLocal = !!state.local && state.local.id === e.engineer_id;
+        const M = isLocal ? 0 : margin(team, e);
+        const out = { baseCost: baseCost, baseSeasons: baseSeasons(e), margin: M, negotiate: false,
+                      targetSeasons: baseSeasons(e), score: null, verdict: 'accept', odds: 1 };
+        if (isLocal || M >= 0) return out;
+
+        out.negotiate = true;
+        out.targetSeasons = Math.max(1, baseSeasons(e) + Math.round(M / 2));
+        const costPoints = Math.round((cost - baseCost) / n.costPointStep * 1e6) / 1e6;
+        const S = M + (out.targetSeasons - seasons) * n.pointsPerSeason + costPoints;
+        out.score = S;
+        if (S >= 0) return out;
+        // Bands are read on the integer part: -1 <= S < 0 is the "-1" row of the table, and so on.
+        const band = -Math.floor(S);
+        if (band > n.hesitantOdds.length) { out.verdict = 'closed'; out.odds = 0; }
+        else { out.verdict = 'hesitant'; out.odds = n.hesitantOdds[band - 1]; }
+        return out;
     }
 
     function release(state, uid, role) {
@@ -153,29 +247,57 @@ const TeamPrincipalEngineers = (function () {
         if (!slot) return false;
         state.teams[uid][role] = null;
         addToDeck(state, role, slot.id, true);
+        // He won't come back to the team that just dismissed him before the season is over.
+        listAdd(state, 'dismissed', uid, slot.id);
+        listRemove(state, 'grudges', uid, slot.id);
         return true;
     }
 
-    // Takes a card from a deck (or the local offer). Replacing an engineer counts as a dismissal.
-    function hire(state, team, engineerId) {
+    // Makes an offer to a card of a deck (or to the local offer): `offer` = { seasons, cost }.
+    // Without a negotiation the contract is signed at base terms with the chosen length; in a
+    // negotiation the engineer may refuse (the team loses confidence and he stops talking to it
+    // until the end of the season). Replacing an engineer counts as a dismissal.
+    // `roll` is the random source (0..1), injectable for tests.
+    function hire(state, team, engineerId, offer, roll) {
         const e = get(engineerId);
         const inDeck = e && state.decks[e.stat].indexOf(engineerId) >= 0;
         const isLocal = e && state.local && state.local.id === engineerId;
         if (!inDeck && !isLocal) return { ok: false, reason: 'unavailable' };
-        const elig = eligibility(state, team, e);
-        if (!elig.ok) return elig;
+        const can = canApproach(state, team, e);
+        if (!can.ok) return can;
 
         const uid = team.teamUid;
-        if (!state.teams[uid]) state.teams[uid] = emptySlots();
+        const seasons = offer && offer.seasons !== undefined ? offer.seasons : baseSeasons(e);
+        if (!(seasons >= 1 && seasons <= maxSeasons(state, e) && Math.floor(seasons) === seasons)) {
+            return { ok: false, reason: 'seasons' };
+        }
+        // The salary can be raised above the card's base value (never below it, never above the cap).
+        const baseCost = costFor(state, team, e);
+        let cost = baseCost;
+        if (offer && offer.cost !== undefined) {
+            cost = round2(Math.min(Math.max(baseCost, offer.cost), Math.max(baseCost, cfg().negotiation.salaryMax)));
+        }
+        if (cost > maxOfferCost(state, team, e) + 1e-9) return { ok: false, reason: 'finance' };
 
+        const terms = assess(state, team, e, seasons, cost);
+        if (terms.negotiate && terms.verdict !== 'accept') {
+            const r = roll ? roll() : Math.random();
+            if (!(r < terms.odds)) {
+                listAdd(state, 'closed', uid, engineerId);
+                return { ok: false, refused: true, confidenceLoss: cfg().negotiation.refusalConfidenceLoss };
+            }
+        }
+
+        if (!state.teams[uid]) state.teams[uid] = emptySlots();
         // Take the card first: the replaced engineer joins the deck afterwards and
         // must not push the card being hired out of it.
         if (inDeck) state.decks[e.stat].splice(state.decks[e.stat].indexOf(engineerId), 1);
         if (isLocal) state.local = null;
         const dismissed = release(state, uid, e.stat);
-        state.teams[uid][e.stat] ={ id: engineerId, contractLeft: cfg().defaultContractSeasons };
+        state.teams[uid][e.stat] = { id: engineerId, contractLeft: seasons, cost: cost };
+        listRemove(state, 'grudges', uid, engineerId); // reconciled
         fillDecks(state, state.year);
-        return { ok: true, confidenceLoss: dismissed ? cfg().dismissalConfidenceLoss : 0 };
+        return { ok: true, confidenceLoss: dismissed ? cfg().dismissalConfidenceLoss : 0, seasons: seasons, cost: cost };
     }
 
     function fire(state, team, role) {
@@ -184,6 +306,7 @@ const TeamPrincipalEngineers = (function () {
             : { ok: false, reason: 'vacant' };
     }
 
-    return { ROLES, load, isLoaded, get, isAlive, lastSeason, regionOf, initState, advanceYear, teamSlots,
-             effectiveCost, committed, freeFinance, eligibility, hire, fire };
+    return { ROLES, load, isLoaded, get, isAlive, lastSeason, regionOf, initState, advanceYear, expireLocal, teamSlots,
+             effectiveCost, costFor, committed, freeFinance, baseSeasons, maxSeasons, maxOfferCost, isClosed,
+             isDismissed, hasGrudge, margin, canApproach, assess, hire, fire };
 })();

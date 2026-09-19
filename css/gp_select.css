@@ -12,7 +12,15 @@ body {
     min-height: 100vh;
 }
 
-/* ---- Header ---- */
+/* ---- Header + tab bar ----
+   Both live in one sticky container, so the tab bar always sits right under
+   the header whatever its height (no hard-coded offset to keep in sync). */
+#gp-sticky-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
 #gp-header {
     display: flex;
     align-items: center;
@@ -20,9 +28,6 @@ body {
     padding: 24px 40px;
     border-bottom: 3px solid #e10600;
     background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
-    position: sticky;
-    top: 0;
-    z-index: 10;
 }
 
 #gp-title {
@@ -134,9 +139,6 @@ body {
     padding: 0 40px;
     background: #0d0d0d;
     border-bottom: 2px solid #e10600;
-    position: sticky;
-    top: 80px; /* below header */
-    z-index: 9;
 }
 
 .gp-tab-btn {
@@ -1120,10 +1122,12 @@ tr:hover td {
    untouched; this block only takes effect under 760px.
    ============================================================ */
 @media (max-width: 760px) {
-    /* Header + tab bar: drop the sticky stacking (it assumes a fixed
-       header height) and let them wrap / scroll instead. */
-    #gp-header {
+    /* Header + tab bar: no sticky bar on small screens, let them wrap / scroll instead. */
+    #gp-sticky-bar {
         position: static;
+    }
+
+    #gp-header {
         flex-wrap: wrap;
         gap: 12px;
         padding: 14px 14px;
@@ -1139,8 +1143,6 @@ tr:hover td {
     }
 
     .gp-tabs {
-        position: static;
-        top: auto;
         padding: 0 8px;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
