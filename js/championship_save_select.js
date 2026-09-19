@@ -423,6 +423,7 @@ window.autoSaveChampionship = function() {
         // must be carried over from the stored slot or this rebuild would drop them.
         if (slotData.data.mode) updatedSave.data.mode = slotData.data.mode;
         if (slotData.data.teamPrincipal) updatedSave.data.teamPrincipal = slotData.data.teamPrincipal;
+        if (slotData.data.engineerState) updatedSave.data.engineerState = slotData.data.engineerState;
         updatedSave.data.season = parseInt(localStorage.getItem('careerSeasonNumber') || '1');
         updatedSave.data.startYear = parseInt(localStorage.getItem('careerStartYear') || '0', 10) || slotData.data.startYear || DEFAULT_CAREER_START_YEAR;
         // Migrate any pre-existing seasonHistory entries still carrying full

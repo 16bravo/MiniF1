@@ -58,18 +58,54 @@ const TeamPrincipal = (function () {
         return (slot && slot.data && slot.data.mode === MODE && slot.data.teamPrincipal) || null;
     }
 
+    function currentSlotNumber() { return parseInt(localStorage.getItem('championshipSlotNumber') || '0', 10); }
+
+    function readCurrentSlot() { return readSlot(currentSlotNumber()); }
+
+    // Read-modify-write of the live career slot (autoSaveChampionship carries
+    // mode / teamPrincipal / engineerState over, so writing the slot directly is safe).
+    function writeCurrentSlot(slot) {
+        localStorage.setItem(slotKey(currentSlotNumber()), JSON.stringify(slot));
+    }
+
+    // Calendar year of the season being played.
+    function currentYear() {
+        const start = parseInt(localStorage.getItem('careerStartYear') || '0', 10) || TP_CONFIG.engineers.baseYear;
+        return start + (parseInt(localStorage.getItem('careerSeasonNumber') || '1', 10) - 1);
+    }
+
     function initialState(teamUid) {
         return { teamUid: teamUid, satisfaction: TP_CONFIG.satisfaction.start };
     }
 
     // ---- rendering ----
 
-    function gaugeIcons(value, glyph, cls) {
-        const max = TP_CONFIG.gauges.max;
+    // Coins carry their $ in a child so its size is independent of the icon box.
+    function iconGlyph(glyph) {
+        return glyph === '$' ? '<i class="tp-coin-glyph">$</i>' : glyph;
+    }
+
+    // `count` icons (default: the gauge max), each filled from `value` (1 = one full icon).
+    function gaugeIcons(value, glyph, cls, count) {
+        const max = count || TP_CONFIG.gauges.max;
         let html = '<span class="tp-icons ' + cls + '">';
         for (let i = 0; i < max; i++) {
             const fill = Math.max(0, Math.min(1, value - i));
-            html += '<span class="tp-icon" style="--fill:' + (fill * 100) + '%">' + glyph + '</span>';
+            html += '<span class="tp-icon" style="--fill:' + (fill * 100) + '%">' + iconGlyph(glyph) + '</span>';
+        }
+        return html + '</span>';
+    }
+
+    // Finance gauge in three tones per icon: committed (contracts), free, and the
+    // rest of the ceiling that this team's finance doesn't reach.
+    function financeIcons(total, committed) {
+        const max = TP_CONFIG.gauges.max;
+        const clamp01 = x => Math.max(0, Math.min(1, x));
+        let html = '<span class="tp-icons tp-finance-tri">';
+        for (let i = 0; i < max; i++) {
+            const c = clamp01(committed - i) * 100;
+            const t = clamp01(total - i) * 100;
+            html += '<span class="tp-icon" style="--c:' + c + '%;--t:' + Math.max(c, t) + '%">' + iconGlyph('$') + '</span>';
         }
         return html + '</span>';
     }
@@ -80,5 +116,6 @@ const TeamPrincipal = (function () {
     }
 
     return { MODE, newTeamUid, teamGauges, teamName, findTeamByUid, isActive, getState,
-             initialState, gaugeIcons, satisfactionBar };
+             currentSlotNumber, readCurrentSlot, writeCurrentSlot, currentYear,
+             initialState, gaugeIcons, financeIcons, satisfactionBar };
 })();

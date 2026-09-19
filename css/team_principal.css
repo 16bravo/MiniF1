@@ -15,9 +15,38 @@
 }
 .tp-flag { height: 28px; border-radius: 2px; }
 .tp-team-name { font-size: 1.6em; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; }
-.tp-car { height: 44px; margin-left: auto; }
+.tp-car { height: 44px; }
+.tp-header-tools { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+/* index.css gives every color input width:100%, hence the extra specificity. */
+input[type="color"].tp-color {
+    -webkit-appearance: none; appearance: none;
+    width: 38px; height: 32px; padding: 2px; flex: none;
+    border: 2px solid #2a2a2a; border-radius: 4px; background: none; cursor: pointer;
+}
+input[type="color"].tp-color::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius: 2px; }
+.tp-header .tp-img-picker > img.tp-current { height: 48px; }
+.tp-header .tp-img-grid { left: auto; right: 0; }
 
-.tp-gauges { display: flex; flex-direction: column; gap: 14px; max-width: 520px; }
+.tp-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 24px; }
+.tp-gauges { display: flex; flex-direction: column; gap: 14px; max-width: 680px; }
+.tp-carstats {
+    flex: 0 1 340px;
+    min-width: 260px;
+    padding: 12px 14px;
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+}
+.tp-carstats-title { font-size: 0.75em; color: #777; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.tp-stat-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.tp-stat-label { width: 110px; font-size: 0.85em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+.tp-stat-label small { color: #666; letter-spacing: 0; }
+.tp-stat-bar { flex: 1; height: 8px; background: #2a2a2a; border-radius: 4px; overflow: hidden; }
+.tp-stat-fill { display: block; height: 100%; background: var(--team-color, #888); border-radius: 4px; }
+.tp-stat-value { width: 28px; text-align: right; font-weight: bold; }
+.tp-eng-spec { margin-top: 4px; color: #ddd; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; }
+.tp-eng-spec small { color: #777; letter-spacing: 0; }
 .tp-gauge-row { display: flex; align-items: center; gap: 16px; }
 .tp-gauge-label { width: 110px; font-size: 0.85em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
 
@@ -62,6 +91,75 @@
     border-radius: 2px;
     box-shadow: 0 0 0 1px #000;
 }
+
+/* ---- Engineers (Team Management tab) ---- */
+/* Finance: committed (orange) / free (green) / beyond this team's finance (grey), per icon. */
+.tp-finance-tri .tp-icon {
+    background: linear-gradient(90deg, #ff9f2e var(--c), #3fcf6e var(--c) var(--t), #333 var(--t));
+}
+/* $ icons are round coins so a half-filled one is clearly readable (the thin $ glyph isn't).
+   The coin sits in the same box as a star / heart (same width, same column pitch) but is drawn smaller. */
+.tp-finance .tp-icon, .tp-finance-tri .tp-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    clip-path: circle(34% at 50% 50%);
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+}
+.tp-coin-glyph { font-style: normal; font-size: 0.55em; font-weight: bold; color: rgba(0, 0, 0, 0.7); }
+.tp-cost { gap: 3px; }
+.tp-eng-num { display: inline-flex; align-items: center; gap: 4px; }
+.tp-section { margin: 28px 0 10px; font-size: 0.95em; letter-spacing: 0.1em; text-transform: uppercase; color: #aaa; }
+.tp-local { max-width: 300px; }
+.tp-eng-columns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 1000px) { .tp-eng-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .tp-eng-columns { grid-template-columns: 1fr; } }
+.tp-eng-col { display: flex; flex-direction: column; gap: 8px; }
+.tp-col-title { font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em; padding-bottom: 4px; border-bottom: 2px solid #2a2a2a; }
+.tp-col-stat { color: #777; font-size: 0.8em; margin-left: 6px; }
+.tp-deck-title { margin-top: 8px; font-size: 0.75em; color: #777; text-transform: uppercase; letter-spacing: 0.1em; }
+
+.tp-eng {
+    --rarity: #666;
+    padding: 8px 10px;
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-left: 4px solid var(--rarity);
+    border-radius: 6px;
+    font-size: 0.85em;
+}
+.tp-vacant { color: #777; border-style: dashed; text-align: center; padding: 14px 10px; }
+.rarity-C  { --rarity: #8a8a8a; }
+.rarity-PC { --rarity: #4aa3ff; }
+.rarity-R  { --rarity: #3fcf6e; }
+.rarity-SR { --rarity: #b56cff; }
+.rarity-UR { --rarity: #ff9f2e; }
+.rarity-LR { --rarity: #ff4d6d; }
+.tp-eng-top { display: flex; align-items: center; gap: 8px; }
+.tp-eng-flag { height: 14px; }
+.tp-eng-name { font-weight: bold; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-rarity { color: var(--rarity); font-weight: bold; font-size: 0.85em; }
+/* value | cost | heart req | star req | seasons left | contract - same cells on every card. */
+.tp-eng-meta {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 2.4fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 2.2fr) minmax(0, 2.2fr);
+    align-items: center;
+    column-gap: 6px;
+    margin-top: 6px;
+    color: #aaa;
+    white-space: nowrap;
+}
+.tp-eng-value { color: #fff; font-weight: bold; }
+.tp-eng-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-height: 22px; }
+.tp-eng-reason { color: #ff5a6e; font-size: 0.85em; }
+.tp-eng-btn {
+    background: #2a2a2a; color: #e8e8e8; border: 0; border-radius: 4px; padding: 3px 12px;
+    text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; font-size: 0.85em;
+}
+.tp-eng-btn.hire { background: #e10600; color: #fff; }
+.tp-eng-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ---- Team picker (team_principal_select.html) ---- */
 .tp-pick-grid {

@@ -47,6 +47,8 @@ let state = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Team Principal: have the engineer database ready for startNextSeason().
+    if (TeamPrincipal.isActive()) TeamPrincipalEngineers.load();
     loadData();
 
     const standings = CC.computeStandings(state.races, state.results, state.points, state.opts);
@@ -377,6 +379,13 @@ function startNextSeason() {
             // but this way it's correct even if the browser closes before then).
             try { slot.data.teams = JSON.parse(localStorage.getItem('teams') || 'null'); } catch (e) {}
             try { slot.data.drivers = JSON.parse(localStorage.getItem('drivers') || 'null'); } catch (e) {}
+            // Team Principal: retirees leave the decks, the local card and decks are redrawn.
+            // (If the database hasn't loaded yet, the Team Management tab catches the year up on its next visit.)
+            if (slot.data.mode === 'teamPrincipal' && slot.data.engineerState && slot.data.teamPrincipal &&
+                TeamPrincipalEngineers.isLoaded()) {
+                const playerTeam = (slot.data.teams || []).find(t => t.teamUid === slot.data.teamPrincipal.teamUid);
+                TeamPrincipalEngineers.advanceYear(slot.data.engineerState, nextYear, playerTeam);
+            }
             slot.lastSaved = new Date().toLocaleString('fr-FR');
             slot.progress = `${nextYear} — Setup`;
             localStorage.setItem(key, JSON.stringify(slot));

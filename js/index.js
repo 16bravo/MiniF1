@@ -1477,6 +1477,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const isCareer = localStorage.getItem('careerMode') === 'true';
         document.querySelectorAll('.career-only').forEach(el => el.style.display = isCareer ? '' : 'none');
         document.querySelectorAll('.tp-only').forEach(el => el.style.display = TeamPrincipal.isActive() ? '' : 'none');
+        // Team Principal: no manual editing of teams/drivers. Only the tab buttons are hidden -
+        // the panels must stay in the DOM, updateDriverTeamOptions() rebuilds the team data from them.
+        if (TeamPrincipal.isActive()) {
+            ['step2', 'step3'].forEach(id => {
+                const btn = document.querySelector('.gp-tab-btn[data-target="' + id + '"]');
+                if (btn) btn.style.display = 'none';
+            });
+        }
 
         const yearBadge = document.getElementById('career-year-badge');
         if (yearBadge) {
