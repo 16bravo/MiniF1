@@ -1,18 +1,5 @@
 let teamNames;
 
-// Team count bounds. A team always has exactly 2 drivers, so this also bounds
-// the field at 20-30 drivers.
-const MIN_TEAMS = 10;
-const MAX_TEAMS = 15;
-
-// Car pictures available for teams (used by the team editor).
-const TEAM_IMAGE_LIST = ["ALP1","ALP24","ALP25","AMR24","AMR25","ARR1","ARR201","ARR21","ARR31","AST1","BEL1","BEN1","BRA1","FER1","FER201","FER21","FER24","FER25","FRA1","GBR1","GER1","HAA1","HAA201","HAA21","HAA24","HAA25","HAA31","HAA41","HAA51","HON1","JAG1","JAG21","LOT1","LOT21","LOT31","MCL1","MCL201","MCL21","MCL24","MCL25","MCL31","MCL41","MER1","MER201","MER21","MER24","MER25","MER31","MERBLM1","PET1","PEU1","PEU2","POR1","POR21","POR31","POR41","RBR1","RBR201","RBR21","RBR24","RBR25","REN1","REN201","REN21","REN31","RENT201","RPT1","RPT201","RPT21","RPT31","SAT201","SAT21","SAU24","SAU25","STR1","VRB24","VRB25","WIL1","WIL201","WIL21","WIL24","WIL25","WIL31","WIL41","WILT201"];
-
-// Flags available for drivers (nationality) and teams (constructor), from img/flags/*.png.
-// Countries that have actually raced in F1 (and so are the most likely picks)
-// come first, alphabetically; everything else follows, also alphabetically.
-const FLAG_LIST = ["argentina","australia","austria","belgium","brazil","canada","chile","china","colombia","czechia","denmark","finland","france","germany","hungary","india","indonesia","ireland","italy","japan","liechtenstein","malaysia","mexico","monaco","netherlands","new_zealand","poland","portugal","russia","south_africa","spain","sweden","switzerland","thailand","uk","uruguay","usa","venezuela","afghanistan","albania","algeria","andorra","angola","anguilla","antigua","armenia","aruba","azerbaijan","bahamas","bahrain","bangladesh","barbados","belarus","belize","benin","bermuda","bhutan","bolivia","bonaire","bosnia","botswana","brunei","bulgaria","burkina_faso","burundi","caledonia","cambodia","cameroon","cape_verde","cayman","chad","comoros","congo","cook","costa_rica","croatia","cta","cuba","curacao","cyprus","djibouti","dominica","dominican_rep","dr_congo","ecuador","egypt","england","eq_guinea","eritrea","estonia","eswatini","ethiopia","faroe","fiji","fr_guiana","gabon","gambia","gdr","georgia","ghana","gibraltar","greece","greenland","grenada","guam","guatemala","guinea","guinea_bissau","guyana","haiti","honduras","hong_kong","iceland","iran","iraq","israel","ivory_coast","jamaica","jordan","kazakhstan","kenya","kiribati","kitts","korea","kosovo","kuwait","kyrgyzstan","laos","latvia","lebanon","lesotho","liberia","libya","lithuania","luxembourg","macao","macedonia","madagascar","malawi","maldives","mali","malta","mariana","martinique","mauritania","mauritius","micronesia","moldova","mongolia","montenegro","montserrat","morocco","mozambique","myanmar","namibia","nepal","nicaragua","niger","nigeria","niue","north_korea","north_vietnam","north_yemen","northern_cyprus","northern_ireland","norway","oman","pakistan","palau","palestine","panama","papua","paraguay","peru","philippines","puerto_rico","qatar","reunion","romania","rwanda","salvador","samoa","san_marino","sao_tome","saudi_arabia","scotland","senegal","serbia","seychelles","sierra_leone","singapore","slovakia","slovenia","solomon","somalia","south_korea","south_sudan","sri_lanka","st_eustatius","st_lucia","st_maarten","st_vincent","sudan","suriname","syria","tahiti","taiwan","tajikistan","tanzania","timor","togo","tonga","trinidad","tunisia","turkey","turkmenistan","turks_caicos","tuvalu","uae","uganda","ukraine","us_samoa","us_virgin","ussr","uzbekistan","vanuatu","vatican","vietnam","wales","wallis","yemen","yugoslavia","zambia","zimbabwe"];
-
 // Sets the "Go to Qualifying / Next Race / Final Results…" button's label
 // without touching the flag/sprint-badge markup that sits next to it.
 function setGoButtonLabel(text) {
@@ -166,6 +153,13 @@ function makeTeamRow(team, position) {
     const teamFlag  = (team.flag || 'uk').replace(/^img\/flags\//, '').replace(/\.png$/, '');
     const row = document.createElement('tr');
     row.classList.add('team-row');
+    // Team Principal data isn't editable in this table, so it rides on the row's
+    // dataset to survive updateDriverTeamOptions() rebuilding `teams` from the DOM.
+    const gauges = TeamPrincipal.teamGauges(team);
+    row.dataset.teamUid = team.teamUid || TeamPrincipal.newTeamUid(teamName);
+    row.dataset.finance = gauges.finance;
+    row.dataset.confidence = gauges.confidence;
+    row.dataset.prestige = gauges.prestige;
     row.innerHTML = `
         <td>
             <input type="text" id="${position}" value="${teamName}" class="team-name team-data" />
@@ -541,7 +535,11 @@ function updateDriverTeamOptions() {
             teamFB: cells[4].querySelector('input[type="number"]').value, // Get reliability input value
             color: cells[5].querySelector('input[type="color"]').value, // Get color input value
             flag: cells[6].querySelector('.team-flag-image').getAttribute('src'), // Get team flag src attribute
-            image: cells[7].querySelector('.team-image').getAttribute('src') // Get team image src attribute
+            image: cells[7].querySelector('.team-image').getAttribute('src'), // Get team image src attribute
+            teamUid: row.dataset.teamUid,
+            finance: parseFloat(row.dataset.finance),
+            confidence: parseFloat(row.dataset.confidence),
+            prestige: parseFloat(row.dataset.prestige)
         };
     
         // Add line data to main array
@@ -792,6 +790,7 @@ function activateTab(stepId) {
     if (stepId === 'step-stats') renderChampionshipStats();
     if (stepId === 'step-progression') renderChampionshipProgression();
     if (stepId === 'step-career-stats') renderCareerStats();
+    if (stepId === 'step-team-management') renderTeamManagement();
 }
 
 // ---- Championship stats + points progression (shared helpers: championship_common.js) ----
@@ -1477,6 +1476,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Career (God Mode) only tabs
         const isCareer = localStorage.getItem('careerMode') === 'true';
         document.querySelectorAll('.career-only').forEach(el => el.style.display = isCareer ? '' : 'none');
+        document.querySelectorAll('.tp-only').forEach(el => el.style.display = TeamPrincipal.isActive() ? '' : 'none');
 
         const yearBadge = document.getElementById('career-year-badge');
         if (yearBadge) {

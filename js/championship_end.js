@@ -18,7 +18,7 @@ const CHAMPIONSHIP_SESSION_KEYS = [
     'championshipSpecialMode', 'championshipPoints', 'championshipPointsSprint', 'championshipSlotNumber',
     'drivers', 'teams', 'featureGrid', 'sprintGrid', 'lastSprintResults',
     'selectedCircuit', 'selectedDrivers', 'weatherQuali', 'weatherRace', 'startingGrid', 'isSprint',
-    'careerMode', 'careerSeasonNumber', 'careerStartYear'
+    'careerMode', 'careerType', 'careerSeasonNumber', 'careerStartYear'
 ];
 
 // Career (God Mode) saves live in a separate careerSlot{N} key space from regular

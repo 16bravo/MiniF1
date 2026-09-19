@@ -1,6 +1,7 @@
 [
     {
         "team_id": 1,
+        "teamUid": "mclaren",
         "team": "McLaren",
         "teamSPD": 93,
         "teamFS": 92,
@@ -8,10 +9,13 @@
         "teamFB": 73,
         "color": "#ffaa55",
         "image": "MCL26",
-        "flag": "uk.png"
+        "flag": "uk.png",
+        "prestige": 10,
+        "finance": 9
     },
     {
         "team_id": 2,
+        "teamUid": "mercedes",
         "team": "Mercedes",
         "teamSPD": 98,
         "teamFS": 99,
@@ -19,10 +23,13 @@
         "teamFB": 86,
         "color": "#1BE3B5",
         "image": "MER26",
-        "flag": "germany.png"
+        "flag": "germany.png",
+        "prestige": 10,
+        "finance": 10
     },
     {
         "team_id": 3,
+        "teamUid": "red_bull",
         "team": "Red Bull",
         "teamSPD": 99,
         "teamFS": 80,
@@ -30,10 +37,13 @@
         "teamFB": 82,
         "color": "#392F90",
         "image": "RBR26",
-        "flag": "austria.png"
+        "flag": "austria.png",
+        "prestige": 10,
+        "finance": 10
     },
     {
         "team_id": 4,
+        "teamUid": "ferrari",
         "team": "Ferrari",
         "teamSPD": 95,
         "teamFS": 93,
@@ -41,10 +51,13 @@
         "teamFB": 91,
         "color": "#E62B2B",
         "image": "FER26",
-        "flag": "italy.png"
+        "flag": "italy.png",
+        "prestige": 10,
+        "finance": 10
     },
     {
         "team_id": 5,
+        "teamUid": "williams",
         "team": "Williams",
         "teamSPD": 87,
         "teamFS": 68,
@@ -52,10 +65,13 @@
         "teamFB": 82,
         "color": "#46A0EA",
         "image": "WIL26",
-        "flag": "uk.png"
+        "flag": "uk.png",
+        "prestige": 10,
+        "finance": 5
     },
     {
         "team_id": 6,
+        "teamUid": "racing_bulls",
         "team": "Racing Bulls",
         "teamSPD": 93,
         "teamFS": 95,
@@ -63,10 +79,13 @@
         "teamFB": 86,
         "color": "#3700ff",
         "image": "VRB26",
-        "flag": "italy.png"
+        "flag": "italy.png",
+        "prestige": 5,
+        "finance": 5
     },
     {
         "team_id": 7,
+        "teamUid": "aston_martin",
         "team": "Aston Martin",
         "teamSPD": 66,
         "teamFS": 66,
@@ -74,10 +93,13 @@
         "teamFB": 60,
         "color": "#2d7955",
         "image": "AST26",
-        "flag": "uk.png"
+        "flag": "uk.png",
+        "prestige": 7,
+        "finance": 9
     },
     {
         "team_id": 8,
+        "teamUid": "haas",
         "team": "Haas",
         "teamSPD": 93,
         "teamFS": 77,
@@ -85,10 +107,13 @@
         "teamFB": 86,
         "color": "#bdbdbd",
         "image": "HAA26",
-        "flag": "usa.png"
+        "flag": "usa.png",
+        "prestige": 5,
+        "finance": 5
     },
     {
         "team_id": 9,
+        "teamUid": "audi",
         "team": "Audi",
         "teamSPD": 91,
         "teamFS": 91,
@@ -96,10 +121,13 @@
         "teamFB": 73,
         "color": "#f00",
         "image": "AUD26",
-        "flag": "germany.png"
+        "flag": "germany.png",
+        "prestige": 8,
+        "finance": 10
     },
     {
         "team_id": 10,
+        "teamUid": "alpine",
         "team": "Alpine",
         "teamSPD": 92,
         "teamFS": 78,
@@ -107,10 +135,13 @@
         "teamFB": 95,
         "color": "#ff7ec9",
         "image": "ALP26",
-        "flag": "france.png"
+        "flag": "france.png",
+        "prestige": 7,
+        "finance": 8
     },
     {
         "team_id": 11,
+        "teamUid": "cadillac",
         "team": "Cadillac",
         "teamSPD": 76,
         "teamFS": 69,
@@ -118,6 +149,8 @@
         "teamFB": 56,
         "color": "#fff",
         "image": "CAD26",
-        "flag": "usa.png"
+        "flag": "usa.png",
+        "prestige": 6,
+        "finance": 8
     }
 ]

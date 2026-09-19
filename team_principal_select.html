@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniF1 - Choose your team</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/championship_save_select.css">
+    <link rel="stylesheet" href="css/home-button.css">
+    <link rel="stylesheet" href="css/team_principal.css">
+</head>
+<body>
+    <div id="save-header">
+        <div id="save-title">
+            <span class="logo-bar"></span>
+            <span>Choose your team</span>
+        </div>
+    </div>
+
+    <div class="tp-pick-actions">
+        <button id="tp-create-toggle" class="tp-btn secondary">+ Create a team</button>
+    </div>
+
+    <div id="tp-create" class="tp-create">
+        <label>Name <input type="text" id="tp-new-name" maxlength="24" value="My Team"></label>
+        <label>Color <input type="color" id="tp-new-color" value="#e10600"></label>
+        <label>Country <span id="tp-new-flag" class="tp-img-picker"></span></label>
+        <label>Car <span id="tp-new-car" class="tp-img-picker tp-car-picker"></span></label>
+        <label>Prestige <span id="tp-prestige-hint" class="tp-hint"></span><input type="number" id="tp-new-prestige" step="1"></label>
+        <label>Finance <span id="tp-finance-hint" class="tp-hint"></span><input type="number" id="tp-new-finance" step="1"></label>
+        <button id="tp-add-confirm" class="tp-btn">Create team</button>
+    </div>
+
+    <div id="tp-count-note" class="tp-count-note"></div>
+
+    <div id="tp-grid" class="tp-pick-grid"></div>
+
+    <div id="save-footer">
+        <button id="back-btn" class="btn-back">← Back</button>
+    </div>
+
+    <script src="js/home-button.js"></script>
+    <script src="data/team_principal_config.js"></script>
+    <script src="js/team_principal_common.js"></script>
+    <script src="js/team_assets.js"></script>
+    <!-- MIN_TEAMS / MAX_TEAMS come from team_assets.js -->
+
+    <script src="js/team_principal_select.js"></script>
+</body>
+</html>

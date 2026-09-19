@@ -1,5 +1,6 @@
 import pandas as pd
 import json
+import re
 
 # Charger le fichier Excel
 file_path = './data/source/team_default.xlsx'
@@ -20,10 +21,15 @@ for i in range(0, len(df)):
     color = str(df.iloc[i]['color'])
     image = str(df.iloc[i]['image'])
     flag = str(df.iloc[i]['flag'])
+    prestige = int(df.iloc[i]['prestige'])
+    finance = int(df.iloc[i]['finance'])
+    # Identifiant stable de l'équipe (team_id change à chaque saison)
+    teamUid = re.sub(r'[^a-z0-9]+', '_', team.lower()).strip('_')
 
     # Ajouter les informations du circuit à la liste
     team_data = {
         "team_id": team_id,
+        "teamUid": teamUid,
         "team": team,
         "teamSPD": teamSPD,
         "teamFS": teamFS,
@@ -32,6 +38,8 @@ for i in range(0, len(df)):
         "color": color,
         "image": image,
         "flag": flag,
+        "prestige": prestige,
+        "finance": finance,
     }
     data_list.append(team_data)
 

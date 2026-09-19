@@ -21,12 +21,28 @@ function careerYearFor(startYear, season) {
 const urlMode = new URLSearchParams(location.search).get('mode') === 'career' ? 'career' : 'championship';
 const SLOT_PREFIX = urlMode === 'career' ? 'careerSlot' : 'championshipSlot';
 
+// Which career mode a NEW save is created for (?careerType=teamPrincipal, from
+// Career > Team Principal). Existing saves are loaded by their own stored
+// data.mode, since God Mode and Team Principal share the same careerSlot1-3.
+const TEAM_PRINCIPAL_MODE = 'teamPrincipal';
+const urlIsTeamPrincipal = urlMode === 'career' &&
+    new URLSearchParams(location.search).get('careerType') === TEAM_PRINCIPAL_MODE;
+
 // Initialize save slots on page load
 document.addEventListener('DOMContentLoaded', () => {
+    // Returning from the Team Principal team picker: the slot is now complete,
+    // continue into the normal new-career setup.
+    const setupSlot = parseInt(new URLSearchParams(location.search).get('setup') || '0', 10);
+    if (urlMode === 'career' && setupSlot >= 1 && setupSlot <= SLOTS_COUNT && getSaveSlot(setupSlot)) {
+        loadSaveSlotToSetup(setupSlot);
+        return;
+    }
+
     renderSlots();
 
     const titleEl = document.getElementById('save-title-text');
-    if (titleEl) titleEl.textContent = urlMode === 'career' ? 'Career Saves' : 'Championship Saves';
+    if (titleEl) titleEl.textContent = urlIsTeamPrincipal ? 'Team Principal Saves'
+        : (urlMode === 'career' ? 'Career Saves' : 'Championship Saves');
 
     document.getElementById('back-btn').addEventListener('click', () => {
         window.location.href = urlMode === 'career' ? 'career_select.html' : 'index.html';
@@ -53,7 +69,7 @@ function createSlotElement(slotNumber, slotData) {
         <div class="slot-info">
             <div class="slot-name">${slotData ? slotData.name : `Slot ${slotNumber}`}</div>
             ${slotData ? `
-                <div class="slot-progress">${slotData.progress}</div>
+                <div class="slot-progress">${slotData.progress}${slotData.data && slotData.data.mode === TEAM_PRINCIPAL_MODE ? ' · Team Principal' : ''}</div>
                 <div class="slot-date">${slotData.lastSaved}</div>
             ` : `
                 <div class="slot-progress">Empty save slot</div>
@@ -122,12 +138,14 @@ function createNewSave(slotNumber) {
             newSave.data.season = 1;
             newSave.data.seasonHistory = [];
             newSave.data.startYear = startYear;
+            if (urlIsTeamPrincipal) newSave.data.mode = TEAM_PRINCIPAL_MODE;
         }
 
         // Save to localStorage
         localStorage.setItem(`${SLOT_PREFIX}${slotNumber}`, JSON.stringify(newSave));
 
-        // Set up session and go to setup (to add races)
+        // Set up session and go to setup (to add races); loadSaveSlotToSetup
+        // detours through the team picker for a Team Principal save.
         loadSaveSlotToSetup(slotNumber);
     });
 }
@@ -159,10 +177,27 @@ function applySavedChampionshipSettings(slotData) {
     }
 }
 
+// A Team Principal save that never got its team picked (player left the picker
+// before choosing) must go back to the picker before anything else.
+function redirectIfTeamPickPending(slotNumber, slotData) {
+    if (slotData.data.mode === TEAM_PRINCIPAL_MODE && !slotData.data.teamPrincipal) {
+        window.location.href = `team_principal_select.html?slot=${slotNumber}`;
+        return true;
+    }
+    return false;
+}
+
+// Session flag read by TeamPrincipal.isActive() on the pages that carry no ?mode=.
+function applyCareerType(slotData) {
+    const isTP = urlMode === 'career' && slotData.data.mode === TEAM_PRINCIPAL_MODE;
+    localStorage.setItem('careerType', isTP ? TEAM_PRINCIPAL_MODE : 'godmode');
+}
+
 // Load a save slot for setup (new championship)
 function loadSaveSlotToSetup(slotNumber) {
     const slotData = getSaveSlot(slotNumber);
     if (!slotData) return;
+    if (redirectIfTeamPickPending(slotNumber, slotData)) return;
 
     // Clear any existing session data
     localStorage.removeItem('championshipActive');
@@ -180,6 +215,7 @@ function loadSaveSlotToSetup(slotNumber) {
     localStorage.setItem('championshipCurrentRace', (slotData.data.currentRaceIndex || 0).toString());
     localStorage.setItem('championshipResults', JSON.stringify(slotData.data.results || []));
     localStorage.setItem('careerMode', urlMode === 'career' ? 'true' : 'false');
+    applyCareerType(slotData);
     localStorage.setItem('careerSeasonNumber', String(slotData.data.season || 1));
     localStorage.setItem('careerStartYear', String(slotData.data.startYear || DEFAULT_CAREER_START_YEAR));
 
@@ -197,6 +233,7 @@ function loadSaveSlotToSetup(slotNumber) {
 function loadSaveSlot(slotNumber) {
     const slotData = getSaveSlot(slotNumber);
     if (!slotData) return;
+    if (redirectIfTeamPickPending(slotNumber, slotData)) return;
 
     // Clear any existing session data (but keep simple GP data untouched)
     localStorage.removeItem('championshipActive');
@@ -214,6 +251,7 @@ function loadSaveSlot(slotNumber) {
     localStorage.setItem('championshipCurrentRace', (slotData.data.currentRaceIndex || 0).toString());
     localStorage.setItem('championshipResults', JSON.stringify(slotData.data.results || []));
     localStorage.setItem('careerMode', urlMode === 'career' ? 'true' : 'false');
+    applyCareerType(slotData);
     localStorage.setItem('careerSeasonNumber', String(slotData.data.season || 1));
     localStorage.setItem('careerStartYear', String(slotData.data.startYear || DEFAULT_CAREER_START_YEAR));
 
@@ -381,6 +419,10 @@ window.autoSaveChampionship = function() {
     };
 
     if (prefix === 'careerSlot') {
+        // Career mode + Team Principal state aren't in the session keys, so they
+        // must be carried over from the stored slot or this rebuild would drop them.
+        if (slotData.data.mode) updatedSave.data.mode = slotData.data.mode;
+        if (slotData.data.teamPrincipal) updatedSave.data.teamPrincipal = slotData.data.teamPrincipal;
         updatedSave.data.season = parseInt(localStorage.getItem('careerSeasonNumber') || '1');
         updatedSave.data.startYear = parseInt(localStorage.getItem('careerStartYear') || '0', 10) || slotData.data.startYear || DEFAULT_CAREER_START_YEAR;
         // Migrate any pre-existing seasonHistory entries still carrying full

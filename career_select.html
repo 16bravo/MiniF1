@@ -22,7 +22,7 @@
             <span class="btn-label">God Mode</span>
             <span class="btn-desc">Control every team at once</span>
         </button>
-        <button class="home-btn" id="teamPrincipalBtn" disabled>
+        <button class="home-btn" id="teamPrincipalBtn">
             <span class="btn-icon">&#9881;</span>
             <span class="btn-label">Team Principal</span>
             <span class="btn-desc">Run a single team across seasons</span>
@@ -37,6 +37,7 @@
     <script src="js/home-button.js"></script>
     <script>
         document.getElementById('godModeBtn').onclick = () => window.location.href = 'championship_save_select.html?mode=career';
+        document.getElementById('teamPrincipalBtn').onclick = () => window.location.href = 'championship_save_select.html?mode=career&careerType=teamPrincipal';
     </script>
 </body>
 </html>
