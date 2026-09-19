@@ -1281,20 +1281,32 @@ document.getElementById('goToNextPage').addEventListener('click', () => {
         }
     }
 
-    const selectedCircuit = localStorage.getItem('selectedCircuit');
-    if (selectedCircuit) {
-        if (skipQualifying) {
-            // Save starting grid before going to race
-            saveStartingGrid();
-            window.location.href = 'race.html';
+    const proceed = () => {
+        const selectedCircuit = localStorage.getItem('selectedCircuit');
+        if (selectedCircuit) {
+            if (skipQualifying) {
+                // Save starting grid before going to race
+                saveStartingGrid();
+                window.location.href = 'race.html';
+            } else {
+                // Clear custom starting grid when doing real qualifying
+                localStorage.removeItem('startingGrid');
+                window.location.href = 'quali.html';
+            }
         } else {
-            // Clear custom starting grid when doing real qualifying
-            localStorage.removeItem('startingGrid');
-            window.location.href = 'quali.html';
+            alert('Select a Grand Prix.');
         }
-    } else {
-        alert('Select a Grand Prix.');
+    };
+
+    // Team Principal: development projects grow / pay off just before each GP weekend,
+    // so their effect is in the stats the race is simulated with.
+    if (isChamp && typeof tpDevelopBeforeRace === 'function' && TeamPrincipal.isActive()) {
+        tpDevelopBeforeRace().then(outcomes => {
+            if (outcomes.length) tpShowDevelopmentResults(outcomes, proceed); else proceed();
+        });
+        return;
     }
+    proceed();
 });
 
 // Function to populate and manage the starting grid

@@ -45,6 +45,23 @@ const TP_CONFIG = {
         }
     },
 
+    // Development projects (spec section 7).
+    projects: {
+        // $ a team may put into development in one season, by its rank last season:
+        // `best` for the 1st, `worst` for the last, linear in between, rounded UP to `step`.
+        devBudget: { best: 3, worst: 6, step: 0.5 },
+        investStep: 0.5,          // projects are funded in steps of this many $
+        minInvest: 0.5,
+        // Ceiling gained per GP by a project = invested $ * pointsPerDollar * engineerFactor(rating) * experience(GP n)
+        pointsPerDollar: 0.85,
+        // engineerFactor(rating) = valueScale * rating ^ valueExponent (0 when the position is vacant)
+        valueScale: 1.6e-8,
+        valueExponent: 3.9425185046,
+        // experience(GP n) = 1 + experiencePerGp * (n - 1): more points possible late in the season
+        experiencePerGp: 0.004,
+        statMax: 99               // a team stat never goes above this
+    },
+
     // Car stat bars run from barMin (empty) to barMax (full); the number is always shown.
     carStats: { barMin: 50, barMax: 100 },
 

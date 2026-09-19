@@ -112,7 +112,6 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 .tp-cost { gap: 3px; }
 .tp-eng-num { display: inline-flex; align-items: center; gap: 4px; }
 .tp-section { margin: 28px 0 10px; font-size: 0.95em; letter-spacing: 0.1em; text-transform: uppercase; color: #aaa; }
-.tp-local { max-width: 300px; }
 .tp-section-note { color: #666; font-size: 0.8em; text-transform: none; letter-spacing: 0; margin-left: 8px; }
 .tp-eng-columns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
 @media (max-width: 1000px) { .tp-eng-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -163,6 +162,59 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 
 /* Drivers reuse the engineer columns/cards; this is a not-yet-available value. */
 .tp-eng-ph { color: #555; }
+
+/* ---- Team Management sub-tabs (the header and gauges stay above them) ---- */
+.tp-subtabs { display: flex; gap: 4px; margin: 26px 0 18px; border-bottom: 2px solid #2a2a2a; }
+.tp-subtab {
+    padding: 8px 22px; background: transparent; color: #777; border: 0; border-bottom: 3px solid transparent;
+    margin-bottom: -2px; font-family: inherit; font-size: 0.95em; text-transform: uppercase; letter-spacing: 0.12em; cursor: pointer;
+}
+.tp-subtab:hover { color: #ccc; }
+.tp-subtab.active { color: #fff; border-bottom-color: #e10600; }
+
+.tp-projects-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.tp-proj-hint { color: #777; font-size: 0.85em; }
+.tp-proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; max-width: 1000px; }
+.tp-proj-role { font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.tp-proj-role small { color: #777; letter-spacing: 0; }
+.tp-proj-eng { margin-top: 8px; color: #999; font-size: 0.9em; }
+.tp-proj-eng.vacant { color: #ff9f2e; }
+.tp-proj-results { max-width: 560px; }
+.tp-neg-wrap { align-items: flex-start; flex-wrap: wrap; }
+.tp-seg-group { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+.tp-seg {
+    padding: 6px 10px; background: #1e1e1e; color: #bbb; border: 1px solid #333; border-radius: 4px;
+    font-family: inherit; font-size: 0.85em; cursor: pointer;
+}
+.tp-seg small { color: #777; }
+.tp-seg.active { background: #e10600; border-color: #e10600; color: #fff; }
+.tp-seg.active small { color: #ffd0cc; }
+
+/* ---- Development projects ---- */
+.tp-proj {
+    padding: 8px 10px;
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-left: 4px solid var(--team-color, #666);
+    border-radius: 6px;
+    font-size: 0.85em;
+}
+.tp-proj-top { display: flex; align-items: center; gap: 8px; }
+.tp-proj-gp { font-weight: bold; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-proj-no { color: #777; }
+.tp-proj-meta { display: flex; align-items: center; gap: 12px; margin-top: 6px; color: #aaa; }
+.tp-proj-max { color: #3fcf6e; }
+.tp-proj-select {
+    flex: 1; min-width: 0; padding: 6px 8px; background: #0d0d0d; color: #e8e8e8;
+    border: 1px solid #333; border-radius: 4px; font-family: inherit;
+}
+.tp-result-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #222; }
+.tp-result-role { flex: 1; }
+.tp-result-role small { color: #777; }
+.tp-result-gain { font-weight: bold; min-width: 70px; text-align: right; }
+.tp-result-gain.up { color: #3fcf6e; }
+.tp-result-gain.none { color: #ff5a6e; }
+.tp-result-max { color: #777; font-size: 0.85em; }
 
 /* ---- Hiring dialog ---- */
 .tp-modal-backdrop {
