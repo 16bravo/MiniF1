@@ -151,10 +151,16 @@ function tpRaces() {
 }
 function tpSeasonNumber() { return parseInt(localStorage.getItem('careerSeasonNumber') || '1', 10); }
 function tpGpName(race) { return race.grandPrix || race.circuit || 'GP'; }
+function tpGpLabel(weekendNo) {
+    const w = TPP.weekends(tpRaces()).find(x => x.no === weekendNo);
+    return '#' + weekendNo + ' ' + (w ? tpGpName(w.race) : 'GP');
+}
 function tpGpFlag(race) { return String(race.country || '').toLowerCase().replace(/ /g, '_'); }
 
 // What the development UI needs: the season's dev state, the $ limit (by last season's rank, i.e.
-// the team's position in the grid), the GPs still open as a target, and what can be invested now.
+// the team's position in the grid), the GPs still open as a target (the weekend being opened has
+// already been worked on: a project can only aim at the following ones), and the $ that can go
+// into a new project - the lower of what is left of the season limit and the free $.
 function tpDevContext(slot, teams, team, state) {
     const tp = slot.data.teamPrincipal;
     const season = tpSeasonNumber();
@@ -165,15 +171,26 @@ function tpDevContext(slot, teams, team, state) {
     const rank = teams.findIndex(t => t.teamUid === team.teamUid) + 1;
     const cap = TPP.devCap(rank, teams.length);
     const left = TPP.remainingBudget(dev, cap);
+    const free = TPE.freeFinance(state, team);
     const currentRace = parseInt(localStorage.getItem('championshipCurrentRace') || '0', 10);
     const open = TPP.openWeekend(dev, races, currentRace);
     const targets = TPP.weekends(races).filter(w => w.no >= open);
-    const maxInvest = TPP.maxInvest(left, TPE.freeFinance(state, team));
-    return { dev: dev, races: races, cap: cap, left: left, targets: targets, maxInvest: maxInvest,
-             canStart: targets.length > 0 && maxInvest >= TP_CONFIG.projects.minInvest - 1e-9 };
+    const avail = TPP.available(left, free);
+    const cheapest = TPP.effortOf(1);   // one GP at the lowest effort
+    let blocked = '';
+    if (!targets.length) blocked = 'No GP left this season.';
+    else if (left < cheapest - 1e-9) blocked = 'Season development limit reached.';
+    else if (free < cheapest - 1e-9) blocked = 'Not enough free $: the rest of the finance is committed to contracts.';
+    return { dev: dev, races: races, cap: cap, left: left, free: free, open: open, targets: targets, avail: avail,
+             blocked: blocked, canStart: !blocked };
 }
 
-// A running project: the part it improves, its target GP, what was invested and the engineer at work.
+// The effort level as pips (level 3 of 5: three filled, two empty).
+function tpEffortPips(level) {
+    return TP_CONFIG.projects.effortLevels.map((_, i) => `<i class="tp-pip ${i < level ? 'on' : ''}"></i>`).join('');
+}
+
+// A running project: the part it improves, its target GP, the effort and what it cost, the engineer at work.
 function tpProjectCard(role, ctx, state, team) {
     const p = ctx.dev.projects[role];
     const w = TPP.weekends(ctx.races).find(x => x.no === p.target);
@@ -189,24 +206,42 @@ function tpProjectCard(role, ctx, state, team) {
                 <span class="tp-proj-no">#${p.target}</span>
             </div>
             <div class="tp-proj-meta">
-                ${TeamPrincipal.gaugeIcons(p.invested, '$', 'tp-finance tp-cost', Math.max(TP_CONFIG.engineers.costIcons, Math.ceil(p.invested - 1e-9)))}
-                <span class="tp-proj-max" title="The most this project can add">up to +${(Math.round(p.ceiling * 10) / 10).toFixed(1)}</span>
+                <span class="tp-effort" title="Effort ${p.level} of ${TP_CONFIG.projects.effortLevels.length}">${tpEffortPips(p.level)}</span>
+                ${TeamPrincipal.gaugeIcons(p.cost, '$', 'tp-finance tp-cost', Math.max(TP_CONFIG.engineers.costIcons, Math.ceil(p.cost - 1e-9)))}
+                <span class="tp-proj-max" title="The most this project can add">up to +${TPP.ceilingValue(p.ceiling)}</span>
             </div>
             <div class="tp-proj-eng ${eng ? '' : 'vacant'}">${eng ? tpEscape(eng.name) : 'Vacant position: it will not grow'}</div>
         </div>`;
 }
 
-// The Projects sub-tab: the single "New project" button, the projects running, the last results.
+// The development budget is what is left of the team's finance once its contracts are paid,
+// within the limit the team is allowed to spend on development this season (by last season's rank).
+function tpDevBudgetHtml(ctx) {
+    const n = v => Math.max(1, Math.ceil(v - 1e-9));
+    const r2 = x => Math.round(x * 100) / 100;
+    const row = (label, icons, tip) => `<div class="tp-gauge-row" title="${tpEscape(tip)}"><span class="tp-gauge-label">${label}</span>${icons}</div>`;
+    return `
+        <div class="tp-devbudget">
+            ${row('Allowed', TeamPrincipal.financeIcons(ctx.cap, ctx.dev.spent, n(ctx.cap)),
+                  `Season limit: ${ctx.cap} $ may go into development, ${r2(ctx.dev.spent)} $ already used (orange = used, green = still allowed)`)}
+            ${row('Team budget', TeamPrincipal.gaugeIcons(ctx.free, '$', 'tp-finance', n(ctx.free)),
+                  `Left in the team budget after contracts: ${r2(ctx.free)} $`)}
+            ${row('Available', TeamPrincipal.gaugeIcons(ctx.avail, '$', 'tp-finance', n(ctx.avail)),
+                  `Can be put into a new project now: ${r2(ctx.avail)} $ (the lower of the two)`)}
+        </div>`;
+}
+
+// The Projects sub-tab: the development budget, the single "New project" button, the projects
+// running, the last results.
 function tpProjectsTabHtml(ctx, state, team) {
     const running = TPP.ROLES.filter(r => ctx.dev.projects[r]);
     const free = TPP.ROLES.filter(r => !ctx.dev.projects[r]);
     const canNew = ctx.canStart && free.length > 0;
-    const hint = !free.length ? 'Every position already has a project.'
-        : !ctx.targets.length ? 'No GP left this season.'
-        : !ctx.canStart ? 'No development budget or free $ left.' : '';
+    const hint = !free.length ? 'Every position already has a project.' : ctx.blocked;
     const last = TPP.ROLES.filter(r => ctx.dev.last[r]);
     const gpName = no => { const w = TPP.weekends(ctx.races).find(x => x.no === no); return w ? tpGpName(w.race) : 'GP ' + no; };
     return `
+        ${tpDevBudgetHtml(ctx)}
         <div class="tp-projects-bar">
             <button type="button" class="tp-eng-btn hire" data-action="project-new" ${canNew ? '' : 'disabled'}>New project</button>
             ${hint ? `<span class="tp-proj-hint">${hint}</span>` : ''}
@@ -219,8 +254,8 @@ function tpProjectsTabHtml(ctx, state, team) {
         <div class="tp-proj-results">${last.map(r => {
             const l = ctx.dev.last[r];
             return `<div class="tp-result-row"><span class="tp-result-role">${TP_CONFIG.engineers.roleNames[r]} <small>${r}</small></span>
-                <span class="tp-result-gain ${l.gain > 0 ? 'up' : 'none'}">${l.gain > 0 ? '+' + l.gain.toFixed(1) : 'no gain'}</span>
-                <span class="tp-result-max">${tpEscape(gpName(l.weekendNo))} · up to +${l.ceiling.toFixed(1)}</span></div>`;
+                <span class="tp-result-gain ${l.gain > 0 ? 'up' : 'none'}">${l.gain > 0 ? '+' + Math.round(l.gain) : 'no gain'}</span>
+                <span class="tp-result-max">${tpEscape(gpName(l.weekendNo))} · up to +${Math.round(l.ceiling)}</span></div>`;
         }).join('')}</div>` : ''}`;
 }
 
@@ -310,7 +345,6 @@ function tpRenderTab(host) {
         <div class="tp-top">
         <div class="tp-gauges">
             <div class="tp-gauge-row"><span class="tp-gauge-label">Finance</span>${TeamPrincipal.financeIcons(g.finance, committed)}</div>
-            <div class="tp-gauge-row"><span class="tp-gauge-label">Development</span>${TeamPrincipal.financeIcons(dctx.cap, dctx.dev.spent)}</div>
             <div class="tp-gauge-row"><span class="tp-gauge-label">Confidence</span>${TeamPrincipal.gaugeIcons(g.confidence, '♥', 'tp-confidence')}</div>
             <div class="tp-gauge-row"><span class="tp-gauge-label">Prestige</span>${TeamPrincipal.gaugeIcons(g.prestige, '', 'tp-prestige tp-star')}</div>
             <div class="tp-gauge-row"><span class="tp-gauge-label">Satisfaction</span>${TeamPrincipal.satisfactionBar(tp.satisfaction)}</div>
@@ -406,7 +440,7 @@ function tpHandleAction(e) {
     renderTeamManagement();
 }
 
-// ---- new project dialog: target GP and $ invested ----
+// ---- new project dialog: the part to improve, an effort level and the target GP ----
 
 function tpOpenProject() {
     tpCloseModal();
@@ -421,9 +455,20 @@ function tpOpenProject() {
     const freeRoles = TPP.ROLES.filter(r => !ctx.dev.projects[r]);
     if (!ctx.canStart || !freeRoles.length) return;
 
-    const p = TP_CONFIG.projects;
-    const choice = { role: freeRoles[0], target: ctx.targets[0].no, invest: p.minInvest };
+    const levelCount = TP_CONFIG.projects.effortLevels.length;
+    const firstTarget = ctx.targets[0].no;
+    // Effort x number of GPs = cost; whatever exceeds the season limit or the free $ is refused.
+    const costOf = (level, w) => TPP.projectCost(level, ctx.open, w);
+    const fits = (level, w) => costOf(level, w) <= ctx.avail + 1e-9;
+    const choice = { role: freeRoles[0], level: 1, target: firstTarget };
     const slots = TPE.teamSlots(state, team.teamUid);
+
+    // After a change of effort, a target that no longer fits moves to the farthest GP that still does.
+    function fitTarget() {
+        if (fits(choice.level, choice.target)) return;
+        const within = ctx.targets.filter(w => w.no <= choice.target && fits(choice.level, w.no));
+        choice.target = within.length ? within[within.length - 1].no : firstTarget;
+    }
 
     const modal = document.createElement('div');
     modal.id = 'tp-modal';
@@ -432,10 +477,14 @@ function tpOpenProject() {
 
     function draw() {
         const options = ctx.targets.map(w =>
-            `<option value="${w.no}" ${w.no === choice.target ? 'selected' : ''}>#${w.no} ${tpEscape(tpGpName(w.race))}</option>`).join('');
+            `<option value="${w.no}" ${w.no === choice.target ? 'selected' : ''} ${fits(choice.level, w.no) ? '' : 'disabled'}>#${w.no} ${tpEscape(tpGpName(w.race))}</option>`).join('');
         const roleButtons = freeRoles.map(r =>
             `<button type="button" class="tp-seg ${r === choice.role ? 'active' : ''}" data-proj="role" data-role="${r}">${TP_CONFIG.engineers.roleNames[r]} <small>${r}</small></button>`).join('');
+        const levelButtons = Array.from({ length: levelCount }, (_, i) => i + 1).map(n =>
+            `<button type="button" class="tp-seg tp-seg-level ${n === choice.level ? 'active' : ''}" data-proj="level" data-level="${n}" ${fits(n, firstTarget) ? '' : 'disabled'}>${n}</button>`).join('');
         const engineer = slots[choice.role] ? TPE.get(slots[choice.role].id) : null;
+        const cost = costOf(choice.level, choice.target);
+        const gps = choice.target - ctx.open + 1;
         modal.innerHTML = `
             <div class="tp-modal" role="dialog">
                 <div class="tp-modal-head">
@@ -447,18 +496,21 @@ function tpOpenProject() {
                 </div>
                 <div class="tp-modal-note tp-proj-eng ${engineer ? '' : 'vacant'}" data-testid="engineer">${engineer ? 'Engineer: ' + tpEscape(engineer.name) : 'Vacant position: the project will not grow'}</div>
                 <div class="tp-neg-row">
+                    <span class="tp-neg-label">Effort</span>
+                    <div class="tp-seg-group" data-testid="levels">${levelButtons}</div>
+                </div>
+                <div class="tp-neg-row">
                     <span class="tp-neg-label">Target</span>
                     <select class="tp-proj-select" data-proj="target">${options}</select>
                 </div>
                 <div class="tp-neg-row">
-                    <span class="tp-neg-label">Invest</span>
-                    <button type="button" class="tp-step" data-proj="invest-" ${choice.invest <= p.minInvest + 1e-9 ? 'disabled' : ''}>−</button>
-                    <span class="tp-neg-value tp-neg-coins" data-testid="invest">${TeamPrincipal.gaugeIcons(choice.invest, '$', 'tp-finance tp-cost', Math.max(2, Math.ceil(choice.invest - 1e-9)))}</span>
-                    <button type="button" class="tp-step" data-proj="invest+" ${choice.invest + p.investStep > ctx.maxInvest + 1e-9 ? 'disabled' : ''}>+</button>
+                    <span class="tp-neg-label">Cost</span>
+                    <span class="tp-neg-value tp-neg-coins" data-testid="cost">${TeamPrincipal.gaugeIcons(cost, '$', 'tp-finance tp-cost', Math.max(2, Math.ceil(cost - 1e-9)))}</span>
+                    <span class="tp-neg-unit" data-testid="gps">${gps} GP${gps > 1 ? 's' : ''}</span>
                 </div>
                 <div class="tp-neg-row">
-                    <span class="tp-neg-label">Budget</span>
-                    <span data-testid="budget">${TeamPrincipal.financeIcons(ctx.cap, ctx.dev.spent + choice.invest)}</span>
+                    <span class="tp-neg-label">Allowed</span>
+                    <span data-testid="budget">${TeamPrincipal.financeIcons(ctx.cap, ctx.dev.spent + cost, Math.max(1, Math.ceil(ctx.cap - 1e-9)))}</span>
                 </div>
                 <div class="tp-modal-actions">
                     <button type="button" class="tp-eng-btn" data-proj="cancel">Cancel</button>
@@ -474,14 +526,15 @@ function tpOpenProject() {
         try { t2 = JSON.parse(localStorage.getItem('teams') || '[]'); } catch (err) {}
         const team2 = TeamPrincipal.findTeamByUid(t2, s2.data.teamPrincipal.teamUid);
         const ctx2 = tpDevContext(s2, t2, team2, s2.data.engineerState);
-        if (!ctx2.canStart || ctx2.dev.projects[choice.role] || choice.invest > ctx2.maxInvest + 1e-9 ||
+        const cost = TPP.projectCost(choice.level, ctx2.open, choice.target);
+        if (!ctx2.canStart || ctx2.dev.projects[choice.role] || cost > ctx2.avail + 1e-9 ||
             !ctx2.targets.some(w => w.no === choice.target)) {
             tpCloseModal(); renderTeamManagement(); return;
         }
-        TPP.create(ctx2.dev, choice.role, choice.target, choice.invest);
+        TPP.create(ctx2.dev, choice.role, choice.target, choice.level, ctx2.open);
         TeamPrincipal.writeCurrentSlot(s2);
-        // The $ put into a project are consumed for good.
-        tpSetTeamGauge(team2.teamUid, 'finance', TeamPrincipal.teamGauges(team2).finance - choice.invest);
+        // The whole cost is consumed for good.
+        tpSetTeamGauge(team2.teamUid, 'finance', TeamPrincipal.teamGauges(team2).finance - cost);
         tpCloseModal();
         renderTeamManagement();
     }
@@ -494,8 +547,7 @@ function tpOpenProject() {
         if (act === 'cancel') { tpCloseModal(); return; }
         if (act === 'submit') { submit(); return; }
         if (act === 'role') choice.role = b.dataset.role;
-        if (act === 'invest-') choice.invest = Math.max(p.minInvest, Math.round((choice.invest - p.investStep) * 100) / 100);
-        if (act === 'invest+' && choice.invest + p.investStep <= ctx.maxInvest + 1e-9) choice.invest = Math.round((choice.invest + p.investStep) * 100) / 100;
+        if (act === 'level') { choice.level = parseInt(b.dataset.level, 10); fitTarget(); }
         draw();
     });
     modal.addEventListener('change', ev => {
@@ -561,7 +613,9 @@ function tpShowSeasonRecap() {
     document.body.appendChild(modal);
 }
 
-// ---- before each GP: projects grow, and the ones reaching their target GP are drawn ----
+// ---- as each GP weekend opens: projects grow, and the ones reaching their target GP are drawn ----
+// The research is over before the GP: the results are in the car's stats, and shown, as soon as
+// the weekend page opens (a weekend that has been raced already belongs to the previous GP).
 
 // The stats live in the team editor's row (hidden in this mode) - writing them there keeps them
 // flowing into the grid the simulation reads, without touching the engine.
@@ -574,15 +628,17 @@ function tpApplyTeamStats(uid, outcomes) {
     updateDriverTeamOptions();
 }
 
-// Runs the development of the weekend about to start (once per weekend). Resolves with the
-// finished projects' outcomes (possibly none).
+// Runs the development of the weekend being opened (once per weekend). Resolves with the
+// finished projects' outcomes (possibly none); they also wait in dev.pending until shown.
 function tpDevelopBeforeRace() {
     if (typeof TeamPrincipal === 'undefined' || !TeamPrincipal.isActive()) return Promise.resolve([]);
     return TPE.load().then(() => {
         const slot = TeamPrincipal.readCurrentSlot();
         const tp = slot && slot.data && slot.data.teamPrincipal;
-        const state = slot && slot.data && slot.data.engineerState;
-        if (!tp || !tp.dev || !state) return [];   // nothing was ever started
+        if (!tp) return [];
+        // (No engineer world yet means the tab was never opened: no project can exist, but the
+        // weekend is still counted so a project started now can't target this one.)
+        const state = slot.data.engineerState;
         let teams = [];
         try { teams = JSON.parse(localStorage.getItem('teams') || '[]'); } catch (err) {}
         const team = TeamPrincipal.findTeamByUid(teams, tp.teamUid);
@@ -591,13 +647,41 @@ function tpDevelopBeforeRace() {
         const dev = TPP.ensure(tp, tpSeasonNumber());
         const races = tpRaces();
         const weekendNo = TPP.weekendNoOfRace(races, parseInt(localStorage.getItem('championshipCurrentRace') || '0', 10));
-        const slots = TPE.teamSlots(state, team.teamUid);
+        const slots = state ? TPE.teamSlots(state, team.teamUid) : {};
         const outcomes = TPP.processUpTo(dev, weekendNo,
             role => slots[role] ? TPE.get(slots[role].id).value : 0,
             role => parseFloat(team['team' + role]) || 0);
         TeamPrincipal.writeCurrentSlot(slot);
         if (outcomes.length) tpApplyTeamStats(team.teamUid, outcomes);
         return outcomes;
+    });
+}
+
+// The weekend page opened: run its development, then show what finished. The weekend is processed
+// the first time its page opens - at the sprint when there is one, never between the sprint and the GP.
+function tpRunWeekendDevelopment() {
+    if (typeof TeamPrincipal === 'undefined' || !TeamPrincipal.isActive() ||
+        localStorage.getItem('championshipActive') !== 'true') return Promise.resolve();
+    let results = [];
+    try { results = JSON.parse(localStorage.getItem('championshipResults') || '[]'); } catch (e) {}
+    const idx = parseInt(localStorage.getItem('championshipCurrentRace') || '0', 10);
+    if (Array.isArray(results[idx]) && results[idx].length > 0) return Promise.resolve();
+    return tpDevelopBeforeRace().then(() => tpShowPendingDevelopment());
+}
+
+// Results not shown yet (kept in the save, so a reload before pressing OK doesn't lose them).
+function tpShowPendingDevelopment() {
+    if (document.getElementById('tp-modal')) return;
+    const slot = TeamPrincipal.readCurrentSlot();
+    const dev = slot && slot.data && slot.data.teamPrincipal && slot.data.teamPrincipal.dev;
+    if (!dev || !dev.pending || !dev.pending.length) return;
+    tpShowDevelopmentResults(dev.pending, () => {
+        const s2 = TeamPrincipal.readCurrentSlot();
+        if (s2 && s2.data.teamPrincipal && s2.data.teamPrincipal.dev) {
+            TPP.takePending(s2.data.teamPrincipal.dev);
+            TeamPrincipal.writeCurrentSlot(s2);
+        }
+        if (document.getElementById('tab-team-management') && document.querySelector('.tp-subpanel')) renderTeamManagement();
     });
 }
 
@@ -609,12 +693,13 @@ function tpShowDevelopmentResults(outcomes, done) {
     const rows = outcomes.map(o => `
         <div class="tp-result-row">
             <span class="tp-result-role">${TP_CONFIG.engineers.roleNames[o.role]} <small>${o.role}</small></span>
-            <span class="tp-result-gain ${o.gain > 0 ? 'up' : 'none'}" data-testid="gain-${o.role}">${o.gain > 0 ? '+' + o.gain.toFixed(1) : 'no gain'}</span>
-            <span class="tp-result-max">up to +${o.ceiling.toFixed(1)}</span>
+            <span class="tp-result-gain ${o.gain > 0 ? 'up' : 'none'}" data-testid="gain-${o.role}">${o.gain > 0 ? '+' + Math.round(o.gain) : 'no gain'}</span>
+            <span class="tp-result-max">up to +${Math.round(o.ceiling)}</span>
         </div>`).join('');
     modal.innerHTML = `
         <div class="tp-modal" role="dialog">
             <div class="tp-modal-head"><span class="tp-modal-name">Development results</span></div>
+            <div class="tp-modal-note">${tpEscape(tpGpLabel(outcomes[0].weekendNo))}</div>
             ${rows}
             <div class="tp-modal-actions"><button type="button" class="tp-eng-btn hire" data-proj="continue">Continue</button></div>
         </div>`;

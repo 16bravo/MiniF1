@@ -1210,6 +1210,10 @@ window.onload = async () => {
     await loadTeams();
     await loadDrivers();
 
+    // Team Principal: the development of this GP weekend is done as it opens, so its results are
+    // already in the car's stats (and shown) before anything else is decided.
+    if (typeof tpRunWeekendDevelopment === 'function') tpRunWeekendDevelopment();
+
     // Regenerate weather when mode changes, if a circuit is already selected
     document.getElementById('weatherMode')?.addEventListener('change', () => {
         const circuit = JSON.parse(localStorage.getItem('selectedCircuit'));
@@ -1298,14 +1302,6 @@ document.getElementById('goToNextPage').addEventListener('click', () => {
         }
     };
 
-    // Team Principal: development projects grow / pay off just before each GP weekend,
-    // so their effect is in the stats the race is simulated with.
-    if (isChamp && typeof tpDevelopBeforeRace === 'function' && TeamPrincipal.isActive()) {
-        tpDevelopBeforeRace().then(outcomes => {
-            if (outcomes.length) tpShowDevelopmentResults(outcomes, proceed); else proceed();
-        });
-        return;
-    }
     proceed();
 });
 

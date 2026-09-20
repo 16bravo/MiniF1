@@ -98,8 +98,9 @@ const TeamPrincipal = (function () {
 
     // Finance gauge in three tones per icon: committed (contracts), free, and the
     // rest of the ceiling that this team's finance doesn't reach.
-    function financeIcons(total, committed) {
-        const max = TP_CONFIG.gauges.max;
+    // `count` icons (default: the gauge max).
+    function financeIcons(total, committed, count) {
+        const max = count || TP_CONFIG.gauges.max;
         const clamp01 = x => Math.max(0, Math.min(1, x));
         let html = '<span class="tp-icons tp-finance-tri">';
         for (let i = 0; i < max; i++) {

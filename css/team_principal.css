@@ -190,6 +190,16 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 .tp-seg.active { background: #e10600; border-color: #e10600; color: #fff; }
 .tp-seg.active small { color: #ffd0cc; }
 
+/* Development budget (Projects tab): used of the season limit, left in the team budget, available now. */
+.tp-devbudget { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; padding: 12px 14px; max-width: 520px;
+    background: #141414; border: 1px solid #2a2a2a; border-radius: 8px; }
+/* Effort of a project (pips) and the effort buttons of the New project dialog. */
+.tp-effort { display: inline-flex; align-items: center; gap: 3px; }
+.tp-pip { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #333; }
+.tp-pip.on { background: #ff9f2e; }
+.tp-seg-level { min-width: 34px; text-align: center; }
+.tp-seg:disabled { opacity: 0.3; cursor: not-allowed; }
+
 /* ---- Development projects ---- */
 .tp-proj {
     padding: 8px 10px;

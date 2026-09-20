@@ -50,10 +50,17 @@ const TP_CONFIG = {
         // $ a team may put into development in one season, by its rank last season:
         // `best` for the 1st, `worst` for the last, linear in between, rounded UP to `step`.
         devBudget: { best: 3, worst: 6, step: 0.5 },
-        investStep: 0.5,          // projects are funded in steps of this many $
-        minInvest: 0.5,
-        // Ceiling gained per GP by a project = invested $ * pointsPerDollar * engineerFactor(rating) * experience(GP n)
+        // A project is run at an effort level: the $ spent on it at each GP. Its total cost is
+        // effort * number of GPs (from the next GP up to the target GP included).
+        // Scaled so that the top effort held for a whole 25-GP season costs the largest season limit (6 $).
+        effortLevels: [0.048, 0.096, 0.144, 0.192, 0.24],   // $ per GP, levels 1 to 5
+        // Ceiling gained per GP by a project =
+        //   effort ($ per GP) * pointsPerDollar * engineerFactor(rating) * experience(GP n) * ceilingMultiplier
         pointsPerDollar: 0.85,
+        ceilingMultiplier: 4,     // makes up for the smaller effort scale: same effort, 4 times the ceiling
+        // The gain is drawn (uniformly) between max - guaranteedBelowMax and max, never below 0: a big
+        // investment always pays at least max - 3. Small ceilings (max <= 3) can still draw 0.
+        guaranteedBelowMax: 3,
         // engineerFactor(rating) = valueScale * rating ^ valueExponent (0 when the position is vacant)
         valueScale: 1.6e-8,
         valueExponent: 3.9425185046,
