@@ -95,6 +95,7 @@ const TeamPrincipalSatisfaction = (function () {
             dev.projects = { SPD: null, FS: null, SS: null, FB: null };
             dev.last = {};
             dev.pending = [];
+            dev.carry = {};
         }
     }
 

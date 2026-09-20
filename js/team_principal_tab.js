@@ -199,18 +199,20 @@ function tpProjectCard(role, ctx, state, team) {
     const flag = w ? tpGpFlag(w.race) : '';
     const slot = TPE.teamSlots(state, team.teamUid)[role];
     const eng = slot ? TPE.get(slot.id) : null;
+    const isNext = p.kind === 'next';
     return `
         <div class="tp-proj">
             <div class="tp-proj-role">${TP_CONFIG.engineers.roleNames[role]} <small>${role}</small></div>
             <div class="tp-proj-top">
+                ${isNext ? '<span class="tp-proj-gp">Next season</span><span class="tp-proj-no">until the season ends</span>' : `
                 ${flag ? `<img class="tp-eng-flag" src="img/flags/${flag}.png" alt="${flag}">` : ''}
                 <span class="tp-proj-gp">${tpEscape(w ? tpGpName(w.race) : 'GP ' + p.target)}</span>
-                <span class="tp-proj-no">#${p.target}</span>
+                <span class="tp-proj-no">#${p.target}</span>`}
             </div>
             <div class="tp-proj-meta">
                 <span class="tp-effort" title="Effort ${p.level} of ${TP_CONFIG.projects.effortLevels.length}">${tpEffortPips(p.level)}</span>
                 ${TeamPrincipal.gaugeIcons(p.cost, '$', 'tp-finance tp-cost', Math.max(TP_CONFIG.engineers.costIcons, Math.ceil(p.cost - 1e-9)))}
-                <span class="tp-proj-max" title="The most this project can add">up to +${TPP.ceilingValue(p.ceiling)}</span>
+                ${isNext ? '' : `<span class="tp-proj-max" title="The most this project can add">up to +${TPP.ceilingValue(p.ceiling)}</span>`}
             </div>
             <div class="tp-proj-eng ${eng ? '' : 'vacant'}">${eng ? tpEscape(eng.name) : 'Vacant position: it will not grow'}</div>
         </div>`;
@@ -463,12 +465,15 @@ function tpOpenProject() {
     // Effort x number of GPs = cost; whatever exceeds the season limit or the free $ is refused.
     const costOf = (level, w) => TPP.projectCost(level, ctx.open, w);
     const fits = (level, w) => costOf(level, w) <= ctx.avail + 1e-9;
-    const choice = { role: freeRoles[0], level: 1, target: firstTarget };
+    const lastTarget = ctx.targets[ctx.targets.length - 1].no;
+    const choice = { role: freeRoles[0], level: 1, target: firstTarget, kind: 'improve' };
+    // Development for the next season runs to the end of the season; an improvement has its own target GP.
+    const targetOf = () => choice.kind === 'next' ? lastTarget : choice.target;
     const slots = TPE.teamSlots(state, team.teamUid);
 
     // After a change of effort, a target that no longer fits moves to the farthest GP that still does.
     function fitTarget() {
-        if (fits(choice.level, choice.target)) return;
+        if (choice.kind === 'next' || fits(choice.level, choice.target)) return;
         const within = ctx.targets.filter(w => w.no <= choice.target && fits(choice.level, w.no));
         choice.target = within.length ? within[within.length - 1].no : firstTarget;
     }
@@ -484,27 +489,35 @@ function tpOpenProject() {
         const roleButtons = freeRoles.map(r =>
             `<button type="button" class="tp-seg ${r === choice.role ? 'active' : ''}" data-proj="role" data-role="${r}">${TP_CONFIG.engineers.roleNames[r]} <small>${r}</small></button>`).join('');
         const levelButtons = Array.from({ length: levelCount }, (_, i) => i + 1).map(n =>
-            `<button type="button" class="tp-seg tp-seg-level ${n === choice.level ? 'active' : ''}" data-proj="level" data-level="${n}" ${fits(n, firstTarget) ? '' : 'disabled'}>${n}</button>`).join('');
+            `<button type="button" class="tp-seg tp-seg-level ${n === choice.level ? 'active' : ''}" data-proj="level" data-level="${n}" ${fits(n, choice.kind === 'next' ? lastTarget : firstTarget) ? '' : 'disabled'}>${n}</button>`).join('');
+        const kindButtons = [['improve', 'Improvement'], ['next', 'Next season']].map(([k, label]) =>
+            `<button type="button" class="tp-seg ${k === choice.kind ? 'active' : ''}" data-proj="kind" data-kind="${k}">${label}</button>`).join('');
         const engineer = slots[choice.role] ? TPE.get(slots[choice.role].id) : null;
-        const cost = costOf(choice.level, choice.target);
-        const gps = choice.target - ctx.open + 1;
+        const cost = costOf(choice.level, targetOf());
+        const gps = targetOf() - ctx.open + 1;
+        const isNext = choice.kind === 'next';
         modal.innerHTML = `
             <div class="tp-modal" role="dialog">
                 <div class="tp-modal-head">
                     <span class="tp-modal-name">New project</span>
                 </div>
+                <div class="tp-neg-row">
+                    <span class="tp-neg-label">Type</span>
+                    <div class="tp-seg-group" data-testid="kinds">${kindButtons}</div>
+                </div>
                 <div class="tp-neg-row tp-neg-wrap">
-                    <span class="tp-neg-label">Improve</span>
+                    <span class="tp-neg-label">${isNext ? 'Prepare' : 'Improve'}</span>
                     <div class="tp-seg-group" data-testid="roles">${roleButtons}</div>
                 </div>
-                <div class="tp-modal-note tp-proj-eng ${engineer ? '' : 'vacant'}" data-testid="engineer">${engineer ? 'Engineer: ' + tpEscape(engineer.name) : 'Vacant position: the project will not grow'}</div>
+                <div class="tp-modal-note tp-proj-eng ${engineer ? '' : 'vacant'}" data-testid="engineer">${engineer ? 'Engineer: ' + tpEscape(engineer.name) : (isNext ? 'Vacant position' : 'Vacant position: the project will not grow')}</div>
+                ${isNext ? '<div class="tp-modal-note" data-testid="next-note">Prepares the next season: it does not change the car this year, and ties the engineer up until the season ends.</div>' : ''}
                 <div class="tp-neg-row">
                     <span class="tp-neg-label">Effort</span>
                     <div class="tp-seg-group" data-testid="levels">${levelButtons}</div>
                 </div>
                 <div class="tp-neg-row">
                     <span class="tp-neg-label">Target</span>
-                    <select class="tp-proj-select" data-proj="target">${options}</select>
+                    ${isNext ? '<span class="tp-neg-value">End of the season</span>' : `<select class="tp-proj-select" data-proj="target">${options}</select>`}
                 </div>
                 <div class="tp-neg-row">
                     <span class="tp-neg-label">Cost</span>
@@ -517,7 +530,7 @@ function tpOpenProject() {
                 </div>
                 <div class="tp-modal-actions">
                     <button type="button" class="tp-eng-btn" data-proj="cancel">Cancel</button>
-                    <button type="button" class="tp-eng-btn hire" data-proj="submit">Start project</button>
+                    <button type="button" class="tp-eng-btn hire" data-proj="submit" ${fits(choice.level, targetOf()) ? '' : 'disabled'}>Start project</button>
                 </div>
             </div>`;
     }
@@ -529,12 +542,13 @@ function tpOpenProject() {
         try { t2 = JSON.parse(localStorage.getItem('teams') || '[]'); } catch (err) {}
         const team2 = TeamPrincipal.findTeamByUid(t2, s2.data.teamPrincipal.teamUid);
         const ctx2 = tpDevContext(s2, t2, team2, s2.data.engineerState);
-        const cost = TPP.projectCost(choice.level, ctx2.open, choice.target);
+        const target2 = choice.kind === 'next' ? ctx2.targets[ctx2.targets.length - 1].no : choice.target;
+        const cost = TPP.projectCost(choice.level, ctx2.open, target2);
         if (!ctx2.canStart || ctx2.dev.projects[choice.role] || cost > ctx2.avail + 1e-9 ||
-            !ctx2.targets.some(w => w.no === choice.target)) {
+            !ctx2.targets.some(w => w.no === target2)) {
             tpCloseModal(); renderTeamManagement(); return;
         }
-        TPP.create(ctx2.dev, choice.role, choice.target, choice.level, ctx2.open);
+        TPP.create(ctx2.dev, choice.role, target2, choice.level, ctx2.open, choice.kind);
         TeamPrincipal.writeCurrentSlot(s2);
         // The whole cost is consumed for good.
         tpSetTeamGauge(team2.teamUid, 'finance', TeamPrincipal.teamGauges(team2).finance - cost);
@@ -550,6 +564,7 @@ function tpOpenProject() {
         if (act === 'cancel') { tpCloseModal(); return; }
         if (act === 'submit') { submit(); return; }
         if (act === 'role') choice.role = b.dataset.role;
+        if (act === 'kind') { choice.kind = b.dataset.kind; if (choice.kind === 'next') { while (choice.level > 1 && !fits(choice.level, lastTarget)) choice.level--; } }
         if (act === 'level') { choice.level = parseInt(b.dataset.level, 10); fitTarget(); }
         draw();
     });
@@ -642,7 +657,49 @@ function tpRunSeasonStart() {
     return TPE.load().catch(() => {})
         .then(() => tpShowDismissal())
         .then(() => tpShowSeasonRecap())
+        .then(() => tpShowPreseason())
         .then(() => tpShowLocalOffer());
+}
+
+// What the season opening did to the stats: the new regulation's starting values, or the automatic
+// pre-season development. Shown once, for the player's team.
+function tpShowPreseason() {
+    return new Promise(resolve => {
+        if (document.getElementById('tp-modal')) return resolve();
+        const slot = TeamPrincipal.readCurrentSlot();
+        const tp = slot && slot.data && slot.data.teamPrincipal;
+        const pre = tp && tp.pre;
+        if (!pre || pre.seen || !pre.rows || !pre.rows.length) return resolve();
+        const names = TP_CONFIG.engineers.roleNames;
+        const rows = pre.rows.map(r => pre.regulation
+            ? `<div class="tp-result-row"><span class="tp-result-role">${names[r.role]} <small>${r.role}</small></span>
+                   <span class="tp-result-gain none" data-testid="stat-${r.role}">${r.before} → ${Math.round(r.after)}</span></div>`
+            : `<div class="tp-result-row"><span class="tp-result-role">${names[r.role]} <small>${r.role}</small></span>
+                   <span class="tp-result-gain ${r.gain > 0 ? 'up' : 'none'}" data-testid="gain-${r.role}">${r.gain > 0 ? '+' + Math.round(r.gain) : 'no gain'}</span>
+                   <span class="tp-result-max">up to +${Math.round(r.ceiling)}</span></div>`).join('');
+        const modal = document.createElement('div');
+        modal.id = 'tp-modal';
+        modal.className = 'tp-modal-backdrop';
+        modal.innerHTML = `
+            <div class="tp-modal" role="dialog">
+                <div class="tp-modal-head"><span class="tp-modal-name">${pre.regulation ? 'New regulation' : 'Pre-season development'}</span></div>
+                <div class="tp-modal-note">${pre.regulation ? 'The car stats start over for every team.' : 'Your engineers worked on the car over the winter.'}</div>
+                ${rows}
+                <div class="tp-modal-actions"><button type="button" class="tp-eng-btn hire" data-pre="ok">Continue</button></div>
+            </div>`;
+        modal.addEventListener('click', ev => {
+            if (!ev.target.closest('[data-pre="ok"]')) return;
+            const s2 = TeamPrincipal.readCurrentSlot();
+            if (s2 && s2.data.teamPrincipal && s2.data.teamPrincipal.pre) {
+                s2.data.teamPrincipal.pre.seen = true;
+                TeamPrincipal.writeCurrentSlot(s2);
+            }
+            tpCloseModal();
+            if (document.getElementById('tab-team-management') && document.querySelector('.tp-subpanel')) renderTeamManagement();
+            resolve();
+        });
+        document.body.appendChild(modal);
+    });
 }
 
 // The local offer of the season, to take or to leave, next to the engineer currently in that position.
@@ -1043,4 +1100,68 @@ function renderSeasonInfo() {
         '<li>Fastest lap: ' + (flPoint ? '1 point' + (flTop > 0 ? ' if classified in the top ' + flTop : '') : 'no point') + '</li>' +
         '<li>Pole position: ' + (polePts > 0 ? polePts + ' point' + (polePts > 1 ? 's' : '') : 'no point') + '</li>' +
         '</ul>';
+}
+
+// ---- My Career tab: the manager's record over all the seasons (from TeamPrincipalCareer) ----
+
+function renderTeamPrincipalCareer() {
+    const host = document.getElementById('tab-tp-career');
+    if (!host) return;
+    const slot = TeamPrincipal.readCurrentSlot();
+    const tp = slot && slot.data && slot.data.teamPrincipal;
+    if (!tp) { host.innerHTML = ''; return; }
+    const t = TeamPrincipalCareer.totals(tp.career);
+    const esc = tpEscape;
+    const stat = (label, value) => `<div class="tp-career-stat"><div class="tp-career-value">${value}</div><div class="tp-career-label">${label}</div></div>`;
+
+    let teams = [];
+    try { teams = JSON.parse(localStorage.getItem('teams') || '[]'); } catch (e) {}
+    const team = TeamPrincipal.findTeamByUid(teams, tp.teamUid);
+    const now = team ? TeamPrincipalSatisfaction.standing(tp, teams, team) : null;
+    const year = TeamPrincipal.currentYear();
+
+    if (!t.seasons) {
+        host.innerHTML = `<div class="tp-section">Career</div>
+            <div class="tp-empty">No season completed yet. Your record starts at the end of ${year}.</div>` + tpCareerCurrentHtml(team, now, year);
+        return;
+    }
+
+    const seasonRows = tp.career.seasons.slice().reverse().map(s => {
+        const best = s.drivers && s.drivers[0];
+        return `<tr>
+            <td class="tp-cal-no">${s.year}</td>
+            <td class="tp-cal-name">${esc(s.team)}${s.dismissedFrom ? ` <span class="tp-cal-none">(after ${esc(s.dismissedFrom)})</span>` : ''}</td>
+            <td class="tp-rank ${s.rank === 1 ? 'up' : ''}">${tpOrdinal(s.rank)}<span class="tp-cal-none"> / ${s.teams}</span></td>
+            <td>${s.expected ? tpOrdinal(s.expected) : '-'}</td>
+            <td>${s.points}</td><td>${s.wins}</td><td>${s.poles}</td>
+            <td>${best ? esc(best.name) + ' <span class="tp-cal-none">(' + best.points + ')</span>' : '-'}</td></tr>`;
+    }).join('');
+
+    host.innerHTML = `
+        <div class="tp-section">Career<span class="tp-section-note">${t.seasons} season${t.seasons > 1 ? 's' : ''} completed</span></div>
+        <div class="tp-career-stats">
+            ${stat('Titles', t.titles)}${stat('Top 3 finishes', t.top3)}${stat('Wins', t.wins)}${stat('Poles', t.poles)}
+            ${stat('Fastest laps', t.fastestLaps)}${stat('Points', t.points)}
+            ${stat('Best finish', t.best ? tpOrdinal(t.best.rank) : '-')}${stat('Objectives met', t.objectivesMet + ' / ' + t.seasons)}
+            ${stat('Dismissals', t.dismissals)}
+        </div>
+        <div class="tp-section">Teams managed</div>
+        <div class="tp-cal-scroll"><table class="tp-cal"><thead><tr><th>Team</th><th>Years</th><th>Seasons</th><th>Titles</th><th>Wins</th><th>Points</th></tr></thead><tbody>
+            ${t.teams.map(x => `<tr><td class="tp-cal-name">${esc(x.team)}</td><td>${x.from}${x.to !== x.from ? ' - ' + x.to : ''}</td><td>${x.seasons}</td><td>${x.titles}</td><td>${x.wins}</td><td>${x.points}</td></tr>`).join('')}
+        </tbody></table></div>
+        <div class="tp-section">Best drivers<span class="tp-section-note">points scored for your teams</span></div>
+        <div class="tp-cal-scroll"><table class="tp-cal"><thead><tr><th>Driver</th><th>Points</th><th>Wins</th><th>Seasons</th></tr></thead><tbody>
+            ${t.drivers.slice(0, 5).map(d => `<tr><td class="tp-cal-name">${esc(d.name)}</td><td>${d.points}</td><td>${d.wins}</td><td>${d.seasons}</td></tr>`).join('')}
+        </tbody></table></div>
+        <div class="tp-section">Season by season</div>
+        <div class="tp-cal-scroll"><table class="tp-cal"><thead><tr><th>Year</th><th>Team</th><th>Position</th><th>Objective</th><th>Points</th><th>Wins</th><th>Poles</th><th>Best driver</th></tr></thead><tbody>
+            ${seasonRows}
+        </tbody></table></div>` + tpCareerCurrentHtml(team, now, year);
+}
+
+// The season in progress: only where the team stands, its record is written when it ends.
+function tpCareerCurrentHtml(team, now, year) {
+    if (!team || !now) return '';
+    return `<div class="tp-section">${year}<span class="tp-section-note">in progress</span></div>
+        <div class="tp-career-now">${tpEscape(TeamPrincipal.teamName(team))} · objective ${tpOrdinal(now.objective)} · position ${now.position === null ? '-' : tpOrdinal(now.position)}</div>`;
 }

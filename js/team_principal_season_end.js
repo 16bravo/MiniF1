@@ -99,7 +99,7 @@ const TeamPrincipalSeasonEnd = (function () {
             expected: expected[o.t.teamUid] || o.prev,
             dismissed: !!(dismissed[o.t.teamUid] && dismissed[o.t.teamUid].length)
         }));
-        return { season: season, teamCount: teams.length, rows: rows,
+        return { season: season, teamCount: teams.length, rows: rows, summary: summary,
                  game: gameTotals((slot.data.seasonHistory || []).concat([summary])) };
     }
 
@@ -136,6 +136,18 @@ const TeamPrincipalSeasonEnd = (function () {
         const TPE = TeamPrincipalEngineers;
         const st = slot.data.engineerState;
         let events = { retired: [], released: [] };
+        // The engineers of the season that just ended, before contracts end and engineers retire: the ones
+        // who worked on the car, whose value counts for the next season's opening (regulation or not).
+        const previous = {};
+        if (st && TPE.isLoaded()) {
+            Object.keys(st.teams).forEach(uid => {
+                previous[uid] = {};
+                TPE.ROLES.forEach(role => {
+                    const s = st.teams[uid][role];
+                    previous[uid][role] = s ? TPE.get(s.id).value : null;
+                });
+            });
+        }
         if (st && TPE.isLoaded()) {
             const teams = slot.data.teams || [];
             const player = teams.find(t => t.teamUid === tp.teamUid);
@@ -145,8 +157,25 @@ const TeamPrincipalSeasonEnd = (function () {
         }
         // The season's satisfaction becomes the one carried to the next season.
         TeamPrincipalSatisfaction.closeSeason(tp);
+        // The next season opens: a new regulation, or the automatic pre-season development, for every team.
+        if (st && TPE.isLoaded() && typeof TeamPrincipalRegulation !== 'undefined') {
+            const grid = slot.data.teams || [];
+            const rankOf = {};
+            ctx.rows.forEach(r => { rankOf[r.uid] = r.rank; });
+            const carry = tp.dev && tp.dev.season === ctx.season ? tp.dev.carry : null;
+            const opening = TeamPrincipalRegulation.applySeasonStart(grid, nextYear, st, uid => rankOf[uid] || grid.length,
+                id => TPE.get(id).value, carry, tp.teamUid, null, previous);
+            localStorage.setItem('teams', JSON.stringify(grid));
+            tp.pre = { season: ctx.season + 1, year: nextYear, regulation: opening.regulation, rows: opening.rows, seen: false };
+            if (tp.dev) tp.dev.carry = {};
+        }
         const row = ctx.rows.find(r => r.uid === tp.teamUid);
         if (!row || !row.after) return;
+        // The manager's career record: the season just finished, for the team managed at its end.
+        if (typeof TeamPrincipalCareer !== 'undefined') {
+            TeamPrincipalCareer.add(tp, TeamPrincipalCareer.buildRecord(
+                ctx.season, TeamPrincipal.currentYear(), row, ctx.teamCount, ctx.summary, tp.dismissal));
+        }
         const nameOf = id => (TPE.get(id) || {}).name || '';
         tp.recap = {
             season: ctx.season, rank: row.rank, prevRank: row.prevRank, expected: row.expected, teamCount: ctx.teamCount,

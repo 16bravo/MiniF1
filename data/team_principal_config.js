@@ -83,6 +83,24 @@ const TP_CONFIG = {
         statMax: 99               // a team stat never goes above this
     },
 
+    // Season opening (spec section 9), for every team of the grid.
+    regulation: {
+        firstYear: 2026,      // a new regulation every `cycle` years after it (2030, 2034...); 2026 keeps the game's stats
+        cycle: 4,
+        // New regulation: stat = a random number between base - spread and base, with
+        // base = engineer's value + last season's rank / rankDivisor + offset (+ bonusPerRace per race of
+        // "next season" development at the reference effort). Without an engineer: noEngineer.
+        rankDivisor: 2,
+        offset: -5,
+        spread: 15,
+        noEngineer: 50,
+        bonusPerRace: 0.4,
+        // Any other year: a free project per stat before the first race = a project at effort `level` over `races`
+        // races, times `multiplier` + `bonusPerRace` per race of "next season" development (at effort `level`;
+        // a lower effort counts for a proportional share).
+        preseason: { level: 5, races: 5, multiplier: 2, bonusPerRace: 0.08 }
+    },
+
     // End of season (spec sections 10, 11, 5.3): applied to every team of the grid.
     seasonEnd: {
         // $ earned by rank in the final constructors' standings: `best` for the 1st, `worst` for the

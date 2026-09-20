@@ -85,10 +85,13 @@ const TeamPrincipalProjects = (function () {
     }
 
     // A project running at `level` until `targetWeekend`, from the first open GP; it costs `cost`.
-    function create(dev, role, targetWeekend, level, openWeekend) {
+    // kind 'next' = development for the next season: it doesn't improve the car, it ties the engineer up
+    // until the end of the season and feeds the bonuses of the next season's opening (dev.carry).
+    function create(dev, role, targetWeekend, level, openWeekend, kind) {
         if (dev.projects[role]) return null;
         const cost = projectCost(level, openWeekend, targetWeekend);
-        const project = { role: role, target: targetWeekend, level: level, effort: effortOf(level), cost: cost, from: openWeekend, ceiling: 0 };
+        const project = { role: role, target: targetWeekend, level: level, effort: effortOf(level), cost: cost, from: openWeekend, ceiling: 0,
+                          kind: kind === 'next' ? 'next' : 'improve' };
         dev.projects[role] = project;
         dev.spent = round2(dev.spent + cost);
         return project;
@@ -101,6 +104,15 @@ const TeamPrincipalProjects = (function () {
         return out;
     }
 
+    // The gain drawn for a ceiling: whole points, the ceiling rounded UP to an integer, the draw (between
+    // max - guaranteedBelowMax and max, at least 0) rounded to the NEAREST integer, never above the stat cap.
+    function drawGain(ceiling, stat, roll) {
+        const maxValue = ceilingValue(ceiling);
+        const minValue = Math.max(0, maxValue - cfg().guaranteedBelowMax);
+        const drawn = Math.round(minValue + (roll ? roll() : Math.random()) * (maxValue - minValue));
+        return { ceiling: maxValue, gain: Math.max(0, Math.min(drawn, Math.floor(cfg().statMax - stat))) };
+    }
+
     // Runs the weekends up to `weekendNo` that haven't been processed yet: every project grows
     // its ceiling, and the ones reaching their target draw their gain.
     //   ratingOf(role) -> rating of the engineer in place (0 if vacant); statOf(role) -> current stat.
@@ -111,16 +123,19 @@ const TeamPrincipalProjects = (function () {
             ROLES.forEach(role => {
                 const p = dev.projects[role];
                 if (!p || w > p.target) return;
+                if (p.kind === 'next') {
+                    // Nothing for this year's car: every race adds to what the next season opening gets.
+                    dev.carry = dev.carry || {};
+                    dev.carry[role] = (dev.carry[role] || 0) + p.level / TP_CONFIG.regulation.preseason.level;
+                    if (w === p.target) dev.projects[role] = null;
+                    return;
+                }
                 p.ceiling += increment(p.effort !== undefined ? p.effort : p.invested, ratingOf(role), w);
                 if (w !== p.target) return;
                 const stat = statOf(role);
-                // Whole points only: the ceiling is rounded UP to an integer, the draw (between
-                // max - guaranteedBelowMax and max, at least 0) is rounded to the NEAREST integer.
-                const maxValue = ceilingValue(p.ceiling);
-                const minValue = Math.max(0, maxValue - cfg().guaranteedBelowMax);
-                const drawn = Math.round(minValue + (roll ? roll() : Math.random()) * (maxValue - minValue));
-                const gain = Math.max(0, Math.min(drawn, Math.floor(cfg().statMax - stat)));
-                const outcome = { role: role, weekendNo: w, cost: p.cost !== undefined ? p.cost : p.invested, ceiling: maxValue,
+                const drawn = drawGain(p.ceiling, stat, roll);
+                const gain = drawn.gain;
+                const outcome = { role: role, weekendNo: w, cost: p.cost !== undefined ? p.cost : p.invested, ceiling: drawn.ceiling,
                                   gain: gain, newStat: round2(stat + gain) };
                 dev.last[role] = { weekendNo: w, gain: outcome.gain, ceiling: outcome.ceiling };
                 dev.projects[role] = null;
@@ -134,5 +149,5 @@ const TeamPrincipalProjects = (function () {
     }
 
     return { ROLES, weekends, weekendNoOfRace, engineerFactor, experience, increment, devCap, ensure,
-             openWeekend, remainingBudget, available, effortOf, projectCost, create, takePending, processUpTo, ceilingValue };
+             openWeekend, remainingBudget, available, effortOf, projectCost, create, takePending, processUpTo, ceilingValue, drawGain };
 })();

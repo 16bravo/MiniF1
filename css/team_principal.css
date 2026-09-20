@@ -372,3 +372,9 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 .tp-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 8px 0 12px; }
 .tp-compare-title { font-size: 0.75em; color: #777; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
 @media (max-width: 560px) { .tp-compare { grid-template-columns: 1fr; } }
+/* My Career tab */
+.tp-career-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.tp-career-stat { background: #161616; border: 1px solid #2a2a2a; padding: 10px 12px; }
+.tp-career-value { font-size: 1.5em; font-weight: bold; }
+.tp-career-label { color: #777; font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+.tp-career-now { color: #ccc; }

@@ -794,6 +794,7 @@ function activateTab(stepId) {
     if (stepId === 'step-career-stats') renderCareerStats();
     if (stepId === 'step-team-management') renderTeamManagement();
     if (stepId === 'step-season') renderSeasonInfo();
+    if (stepId === 'step-tp-career') renderTeamPrincipalCareer();
 }
 
 // ---- Championship stats + points progression (shared helpers: championship_common.js) ----
