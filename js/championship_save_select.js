@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const titleEl = document.getElementById('save-title-text');
     if (titleEl) titleEl.textContent = urlIsTeamPrincipal ? 'Team Principal Saves'
-        : (urlMode === 'career' ? 'Career Saves' : 'Championship Saves');
+        : (urlMode === 'career' ? 'God Mode Saves' : 'Championship Saves');
 
     document.getElementById('back-btn').addEventListener('click', () => {
         window.location.href = urlMode === 'career' ? 'career_select.html' : 'index.html';
@@ -164,9 +164,17 @@ function renderSlots() {
 
     for (let i = 1; i <= SLOTS_COUNT; i++) {
         const slotData = getSaveSlot(i);
-        const slotEl = createSlotElement(i, slotData);
-        container.appendChild(slotEl);
+        if (!slotBelongsToThisPage(slotData)) continue;
+        container.appendChild(createSlotElement(i, slotData));
     }
+}
+
+// God Mode and Team Principal careers share careerSlot1-3, but each mode's screen only lists
+// its own saves (and the empty slots): a save of the other mode is hidden here.
+function slotBelongsToThisPage(slotData) {
+    if (!slotData || urlMode !== 'career') return true;
+    const isTeamPrincipalSave = !!slotData.data && slotData.data.mode === TEAM_PRINCIPAL_MODE;
+    return isTeamPrincipalSave === urlIsTeamPrincipal;
 }
 
 // Create a single slot element
@@ -177,11 +185,11 @@ function createSlotElement(slotNumber, slotData) {
         <div class="slot-info">
             <div class="slot-name">${slotData ? slotData.name : `Slot ${slotNumber}`}</div>
             ${slotData ? `
-                <div class="slot-progress">${slotData.progress}${slotData.data && slotData.data.mode === TEAM_PRINCIPAL_MODE ? ' · Team Principal' : ''}</div>
+                <div class="slot-progress">${slotData.progress}</div>
                 <div class="slot-date">${slotData.lastSaved}</div>
             ` : `
                 <div class="slot-progress">Empty save slot</div>
-                <div class="slot-date">Click to create new championship</div>
+                <div class="slot-date">Click to create a new ${urlMode === 'career' ? 'career' : 'championship'}</div>
             `}
         </div>
         <div class="slot-actions">
@@ -400,23 +408,15 @@ function showRenameModal(slotNumber, currentName, callback) {
     const newInput = modal.querySelector('.modal-input');
     const newConfirmBtn = modal.querySelector('.btn-confirm');
     const newCancelBtn = modal.querySelector('.btn-cancel');
-    const yearRow = modal.querySelector('.modal-year-row');
-    const yearInput = modal.querySelector('.modal-year-input');
 
     newInput.value = currentName;
     newInput.select();
 
-    // Starting season/year - career saves only (a one-shot Championship has no
-    // notion of a real-world calendar year to track).
-    yearRow.hidden = urlMode !== 'career';
-    if (urlMode === 'career') yearInput.value = DEFAULT_CAREER_START_YEAR;
-
     const handleConfirm = () => {
         const newName = newInput.value.trim();
         if (!newName) return;
-        const startYear = urlMode === 'career'
-            ? (parseInt(yearInput.value, 10) || DEFAULT_CAREER_START_YEAR)
-            : undefined;
+        // Career saves always start in DEFAULT_CAREER_START_YEAR (a one-shot Championship has no calendar year).
+        const startYear = urlMode === 'career' ? DEFAULT_CAREER_START_YEAR : undefined;
         callback(newName, startYear);
         modal.classList.remove('active');
     };
@@ -431,7 +431,6 @@ function showRenameModal(slotNumber, currentName, callback) {
         if (e.key === 'Enter') handleConfirm();
         if (e.key === 'Escape') handleCancel();
     };
-    yearInput.onkeydown = newInput.onkeydown;
 
     modal.classList.add('active');
 }
@@ -445,10 +444,6 @@ function createRenameModal() {
         <div class="modal-content">
             <div class="modal-title">Championship Name</div>
             <input type="text" class="modal-input" placeholder="Enter championship name" maxlength="50">
-            <div class="modal-year-row">
-                <label class="modal-label">Starting Season</label>
-                <input type="number" class="modal-input modal-year-input" min="1950" max="2999" step="1">
-            </div>
             <div class="modal-buttons">
                 <button class="modal-btn cancel btn-cancel">Cancel</button>
                 <button class="modal-btn confirm btn-confirm">Confirm</button>

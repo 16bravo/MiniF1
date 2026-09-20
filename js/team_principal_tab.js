@@ -176,7 +176,7 @@ function tpDevContext(slot, teams, team, state) {
     const open = TPP.openWeekend(dev, races, currentRace);
     const targets = TPP.weekends(races).filter(w => w.no >= open);
     const avail = TPP.available(left, free);
-    const cheapest = TPP.effortOf(1);   // one GP at the lowest effort
+    const cheapest = TPP.projectCost(1, open, open);   // one GP at the lowest effort
     let blocked = '';
     if (!targets.length) blocked = 'No GP left this season.';
     else if (left < cheapest - 1e-9) blocked = 'Season development limit reached.';
@@ -390,7 +390,9 @@ function tpHandleAction(e) {
     }
     if (btn.dataset.action === 'toggle-car') {
         e.stopPropagation();
-        btn.parentElement.querySelector('.tp-img-grid').classList.toggle('open');
+        const grid = btn.parentElement.querySelector('.tp-img-grid');
+        grid.classList.toggle('open');
+        if (grid.classList.contains('open')) placePickerGrid(grid);
         return;
     }
     if (btn.dataset.action === 'set-car') {
@@ -857,4 +859,50 @@ function renderTeamManagement() {
         });
     }
     TPE.load().then(() => { tpRenderTab(host); tpShowSeasonRecap(); });
+}
+
+// ---- Season tab: the calendar and the points rules, read-only (a Team Principal doesn't set them) ----
+
+function tpPointsRow(scale) {
+    const scored = scale.map((p, i) => ({ pos: i + 1, p: p })).filter(x => x.p > 0);
+    return '<div class="tp-rules-points">' + scored.map(x =>
+        '<span class="tp-rules-pt"><b>P' + x.pos + '</b> ' + x.p + '</span>').join('') + '</div>';
+}
+
+function renderSeasonInfo() {
+    const host = document.getElementById('tab-season');
+    if (!host) return;
+    const races = tpRaces();
+    const current = parseInt(localStorage.getItem('championshipCurrentRace') || '0', 10);
+    const results = JSON.parse(localStorage.getItem('championshipResults') || '[]');
+    const year = TeamPrincipal.currentYear();
+
+    const rows = [];
+    races.forEach((race, i) => {
+        if (race.isSprintRace) return;
+        const sprint = i > 0 && races[i - 1].isSprintRace && races[i - 1].circuit === race.circuit;
+        const played = Array.isArray(results[i]) && results[i].length > 0;
+        const cls = 'tp-cal-row' + (played ? ' played' : (i === current || (sprint && i - 1 === current) ? ' next' : ''));
+        rows.push('<li class="' + cls + '"><span class="tp-cal-no">' + (rows.length + 1) + '</span>' +
+            '<span class="tp-cal-name">' + tpEscape(tpGpName(race)) + '</span>' +
+            '<span class="tp-cal-country">' + tpEscape(race.country || '') + '</span>' +
+            (sprint ? '<span class="tp-cal-sprint">Sprint</span>' : '') + '</li>');
+    });
+
+    const points = JSON.parse(localStorage.getItem('championshipPoints') || 'null') || [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+    const sprintPoints = JSON.parse(localStorage.getItem('championshipPointsSprint') || 'null') || [8, 7, 6, 5, 4, 3, 2, 1];
+    const flPoint = localStorage.getItem('championshipFastestLapPoint') === 'true';
+    const flTop = parseInt(localStorage.getItem('championshipFastestLapTopN') || '10', 10);
+    const polePts = parseInt(localStorage.getItem('championshipPolePositionPoints') || '0', 10);
+
+    host.innerHTML =
+        '<div class="tp-section">Calendar ' + year + '<span class="tp-section-note">' + rows.length + ' Grand Prix</span></div>' +
+        '<ol class="tp-cal">' + rows.join('') + '</ol>' +
+        '<div class="tp-section">Points<span class="tp-section-note">Grand Prix</span></div>' + tpPointsRow(points) +
+        '<div class="tp-section">Points<span class="tp-section-note">Sprint</span></div>' + tpPointsRow(sprintPoints) +
+        '<div class="tp-section">Bonus</div>' +
+        '<ul class="tp-rules-list">' +
+        '<li>Fastest lap: ' + (flPoint ? '1 point' + (flTop > 0 ? ' if classified in the top ' + flTop : '') : 'no point') + '</li>' +
+        '<li>Pole position: ' + (polePts > 0 ? polePts + ' point' + (polePts > 1 ? 's' : '') : 'no point') + '</li>' +
+        '</ul>';
 }

@@ -350,10 +350,12 @@ function startNextSeason(skipWait) {
     const season = parseInt(localStorage.getItem('careerSeasonNumber') || '1');
     const nextYear = careerYearFor(startYear, season + 1);
 
-    const ok = confirm(
-        `Start the ${nextYear} season?\n\n` +
-        'This season will be archived in the save, and you\'ll go through setup again ' +
-        '(calendar/points) before it begins. Drivers and teams carry over as they are now.'
+    // A Team Principal doesn't go through the setup screen: the next season simply starts.
+    const ok = confirm(TeamPrincipal.isActive()
+        ? `Start the ${nextYear} season?\n\nThis season will be archived in the save. Drivers and teams carry over as they are now.`
+        : `Start the ${nextYear} season?\n\n` +
+          'This season will be archived in the save, and you\'ll go through setup again ' +
+          '(calendar/points) before it begins. Drivers and teams carry over as they are now.'
     );
     if (!ok) return;
 

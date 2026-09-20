@@ -38,7 +38,7 @@ const TP_CONFIG = {
             salaryStep: 0.5,            // the salary is offered in steps of this many $ (shown as half coins)
             salaryMax: 2,               // and never above this many $
             pointsPerSeason: 1,         // points per season of gap to the engineer's target length
-            hesitantOdds: [0.75, 0.5, 0.25], // chance of a deal when the score falls in [-1,0), [-2,-1), [-3,-2)
+            hesitantOdds: [0.5, 0.5, 0.5],  // chance of a deal when the score falls in [-1,0), [-2,-1), [-3,-2): a coin flip (not shown to the player)
             refusalConfidenceLoss: 0.5, // heart lost when an offer is refused
             defaultBaseSeasons: 4,      // base contract length for cards with no contract_seasons in the database
             maxSeasons: 5               // longest contract that can be offered
@@ -53,7 +53,10 @@ const TP_CONFIG = {
         // A project is run at an effort level: the $ spent on it at each GP. Its total cost is
         // effort * number of GPs (from the next GP up to the target GP included).
         // Scaled so that the top effort held for a whole 25-GP season costs the largest season limit (6 $).
-        effortLevels: [0.048, 0.096, 0.144, 0.192, 0.24],   // $ per GP, levels 1 to 5
+        effortLevels: [0.048, 0.096, 0.144, 0.192, 0.24],   // $ per GP, levels 1 to 5 (drives the ceiling growth)
+        // What a project really costs is its effort * GPs times this factor; the ceiling still grows
+        // from the full effort, so lowering the factor makes development cheaper without weakening it.
+        costFactor: 0.5,
         // Ceiling gained per GP by a project =
         //   effort ($ per GP) * pointsPerDollar * engineerFactor(rating) * experience(GP n) * ceilingMultiplier
         pointsPerDollar: 0.85,

@@ -294,6 +294,46 @@ function buildCareerTable(rows, columns, sort) {
         </div>`;
 }
 
+// Honours by season: for every year, the top 3 drivers and constructors of the final classification,
+// the champion (1st column) followed by the number of titles he had won by that season included
+// (from the same rows as the leaderboards, so real history and this career's own seasons are merged).
+// Latest season first.
+function buildPalmares(driverRows, teamRows) {
+    const byYear = {};
+    const collect = (rows, kind) => rows.forEach(r => {
+        Object.keys(r.history || {}).forEach(year => {
+            const pos = r.history[year];
+            if (pos === 1 || pos === 2 || pos === 3) {
+                const y = byYear[year] || (byYear[year] = { drivers: [], teams: [] });
+                y[kind][pos - 1] = r;
+            }
+        });
+    });
+    collect(driverRows, 'drivers');
+    collect(teamRows, 'teams');
+
+    const titlesUpTo = (r, year) => Object.keys(r.history || {}).filter(y => +y <= +year && r.history[y] === 1).length;
+    const cell = (r, year, champion) => r
+        ? nameWithFlag(r.flag, r.name, r.active) + (champion ? ` <span class="palmares-titles">(${titlesUpTo(r, year)})</span>` : '')
+        : '<span class="palmares-none">-</span>';
+    const group = (list, year) => [0, 1, 2].map(i => `<td>${cell(list[i], year, i === 0)}</td>`).join('');
+
+    const years = Object.keys(byYear).sort((a, b) => b - a);
+    const body = years.map(y => `
+        <tr><td class="palmares-year">${y}</td>${group(byYear[y].drivers, y)}${group(byYear[y].teams, y)}</tr>`).join('');
+
+    return `
+        <div class="champ-stats-scroll">
+            <table class="career-palmares-table">
+                <thead>
+                    <tr><th rowspan="2">Season</th><th colspan="3">Drivers</th><th colspan="3">Constructors</th></tr>
+                    <tr><th>1st</th><th>2nd</th><th>3rd</th><th>1st</th><th>2nd</th><th>3rd</th></tr>
+                </thead>
+                <tbody>${body}</tbody>
+            </table>
+        </div>`;
+}
+
 let __careerStatsView = 'drivers'; // remembered across tab re-activations
 let __careerActiveOnly = false;
 const __careerSort = {
@@ -327,25 +367,29 @@ function renderCareerStats() {
         const teamRows = buildLeaderboard(historical.teams || {}, teamTotals, teamTitles, liveTeamFlags, false, teamHistories);
 
         const renderView = () => {
+            const isSeasonView = __careerStatsView === 'seasons';
             const isDriverView = __careerStatsView !== 'constructors';
             const columns = isDriverView ? DRIVER_COLUMNS : TEAM_COLUMNS;
-            const sort = __careerSort[__careerStatsView];
+            const sort = __careerSort[isSeasonView ? 'drivers' : __careerStatsView];
             let sortedRows = sortRows(isDriverView ? driverRows : teamRows, sort.key, sort.dir);
             if (__careerActiveOnly) sortedRows = sortedRows.filter(r => r.active);
 
             container.innerHTML = `
                 <div class="champ-chart-controls">
                     <label><input type="radio" name="careerStatsView" value="drivers" ${isDriverView ? 'checked' : ''}> Drivers</label>
-                    <label><input type="radio" name="careerStatsView" value="constructors" ${!isDriverView ? 'checked' : ''}> Constructors</label>
-                    <label><input type="checkbox" id="careerActiveOnly" ${__careerActiveOnly ? 'checked' : ''}> Active only</label>
+                    <label><input type="radio" name="careerStatsView" value="constructors" ${__careerStatsView === 'constructors' ? 'checked' : ''}> Constructors</label>
+                    <label><input type="radio" name="careerStatsView" value="seasons" ${isSeasonView ? 'checked' : ''}> Seasons</label>
+                    ${isSeasonView ? '' : `<label><input type="checkbox" id="careerActiveOnly" ${__careerActiveOnly ? 'checked' : ''}> Active only</label>`}
                 </div>
-                <h3 class="champ-sub">${isDriverView ? 'Drivers' : 'Constructors'}</h3>
-                ${sortedRows.length ? buildCareerTable(sortedRows, columns, sort) : '<div class="champ-sub">No active drivers/teams with recorded stats yet.</div>'}`;
+                <h3 class="champ-sub">${isSeasonView ? 'Honours by season' : (isDriverView ? 'Drivers' : 'Constructors')}</h3>
+                ${isSeasonView ? buildPalmares(driverRows, teamRows)
+                    : sortedRows.length ? buildCareerTable(sortedRows, columns, sort) : '<div class="champ-sub">No active drivers/teams with recorded stats yet.</div>'}`;
 
             container.querySelectorAll('input[name="careerStatsView"]').forEach(el => {
                 el.addEventListener('change', () => { __careerStatsView = el.value; renderView(); });
             });
-            container.querySelector('#careerActiveOnly').addEventListener('change', e => {
+            const activeOnly = container.querySelector('#careerActiveOnly');
+            if (activeOnly) activeOnly.addEventListener('change', e => {
                 __careerActiveOnly = e.target.checked;
                 renderView();
             });

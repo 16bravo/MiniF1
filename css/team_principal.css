@@ -326,6 +326,7 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 }
 .tp-car-picker .tp-img-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); width: min(420px, 90vw); }
 .tp-img-grid.open { display: grid; }
+.tp-img-grid.up { top: auto; bottom: 100%; margin-top: 0; margin-bottom: 6px; }
 .tp-img-grid img { width: 100%; cursor: pointer; border-radius: 3px; padding: 2px; box-sizing: border-box; }
 .tp-img-grid img:hover { background: #2a2a2a; }
 .tp-count-note { padding: 0 40px; color: #888; font-size: 0.85em; }
@@ -343,3 +344,17 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 }
 .tp-btn.secondary { background: #2a2a2a; }
 .tp-pick-actions { padding: 0 40px 10px; display: flex; gap: 10px; }
+
+/* Season tab (read-only calendar and rules) */
+.tp-cal { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-width: 560px; }
+.tp-cal-row { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: #161616; border: 1px solid #2a2a2a; }
+.tp-cal-row.played { opacity: 0.5; }
+.tp-cal-row.next { border-color: #e10600; }
+.tp-cal-no { width: 24px; color: #777; text-align: right; }
+.tp-cal-name { flex: 1; }
+.tp-cal-country { color: #777; font-size: 0.85em; }
+.tp-cal-sprint { font-size: 0.7em; letter-spacing: 0.1em; text-transform: uppercase; background: #e10600; color: #fff; padding: 1px 6px; }
+.tp-rules-points { display: flex; flex-wrap: wrap; gap: 6px; }
+.tp-rules-pt { background: #161616; border: 1px solid #2a2a2a; padding: 4px 10px; font-size: 0.9em; }
+.tp-rules-pt b { color: #aaa; margin-right: 4px; }
+.tp-rules-list { margin: 0; padding-left: 18px; color: #ccc; line-height: 1.7; }

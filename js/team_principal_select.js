@@ -35,7 +35,7 @@ function tpImagePicker(hostId, key, list, dir) {
         e.stopPropagation();
         const wasOpen = grid.classList.contains('open');
         document.querySelectorAll('.tp-img-grid').forEach(g => g.classList.remove('open'));
-        if (!wasOpen) grid.classList.add('open');
+        if (!wasOpen) { grid.classList.add('open'); placePickerGrid(grid); }
     });
     host.append(current, grid);
 }

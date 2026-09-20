@@ -79,9 +79,9 @@ const TeamPrincipalProjects = (function () {
     // $ per GP of an effort level (1-based).
     function effortOf(level) { return cfg().effortLevels[level - 1]; }
 
-    // Total cost of a project: one effort per GP, from the first open GP up to the target GP included.
+    // Total cost of a project: one effort per GP (times costFactor), from the first open GP up to the target GP included.
     function projectCost(level, openWeekend, targetWeekend) {
-        return round2(effortOf(level) * (targetWeekend - openWeekend + 1));
+        return round2(effortOf(level) * cfg().costFactor * (targetWeekend - openWeekend + 1));
     }
 
     // A project running at `level` until `targetWeekend`, from the first open GP; it costs `cost`.

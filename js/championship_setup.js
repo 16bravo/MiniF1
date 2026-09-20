@@ -599,10 +599,17 @@ function setupTabSwitching() {
     });
 }
 
+// A Team Principal doesn't define the season: the calendar and the points rules are set for them
+// (later by the AI) and only shown, read-only, in the GP screen. The setup page just starts the season.
+const isTeamPrincipalSetup = localStorage.getItem('careerMode') === 'true' &&
+    localStorage.getItem('careerType') === 'teamPrincipal';
+if (isTeamPrincipalSetup) document.documentElement.style.visibility = 'hidden';
+
 document.addEventListener('DOMContentLoaded', () => {
-    loadCircuits();
+    const calendarReady = loadCircuits();
     loadPointsConfiguration();
     setupTabSwitching();
+    if (isTeamPrincipalSetup) calendarReady.then(() => document.getElementById('start-championship-btn').onclick());
 
     const yearBadge = document.getElementById('career-year-badge');
     if (yearBadge && localStorage.getItem('careerMode') === 'true') {

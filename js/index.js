@@ -211,8 +211,8 @@ function makeTeamRow(team, position) {
         imageDropdown.style.display = 'flex';
         let left = rect.left;
         if (left + 340 > window.innerWidth - 8) left = window.innerWidth - 348;
-        imageDropdown.style.top = (rect.bottom + 6) + 'px';
         imageDropdown.style.left = left + 'px';
+        placeDropdownVertically(imageDropdown, imgElement);
     });
 
     // Team-flag dropdown (constructor nationality)
@@ -242,8 +242,8 @@ function makeTeamRow(team, position) {
         teamFlagDropdown.style.display = 'grid';
         let left = rect.left;
         if (left + 260 > window.innerWidth - 8) left = window.innerWidth - 268;
-        teamFlagDropdown.style.top = (rect.bottom + 6) + 'px';
         teamFlagDropdown.style.left = left + 'px';
+        placeDropdownVertically(teamFlagDropdown, teamFlagElement);
     });
 
     row.querySelector('.team-remove').addEventListener('click', () => removeTeamAt(row));
@@ -303,8 +303,8 @@ function makeDriverRow(driver, index, teamName) {
         driverFlagDropdown.style.display = 'grid';
         let left = rect.left;
         if (left + 260 > window.innerWidth - 8) left = window.innerWidth - 268;
-        driverFlagDropdown.style.top = (rect.bottom + 6) + 'px';
         driverFlagDropdown.style.left = left + 'px';
+        placeDropdownVertically(driverFlagDropdown, driverFlagElement);
     });
 
     row.querySelectorAll('.team-data').forEach(inp => inp.addEventListener('input', updateDriverTeamOptions));
@@ -793,6 +793,7 @@ function activateTab(stepId) {
     if (stepId === 'step-progression') renderChampionshipProgression();
     if (stepId === 'step-career-stats') renderCareerStats();
     if (stepId === 'step-team-management') renderTeamManagement();
+    if (stepId === 'step-season') renderSeasonInfo();
 }
 
 // ---- Championship stats + points progression (shared helpers: championship_common.js) ----
