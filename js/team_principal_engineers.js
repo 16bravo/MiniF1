@@ -300,6 +300,28 @@ const TeamPrincipalEngineers = (function () {
         return { ok: true, confidenceLoss: dismissed ? cfg().dismissalConfidenceLoss : 0, seasons: seasons, cost: cost };
     }
 
+    // ---- the local offer: taken or left when the season opens ----
+
+    // Takes the local card at its base terms. Replacing an engineer who still has a contract costs
+    // `localReplaceConfidenceLoss` (not a dismissal: he isn't added to the season's dismissals, so the
+    // "no dismissal" bonus is kept); he goes back to the market.
+    function acceptLocal(state, team) {
+        if (!state.local) return { ok: false, reason: 'unavailable' };
+        const e = get(state.local.id);
+        const uid = team.teamUid;
+        const cost = costFor(state, team, e);
+        if (cost > maxOfferCost(state, team, e) + 1e-9) return { ok: false, reason: 'finance' };
+        const seasons = baseSeasons(e);
+        if (!state.teams[uid]) state.teams[uid] = emptySlots();
+        const replaced = state.teams[uid][e.stat];
+        state.local = null;
+        if (replaced) addToDeck(state, e.stat, replaced.id, true);
+        state.teams[uid][e.stat] = { id: e.engineer_id, contractLeft: seasons, cost: cost };
+        listRemove(state, 'grudges', uid, e.engineer_id);
+        fillDecks(state, state.year);
+        return { ok: true, confidenceLoss: replaced ? cfg().localReplaceConfidenceLoss : 0, seasons: seasons, cost: cost };
+    }
+
     // ---- renewal: offered during the last season of a contract ----
 
     // A contract can be renewed during its last season, unless he retires at the end of it.
@@ -406,7 +428,7 @@ const TeamPrincipalEngineers = (function () {
     }
 
     return { ROLES, load, isLoaded, get, isAlive, lastSeason, regionOf, initState, advanceYear, expireLocal, teamSlots,
-             effectiveCost, costFor, committed, freeFinance, baseSeasons, maxSeasons, maxOfferCost, isClosed,
+             effectiveCost, costFor, committed, freeFinance, baseSeasons, maxSeasons, maxOfferCost, acceptLocal, isClosed,
              isDismissed, hasGrudge, margin, canApproach, assess, hire, fire,
              canRenew, renewMaxSeasons, renew, endOfSeason, aiFillVacancies };
 })();

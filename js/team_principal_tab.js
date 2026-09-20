@@ -21,7 +21,7 @@ const TP_SVG_LIFE = '<svg viewBox="0 0 16 16" width="12" height="12" fill="none"
 const TP_SVG_CONTRACT = '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 1.5h5.5L12.5 4.5v10H4z"/><path d="M6.5 8h4M6.5 11h4"/></svg>';
 
 // kind: 'hired' (in a slot), 'market' (general deck) or 'local' (yearly offer).
-function tpEngineerCard(state, team, e, kind, slot) {
+function tpEngineerCard(state, team, e, kind, slot, readOnly) {
     const flag = e.country.replace(/\.png$/, '');
     const g = TeamPrincipal.teamGauges(team);
     const c = TP_CONFIG.engineers;
@@ -33,7 +33,9 @@ function tpEngineerCard(state, team, e, kind, slot) {
 
     let action = '';
     let reason = '';
-    if (kind === 'hired') {
+    if (readOnly) {
+        // shown for comparison only (season opening pop-up): no button
+    } else if (kind === 'hired') {
         action = `<button type="button" class="tp-eng-btn" data-action="fire" data-role="${e.stat}">Dismiss</button>`;
         // The last season of a contract: it can be renewed (unless he retires or refused already).
         const renewal = TPE.canRenew(state, team, e.stat);
@@ -268,6 +270,17 @@ function tpGetSubTab() {
 }
 function tpSetSubTab(v) { try { localStorage.setItem('tpSubTab', v); } catch (e) {} }
 
+// First visit (or a save older than the current year): build / advance the engineer world.
+function tpEnsureEngineerState(slot, teams, team) {
+    const year = TeamPrincipal.currentYear();
+    let dirty = false;
+    if (!slot.data.engineerState) { slot.data.engineerState = TPE.initState(teams, year, team); dirty = true; }
+    else if (slot.data.engineerState.year < year) { TPE.advanceYear(slot.data.engineerState, year, team); dirty = true; }
+    if (tpExpireLocalIfSeasonStarted(slot.data.engineerState)) dirty = true;
+    if (dirty) TeamPrincipal.writeCurrentSlot(slot);
+    return slot.data.engineerState;
+}
+
 function tpRenderTab(host) {
     const slot = TeamPrincipal.readCurrentSlot();
     let teams = [];
@@ -279,14 +292,7 @@ function tpRenderTab(host) {
         return;
     }
 
-    // First visit (or a save older than the current year): build / advance the engineer world.
-    const year = TeamPrincipal.currentYear();
-    let dirty = false;
-    if (!slot.data.engineerState) { slot.data.engineerState = TPE.initState(teams, year, team); dirty = true; }
-    else if (slot.data.engineerState.year < year) { TPE.advanceYear(slot.data.engineerState, year, team); dirty = true; }
-    if (tpExpireLocalIfSeasonStarted(slot.data.engineerState)) dirty = true;
-    if (dirty) TeamPrincipal.writeCurrentSlot(slot);
-    const state = slot.data.engineerState;
+    const state = tpEnsureEngineerState(slot, teams, team);
     const dctx = tpDevContext(slot, teams, team, state);
 
     const g = TeamPrincipal.teamGauges(team);
@@ -295,12 +301,6 @@ function tpRenderTab(host) {
     const image = String(team.image || '').replace(/^img\/cars\//, '').replace(/\.png$/, '');
     const committed = TPE.committed(state, team.teamUid);
     const slots = TPE.teamSlots(state, team.teamUid);
-
-    // Only shown while the offer is open (start of the season, before the first race).
-    // It sits in the same column grid as the engineers, so its card lines up with theirs.
-    const localHtml = state.local ? `
-        <h3 class="tp-section">Local offer</h3>
-        <div class="tp-eng-columns tp-local"><div class="tp-eng-col">${tpEngineerCard(state, team, TPE.get(state.local.id), 'local')}</div></div>` : '';
 
     const columns = TPE.ROLES.map(role => {
         const cur = slots[role];
@@ -326,7 +326,7 @@ function tpRenderTab(host) {
     const sub = tpGetSubTab();
     const panels = {
         drivers: tpDriversHtml(teams, team),
-        engineers: `${localHtml}<div class="tp-eng-columns">${columns}</div>`,
+        engineers: `<div class="tp-eng-columns">${columns}</div>`,
         projects: tpProjectsTabHtml(dctx, state, team)
     };
 
@@ -575,12 +575,14 @@ function tpRankRowsHtml(tp, teams, team) {
             <div class="tp-gauge-row"><span class="tp-gauge-label">Position</span><span class="tp-rank ${state}" data-testid="position">${s.position === null ? '-' : tpOrdinal(s.position)}</span></div>`;
 }
 
+// Resolves once the player has pressed OK (at once when there is nothing to show).
 function tpShowSeasonRecap() {
-    if (document.getElementById('tp-modal')) return;
+    return new Promise(resolve => {
+    if (document.getElementById('tp-modal')) return resolve();
     const slot = TeamPrincipal.readCurrentSlot();
     const tp = slot && slot.data && slot.data.teamPrincipal;
     const r = tp && tp.recap;
-    if (!r || r.seen) return;
+    if (!r || r.seen) return resolve();
 
     const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(Math.round(n * 100) / 100);
     const cls = n => (n > 0 ? 'up' : n < 0 ? 'down' : '');
@@ -621,24 +623,98 @@ function tpShowSeasonRecap() {
             TeamPrincipal.writeCurrentSlot(s2);
         }
         tpCloseModal();
+        resolve();
     });
     document.body.appendChild(modal);
+    });
 }
 
 // ---- satisfaction: updated when the GP screen opens; a dismissal is announced once ----
 
-function tpRunSatisfactionCheck() {
-    if (typeof TeamPrincipal === 'undefined' || !TeamPrincipal.isActive()) return;
+// Everything the player must see before a GP weekend can start, one pop-up after the other and
+// none of them can be skipped (they come back on reload until dealt with): a dismissal, the review of the
+// season that just ended, the local offer of the new season. Resolves when all are done.
+function tpRunSeasonStart() {
+    if (typeof TeamPrincipal === 'undefined' || !TeamPrincipal.isActive() ||
+        localStorage.getItem('championshipActive') !== 'true') return Promise.resolve();
     TeamPrincipalSatisfaction.check();
-    tpShowDismissal();
+    // TeamPrincipalSatisfaction.report();   // console report of the expected ranks (uncomment to check a save)
+    return TPE.load().catch(() => {})
+        .then(() => tpShowDismissal())
+        .then(() => tpShowSeasonRecap())
+        .then(() => tpShowLocalOffer());
+}
+
+// The local offer of the season, to take or to leave, next to the engineer currently in that position.
+function tpShowLocalOffer() {
+    return new Promise(resolve => {
+        if (document.getElementById('tp-modal') || !TPE.isLoaded()) return resolve();
+        const slot = TeamPrincipal.readCurrentSlot();
+        let teams = [];
+        try { teams = JSON.parse(localStorage.getItem('teams') || '[]'); } catch (e) {}
+        const tp = slot && slot.data && slot.data.teamPrincipal;
+        const team = tp && TeamPrincipal.findTeamByUid(teams, tp.teamUid);
+        if (!team) return resolve();
+        const state = tpEnsureEngineerState(slot, teams, team);
+        if (!state.local) return resolve();
+
+        const c = TP_CONFIG.engineers;
+        const e = TPE.get(state.local.id);
+        const cur = TPE.teamSlots(state, team.teamUid)[e.stat];
+        const curHtml = cur ? tpEngineerCard(state, team, TPE.get(cur.id), 'hired', cur, true)
+                            : '<div class="tp-eng tp-vacant">Vacant position</div>';
+        const affordable = TPE.maxOfferCost(state, team, e) + 1e-9 >= TPE.costFor(state, team, e);
+        const seasons = TPE.baseSeasons(e);
+        const modal = document.createElement('div');
+        modal.id = 'tp-modal';
+        modal.className = 'tp-modal-backdrop';
+        modal.innerHTML = `
+            <div class="tp-modal tp-modal-wide" role="dialog">
+                <div class="tp-modal-head"><span class="tp-modal-name">Local offer</span>
+                    <span class="tp-modal-role">${c.roleNames[e.stat]} <small>${e.stat}</small></span></div>
+                <div class="tp-modal-note">A local engineer offers to join the team. Take it or leave it: the offer is gone once the season opens.</div>
+                <div class="tp-compare">
+                    <div><div class="tp-compare-title">Current</div>${curHtml}</div>
+                    <div><div class="tp-compare-title">Offer</div>${tpEngineerCard(state, team, e, 'local', null, true)}</div>
+                </div>
+                <div class="tp-modal-note">Contract: ${seasons} season${seasons > 1 ? 's' : ''}</div>
+                ${cur ? `<div class="tp-modal-warn" data-testid="replace-warning">Replaces ${tpEscape(TPE.get(cur.id).name)}: - ${c.localReplaceConfidenceLoss} ♥</div>` : ''}
+                ${affordable ? '' : '<div class="tp-modal-warn">Not enough free $ for this offer.</div>'}
+                <div class="tp-modal-actions">
+                    <button type="button" class="tp-eng-btn" data-local="decline">Leave it</button>
+                    <button type="button" class="tp-eng-btn hire" data-local="accept" ${affordable ? '' : 'disabled'}>Take it</button>
+                </div>
+            </div>`;
+        modal.addEventListener('click', ev => {
+            const b = ev.target.closest('[data-local]');
+            if (!b || b.disabled) return;
+            const s2 = TeamPrincipal.readCurrentSlot();
+            const st2 = s2.data.engineerState;
+            if (b.dataset.local === 'accept') {
+                const result = TPE.acceptLocal(st2, team);
+                if (!result.ok) return;
+                if (result.confidenceLoss) {
+                    tpSetTeamGauge(team.teamUid, 'confidence', TeamPrincipal.teamGauges(team).confidence - result.confidenceLoss);
+                }
+            } else {
+                TPE.expireLocal(st2);
+            }
+            TeamPrincipal.writeCurrentSlot(s2);
+            tpCloseModal();
+            if (document.getElementById('tab-team-management') && document.querySelector('.tp-subpanel')) renderTeamManagement();
+            resolve();
+        });
+        document.body.appendChild(modal);
+    });
 }
 
 function tpShowDismissal() {
-    if (document.getElementById('tp-modal')) return;
+    return new Promise(resolve => {
+    if (document.getElementById('tp-modal')) return resolve();
     const slot = TeamPrincipal.readCurrentSlot();
     const tp = slot && slot.data && slot.data.teamPrincipal;
     const d = tp && tp.dismissal;
-    if (!d || d.seen) return;
+    if (!d || d.seen) return resolve();
     const modal = document.createElement('div');
     modal.id = 'tp-modal';
     modal.className = 'tp-modal-backdrop';
@@ -658,8 +734,10 @@ function tpShowDismissal() {
         }
         tpCloseModal();
         if (document.getElementById('tab-team-management') && document.querySelector('.tp-subpanel')) renderTeamManagement();
+        resolve();
     });
     document.body.appendChild(modal);
+    });
 }
 
 // ---- as each GP weekend opens: projects grow, and the ones reaching their target GP are drawn ----

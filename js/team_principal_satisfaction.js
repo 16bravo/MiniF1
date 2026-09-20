@@ -170,12 +170,51 @@ const TeamPrincipalSatisfaction = (function () {
         return { changed: true, dismissed: dismissed };
     }
 
+    // Console report to check the expected ranks and the satisfaction on real saves (see the commented call in tpRunSeasonStart).
+    // Callable from the console: TeamPrincipalSatisfaction.report()
+    function report() {
+        const slot = TeamPrincipal.readCurrentSlot();
+        const tp = slot && slot.data && slot.data.teamPrincipal;
+        const teams = readJson('teams', []);
+        if (!tp || !teams.length) return;
+        const w = cfg().expected;
+        const prev = ranksAscending(teams.map((t, i) => i + 1));
+        const fin = ranksAscending(teams.map(t => -TeamPrincipal.teamGauges(t).finance));
+        const pre = ranksAscending(teams.map(t => -TeamPrincipal.teamGauges(t).prestige));
+        const stored = tp.sat && tp.sat.expected ? tp.sat.expected : {};
+        const now = expectedRanks(teams);
+        const rows = teams.map((t, i) => {
+            const g = TeamPrincipal.teamGauges(t);
+            return {
+                'Grid (last rank)': prev[i], Team: TeamPrincipal.teamName(t) + (t.teamUid === tp.teamUid ? '  <== YOU' : ''),
+                Finance: g.finance, 'Finance rank': fin[i], Prestige: g.prestige, 'Prestige rank': pre[i],
+                Score: Math.round((w.previousRank * prev[i] + w.finance * fin[i] + w.prestige * pre[i]) * 100) / 100,
+                'Expected (now)': now[t.teamUid], 'Expected (season start, used)': stored[t.teamUid] === undefined ? '-' : stored[t.teamUid],
+                Position: constructorPosition(teams, t) || '-'
+            };
+        });
+        const team = teams.find(t => t.teamUid === tp.teamUid);
+        const expected = stored[tp.teamUid];
+        const position = team ? constructorPosition(teams, team) : null;
+        console.group('[TP] Expected ranks - season ' + (tp.sat ? tp.sat.season : '?') + ' (weights ' + w.previousRank + ' / ' + w.finance + ' / ' + w.prestige + ')');
+        console.table(rows);
+        const info = { 'Carried satisfaction (previous)': tp.satisfaction, 'Live satisfaction': tp.sat ? tp.sat.live : null,
+                       Expected: expected, Position: position, Teams: teams.length, 'Races counted': tp.sat ? tp.sat.processed : 0 };
+        if (expected && position) {
+            info['Raw satisfaction'] = Math.round(rawSatisfaction(expected, position, teams.length) * 100) / 100;
+            info['Bonus'] = resultBonus(position, teams.length);
+            info['Formula'] = 'clamp(' + cfg().carryOver + ' x ' + tp.satisfaction + ' + ' + (1 - cfg().carryOver) + ' x raw + bonus)';
+        }
+        console.table(info);
+        console.groupEnd();
+    }
+
     // End of the season, on the slot: the season's value becomes the one carried to the next.
     function closeSeason(tp) {
         if (tp.sat && tp.sat.live !== null && tp.sat.live !== undefined) tp.satisfaction = tp.sat.live;
         tp.sat = null;
     }
 
-    return { constructorPosition, standing, ranksAscending, expectedRanks, rawSatisfaction, resultBonus, satisfactionOf, ensureSeason, current, worstTeam,
+    return { report, constructorPosition, standing, ranksAscending, expectedRanks, rawSatisfaction, resultBonus, satisfactionOf, ensureSeason, current, worstTeam,
              dismiss, check, closeSeason };
 })();

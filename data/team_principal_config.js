@@ -29,6 +29,9 @@ const TP_CONFIG = {
         deckSize: 5,                  // visible cards per position in the general decks
         defaultContractSeasons: 4,    // contract length when hiring (stored; expiry comes with the season-end phase)
         dismissalConfidenceLoss: 1,   // heart lost when an engineer is fired or replaced
+        // Taking the local offer over an engineer who still has a contract costs only this much confidence,
+        // and doesn't count as a dismissal of the season.
+        localReplaceConfidenceLoss: 0.5,
         // A dismissed engineer won't return to the team that dismissed him before the end of the
         // season; after that he asks this much more $ (added to his base salary) to come back.
         rehirePremium: 0.5,

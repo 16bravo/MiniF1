@@ -367,3 +367,8 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 .tp-rank { font-weight: bold; }
 .tp-rank.up { color: #4caf50; }
 .tp-rank.down { color: #e57373; }
+/* Season opening pop-up: the local offer next to the current engineer */
+.tp-modal-wide { width: min(760px, 94vw); }
+.tp-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 8px 0 12px; }
+.tp-compare-title { font-size: 0.75em; color: #777; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+@media (max-width: 560px) { .tp-compare { grid-template-columns: 1fr; } }
