@@ -1215,6 +1215,8 @@ window.onload = async () => {
 
     // Team Principal: the development of this GP weekend is done as it opens, so its results are
     // already in the car's stats (and shown) before anything else is decided.
+    // The board's satisfaction is updated first: a dismissal changes the team the development is done for.
+    if (typeof tpRunSatisfactionCheck === 'function') tpRunSatisfactionCheck();
     if (typeof tpRunWeekendDevelopment === 'function') tpRunWeekendDevelopment();
 
     // Regenerate weather when mode changes, if a circuit is already selected

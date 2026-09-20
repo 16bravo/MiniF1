@@ -360,6 +360,8 @@ function startNextSeason(skipWait) {
     if (!ok) return;
 
     const slotNumber = parseInt(localStorage.getItem('championshipSlotNumber') || '0');
+    // Team Principal: the satisfaction of the whole season counts (normally already done when the GP screen opened).
+    if (TeamPrincipal.isActive() && typeof TeamPrincipalSatisfaction !== 'undefined') TeamPrincipalSatisfaction.check();
     // Compact archive of the season just played (also feeds the Team Principal season end).
     const summary = CC.summarizeSeasonArchive(state.races, state.results, state.points, state.opts);
 

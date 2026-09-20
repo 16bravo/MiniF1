@@ -50,7 +50,8 @@ const TeamPrincipalSeasonEnd = (function () {
         return { base: base, extra: extra, value: clamp10(base + extra) };
     }
 
-    // Confidence change: a title, else above / below the expected rank; +1 if nobody was dismissed.
+    // Confidence change: a title, else above / below the expected rank (see TeamPrincipalSatisfaction);
+    // +1 if nobody was dismissed.
     function confidenceDelta(rank, expectedRank, dismissed) {
         const c = cfg().confidence;
         const parts = { result: rank === 1 ? c.title : (rank < expectedRank ? c.above : (rank > expectedRank ? c.below : 0)),
@@ -90,8 +91,12 @@ const TeamPrincipalSeasonEnd = (function () {
                 return a.prev - b.prev;
             });
         const dismissed = (slot.data.engineerState && slot.data.engineerState.dismissed) || {};
+        // The season's expected ranks (60% last rank, 30% finance, 10% prestige), as the season started.
+        const tp = slot.data.teamPrincipal;
+        const expected = tp ? TeamPrincipalSatisfaction.ensureSeason(tp, teams, season).expected : {};
         const rows = ordered.map((o, i) => ({
             uid: o.t.teamUid, name: TeamPrincipal.teamName(o.t), prevRank: o.prev, rank: i + 1,
+            expected: expected[o.t.teamUid] || o.prev,
             dismissed: !!(dismissed[o.t.teamUid] && dismissed[o.t.teamUid].length)
         }));
         return { season: season, teamCount: teams.length, rows: rows,
@@ -113,7 +118,7 @@ const TeamPrincipalSeasonEnd = (function () {
 
             const gain = financeGain(row.rank, ctx.teamCount);
             const pr = prestige(row.name, totals, row.rank, ctx.teamCount);
-            const cf = confidenceDelta(row.rank, row.prevRank, row.dismissed);
+            const cf = confidenceDelta(row.rank, row.expected, row.dismissed);
             row.before = { finance: g.finance, confidence: g.confidence, prestige: g.prestige };
             row.after = { finance: clamp10(g.finance + gain), confidence: clamp10(g.confidence + cf.delta), prestige: pr.value };
             row.gain = gain; row.confidence = cf; row.prestige = pr; row.totals = totals;
@@ -138,11 +143,13 @@ const TeamPrincipalSeasonEnd = (function () {
             TPE.advanceYear(st, nextYear, player);
             TPE.aiFillVacancies(st, teams, tp.teamUid);
         }
+        // The season's satisfaction becomes the one carried to the next season.
+        TeamPrincipalSatisfaction.closeSeason(tp);
         const row = ctx.rows.find(r => r.uid === tp.teamUid);
         if (!row || !row.after) return;
         const nameOf = id => (TPE.get(id) || {}).name || '';
         tp.recap = {
-            season: ctx.season, rank: row.rank, prevRank: row.prevRank, teamCount: ctx.teamCount,
+            season: ctx.season, rank: row.rank, prevRank: row.prevRank, expected: row.expected, teamCount: ctx.teamCount,
             finance: { before: row.before.finance, after: row.after.finance, gain: row.gain },
             prestige: { before: row.before.prestige, after: row.after.prestige },
             confidence: { before: row.before.confidence, after: row.after.confidence, parts: row.confidence.parts },

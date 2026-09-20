@@ -12,7 +12,14 @@ const TP_CONFIG = {
     // Player satisfaction: internal 0-100, only shown as a red -> green bar.
     satisfaction: {
         max: 100,
-        start: 50
+        start: 50,                    // at the start of a career and after a dismissal
+        // Expected rank of a team = its rank on this weighted mix of last season's rank, its finance
+        // rank and its prestige rank (ties allowed).
+        expected: { previousRank: 0.6, finance: 0.3, prestige: 0.1 },
+        carryOver: 0.1,               // weight of the previous season's satisfaction (the rest is the season's own)
+        bonus: { champion: 20, top3: 10, last: -10 },   // points added to the final value (champion and top 3 never add up)
+        dismissBelow: 20,             // dismissed when the satisfaction falls under this...
+        checkFromSeasonFraction: 0.5  // ...once this share of the season's Grands Prix has been raced
     },
 
     engineers: {

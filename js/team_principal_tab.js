@@ -347,7 +347,7 @@ function tpRenderTab(host) {
             <div class="tp-gauge-row"><span class="tp-gauge-label">Finance</span>${TeamPrincipal.financeIcons(g.finance, committed)}</div>
             <div class="tp-gauge-row"><span class="tp-gauge-label">Confidence</span>${TeamPrincipal.gaugeIcons(g.confidence, '♥', 'tp-confidence')}</div>
             <div class="tp-gauge-row"><span class="tp-gauge-label">Prestige</span>${TeamPrincipal.gaugeIcons(g.prestige, '', 'tp-prestige tp-star')}</div>
-            <div class="tp-gauge-row"><span class="tp-gauge-label">Satisfaction</span>${TeamPrincipal.satisfactionBar(tp.satisfaction)}</div>
+            <div class="tp-gauge-row"><span class="tp-gauge-label">Satisfaction</span>${TeamPrincipal.satisfactionBar(TeamPrincipalSatisfaction.current(tp))}</div>
         </div>
         ${tpCarStatsHtml(team)}
         </div>
@@ -585,8 +585,8 @@ function tpShowSeasonRecap() {
     ];
     const why = [];
     if (r.rank === 1) why.push('Champions: ' + signed(cp.result));
-    else if (cp.result > 0) why.push('Above expectations (' + tpOrdinal(r.prevRank) + '): ' + signed(cp.result));
-    else if (cp.result < 0) why.push('Below expectations (' + tpOrdinal(r.prevRank) + '): ' + signed(cp.result));
+    else if (cp.result > 0) why.push('Above expectations (' + tpOrdinal(r.expected || r.prevRank) + '): ' + signed(cp.result));
+    else if (cp.result < 0) why.push('Below expectations (' + tpOrdinal(r.expected || r.prevRank) + '): ' + signed(cp.result));
     if (cp.noDismissal) why.push('No dismissal: ' + signed(cp.noDismissal));
     const engineers = [];
     if (r.released.length) engineers.push(`<div class="tp-modal-note">Contract ended: ${r.released.map(tpEscape).join(', ')}</div>`);
@@ -611,6 +611,43 @@ function tpShowSeasonRecap() {
             TeamPrincipal.writeCurrentSlot(s2);
         }
         tpCloseModal();
+    });
+    document.body.appendChild(modal);
+}
+
+// ---- satisfaction: updated when the GP screen opens; a dismissal is announced once ----
+
+function tpRunSatisfactionCheck() {
+    if (typeof TeamPrincipal === 'undefined' || !TeamPrincipal.isActive()) return;
+    TeamPrincipalSatisfaction.check();
+    tpShowDismissal();
+}
+
+function tpShowDismissal() {
+    if (document.getElementById('tp-modal')) return;
+    const slot = TeamPrincipal.readCurrentSlot();
+    const tp = slot && slot.data && slot.data.teamPrincipal;
+    const d = tp && tp.dismissal;
+    if (!d || d.seen) return;
+    const modal = document.createElement('div');
+    modal.id = 'tp-modal';
+    modal.className = 'tp-modal-backdrop';
+    modal.innerHTML = `
+        <div class="tp-modal" role="dialog">
+            <div class="tp-modal-head"><span class="tp-modal-name">You have been dismissed</span></div>
+            <div class="tp-modal-warn" data-testid="dismissal">The board of ${tpEscape(d.from)} has lost confidence in you.</div>
+            <div class="tp-modal-note">You are now Team Principal of ${tpEscape(d.to)}.</div>
+            <div class="tp-modal-actions"><button type="button" class="tp-eng-btn hire" data-dismissal="ok">OK</button></div>
+        </div>`;
+    modal.addEventListener('click', ev => {
+        if (!ev.target.closest('[data-dismissal="ok"]')) return;
+        const s2 = TeamPrincipal.readCurrentSlot();
+        if (s2 && s2.data.teamPrincipal && s2.data.teamPrincipal.dismissal) {
+            s2.data.teamPrincipal.dismissal.seen = true;
+            TeamPrincipal.writeCurrentSlot(s2);
+        }
+        tpCloseModal();
+        if (document.getElementById('tab-team-management') && document.querySelector('.tp-subpanel')) renderTeamManagement();
     });
     document.body.appendChild(modal);
 }
