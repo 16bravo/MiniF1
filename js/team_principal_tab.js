@@ -35,6 +35,10 @@ function tpEngineerCard(state, team, e, kind, slot) {
     let reason = '';
     if (kind === 'hired') {
         action = `<button type="button" class="tp-eng-btn" data-action="fire" data-role="${e.stat}">Dismiss</button>`;
+        // The last season of a contract: it can be renewed (unless he retires or refused already).
+        const renewal = TPE.canRenew(state, team, e.stat);
+        if (renewal.ok) action += `<button type="button" class="tp-eng-btn hire" data-action="renew" data-id="${e.engineer_id}">Renew</button>`;
+        else if (renewal.reason === 'closed') reason = "Won't renew";
     } else {
         const elig = TPE.canApproach(state, team, e);
         if (!elig.ok) reason = elig.reason === 'dismissed' ? "Won't come back this season" : 'Not enough $';
@@ -384,6 +388,10 @@ function tpHandleAction(e) {
         tpOpenProject();
         return;
     }
+    if (btn.dataset.action === 'renew') {
+        tpOpenNegotiation(parseInt(btn.dataset.id, 10), true);
+        return;
+    }
 
     // fire
     const role = btn.dataset.role;
@@ -496,6 +504,63 @@ function tpOpenProject() {
     draw();
 }
 
+// ---- season review: what the last season changed, shown once when the tab is first opened ----
+
+function tpOrdinal(n) {
+    const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function tpShowSeasonRecap() {
+    if (document.getElementById('tp-modal')) return;
+    const slot = TeamPrincipal.readCurrentSlot();
+    const tp = slot && slot.data && slot.data.teamPrincipal;
+    const r = tp && tp.recap;
+    if (!r || r.seen) return;
+
+    const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(Math.round(n * 100) / 100);
+    const cls = n => (n > 0 ? 'up' : n < 0 ? 'down' : '');
+    const row = (label, value, klass) => `<div class="tp-result-row"><span class="tp-result-role">${label}</span><span class="tp-result-gain ${klass || ''}">${value}</span></div>`;
+    const cp = r.confidence.parts;
+    const startYear = parseInt(localStorage.getItem('careerStartYear') || '0', 10) || TP_CONFIG.engineers.baseYear;
+    const rows = [
+        row('Final position', `${tpOrdinal(r.rank)} of ${r.teamCount}`, ''),
+        row('Finance', signed(r.finance.gain) + ' $', cls(r.finance.gain)),
+        row('Prestige', `${r.prestige.before} → ${r.prestige.after}`, cls(r.prestige.after - r.prestige.before)),
+        row('Confidence', `${signed(r.confidence.after - r.confidence.before)} ♥`, cls(r.confidence.after - r.confidence.before))
+    ];
+    const why = [];
+    if (r.rank === 1) why.push('Champions: ' + signed(cp.result));
+    else if (cp.result > 0) why.push('Above expectations (' + tpOrdinal(r.prevRank) + '): ' + signed(cp.result));
+    else if (cp.result < 0) why.push('Below expectations (' + tpOrdinal(r.prevRank) + '): ' + signed(cp.result));
+    if (cp.noDismissal) why.push('No dismissal: ' + signed(cp.noDismissal));
+    const engineers = [];
+    if (r.released.length) engineers.push(`<div class="tp-modal-note">Contract ended: ${r.released.map(tpEscape).join(', ')}</div>`);
+    if (r.retired.length) engineers.push(`<div class="tp-modal-note">Retired: ${r.retired.map(tpEscape).join(', ')}</div>`);
+
+    const modal = document.createElement('div');
+    modal.id = 'tp-modal';
+    modal.className = 'tp-modal-backdrop';
+    modal.innerHTML = `
+        <div class="tp-modal" role="dialog">
+            <div class="tp-modal-head"><span class="tp-modal-name">${startYear + r.season - 1} season review</span></div>
+            ${rows.join('')}
+            ${why.length ? `<div class="tp-modal-note" data-testid="why">${why.join(' · ')}</div>` : ''}
+            ${engineers.join('')}
+            <div class="tp-modal-actions"><button type="button" class="tp-eng-btn hire" data-review="ok">OK</button></div>
+        </div>`;
+    modal.addEventListener('click', ev => {
+        if (!ev.target.closest('[data-review="ok"]')) return;
+        const s2 = TeamPrincipal.readCurrentSlot();
+        if (s2 && s2.data.teamPrincipal && s2.data.teamPrincipal.recap) {
+            s2.data.teamPrincipal.recap.seen = true;
+            TeamPrincipal.writeCurrentSlot(s2);
+        }
+        tpCloseModal();
+    });
+    document.body.appendChild(modal);
+}
+
 // ---- before each GP: projects grow, and the ones reaching their target GP are drawn ----
 
 // The stats live in the team editor's row (hidden in this mode) - writing them there keeps them
@@ -575,7 +640,8 @@ function tpCloseModal() {
     if (m) m.remove();
 }
 
-function tpOpenNegotiation(engineerId) {
+// `renew`: the same dialog for extending the contract of an engineer already in the team.
+function tpOpenNegotiation(engineerId, renew) {
     tpCloseModal();
     const slot = TeamPrincipal.readCurrentSlot();
     let teams = [];
@@ -584,12 +650,14 @@ function tpOpenNegotiation(engineerId) {
     const state = slot.data.engineerState;
     const e = TPE.get(engineerId);
     if (!team || !state || !e) return;
+    if (renew && !TPE.canRenew(state, team, e.stat).ok) return;
 
     const first = TPE.assess(state, team, e, TPE.baseSeasons(e), TPE.costFor(state, team, e));
-    const maxSeasons = TPE.maxSeasons(state, e);
+    const maxSeasons = renew ? TPE.renewMaxSeasons(state, e) : TPE.maxSeasons(state, e);
     const baseCost = first.baseCost;
     const maxCost = TPE.maxOfferCost(state, team, e);
-    const occupant = TPE.teamSlots(state, team.teamUid)[e.stat];
+    // Replacing an engineer is a dismissal; renewing the one in place is not.
+    const occupant = renew ? null : TPE.teamSlots(state, team.teamUid)[e.stat];
     const c = TP_CONFIG.engineers;
 
     const offer = {
@@ -619,7 +687,7 @@ function tpOpenNegotiation(engineerId) {
                     <img class="tp-eng-flag" src="img/flags/${flag}.png" alt="${flag}">
                     <span class="tp-modal-name">${tpEscape(e.name)}</span>
                     <span class="tp-rarity rarity-${tpEscape(e.rarity)}">${tpEscape(e.rarity)}</span>
-                    <span class="tp-modal-role">${c.roleNames[e.stat]} <small>${e.stat}</small></span>
+                    <span class="tp-modal-role">${c.roleNames[e.stat]} <small>${e.stat}</small>${renew ? ' · Renewal' : ''}</span>
                 </div>
                 ${occupant ? `<div class="tp-modal-warn">Replaces ${tpEscape(TPE.get(occupant.id).name)}: - ${c.dismissalConfidenceLoss} ♥</div>` : ''}
                 <div class="tp-neg-row">
@@ -644,7 +712,9 @@ function tpOpenNegotiation(engineerId) {
     }
 
     function submit() {
-        const result = TPE.hire(state, team, engineerId, { seasons: offer.seasons, cost: offer.cost });
+        const result = renew
+            ? TPE.renew(state, team, e.stat, { seasons: offer.seasons, cost: offer.cost })
+            : TPE.hire(state, team, engineerId, { seasons: offer.seasons, cost: offer.cost });
         if (result.ok || result.refused) {
             TeamPrincipal.writeCurrentSlot(slot);
             if (result.confidenceLoss) {
@@ -655,7 +725,7 @@ function tpOpenNegotiation(engineerId) {
             modal.innerHTML = `
                 <div class="tp-modal" role="dialog">
                     <div class="tp-modal-head"><span class="tp-modal-name">${tpEscape(e.name)}</span></div>
-                    <div class="tp-modal-warn" data-testid="refused">He refused your offer. The team loses ${result.confidenceLoss} confidence and he won't talk to you again this season.</div>
+                    <div class="tp-modal-warn" data-testid="refused">He refused your offer. The team loses ${result.confidenceLoss} confidence and ${renew ? 'he will leave when the season ends' : "he won't talk to you again this season"}.</div>
                     <div class="tp-modal-actions"><button type="button" class="tp-eng-btn hire" data-neg="done">OK</button></div>
                 </div>`;
             return;
@@ -701,5 +771,5 @@ function renderTeamManagement() {
             host.querySelectorAll('.tp-img-grid.open').forEach(g => g.classList.remove('open'));
         });
     }
-    TPE.load().then(() => tpRenderTab(host));
+    TPE.load().then(() => { tpRenderTab(host); tpShowSeasonRecap(); });
 }

@@ -62,6 +62,31 @@ const TP_CONFIG = {
         statMax: 99               // a team stat never goes above this
     },
 
+    // End of season (spec sections 10, 11, 5.3): applied to every team of the grid.
+    seasonEnd: {
+        // $ earned by rank in the final constructors' standings: `best` for the 1st, `worst` for the
+        // last, linear in between, rounded to the nearest `step`.
+        finance: { best: 4, worst: 1, step: 0.5 },
+        // Prestige = base (the highest that applies) + the extras below, kept between 0 and 10.
+        // Wins / titles / races count the whole history of the team family (data/team_families.json)
+        // plus the seasons played in the game.
+        prestige: {
+            base: 1,
+            win: 2,                       // at least 1 win
+            manyWins: 3, manyWinsOver: 10, // more than 10 wins
+            title: 5,                     // 1 title
+            titles: 6,                    // several titles
+            races: [500, 1000],           // +1 for each threshold reached
+            champion: 2, top3: 1, last: -1, // last season's result (top3 = 2nd or 3rd)
+            // Brand prestige, by team name (other teams: 0)
+            brand: { 'McLaren': 4, 'Mercedes': 4, 'Ferrari': 4, 'Audi': 4,
+                     'Red Bull': 2, 'Aston Martin': 2, 'Alpine': 2, 'Cadillac': 2 }
+        },
+        // Confidence change: a title, else finishing above / below the expected rank
+        // (the rank of the previous season for now), plus a bonus for a season with no dismissal.
+        confidence: { title: 2, above: 1, below: -1, noDismissal: 1 }
+    },
+
     // Car stat bars run from barMin (empty) to barMax (full); the number is always shown.
     carStats: { barMin: 50, barMax: 100 },
 

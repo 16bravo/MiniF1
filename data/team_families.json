@@ -1,0 +1,115 @@
+{
+    "Alpine": {
+        "members": [
+            "Toleman",
+            "Benetton",
+            "Renault",
+            "Lotus",
+            "Alpine"
+        ],
+        "titles": 3,
+        "wins": 57,
+        "gps": 737
+    },
+    "Aston Martin": {
+        "members": [
+            "Aston Martin",
+            "Jordan",
+            "Midland",
+            "Spyker",
+            "Force India",
+            "Racing Point"
+        ],
+        "titles": 0,
+        "wins": 5,
+        "gps": 641
+    },
+    "Audi": {
+        "members": [
+            "Sauber",
+            "BMW Sauber",
+            "Alfa Romeo",
+            "Kick Sauber",
+            "Audi"
+        ],
+        "titles": 0,
+        "wins": 5,
+        "gps": 599
+    },
+    "Cadillac": {
+        "members": [
+            "Cadillac"
+        ],
+        "titles": 0,
+        "wins": 0,
+        "gps": 0
+    },
+    "Ferrari": {
+        "members": [
+            "Ferrari"
+        ],
+        "titles": 16,
+        "wins": 248,
+        "gps": 1122
+    },
+    "Haas": {
+        "members": [
+            "Haas"
+        ],
+        "titles": 0,
+        "wins": 0,
+        "gps": 214
+    },
+    "McLaren": {
+        "members": [
+            "McLaren"
+        ],
+        "titles": 10,
+        "wins": 203,
+        "gps": 993
+    },
+    "Mercedes": {
+        "members": [
+            "Mercedes",
+            "Tyrrell",
+            "BAR",
+            "Honda",
+            "Brawn GP"
+        ],
+        "titles": 10,
+        "wins": 163,
+        "gps": 938
+    },
+    "Racing Bulls": {
+        "members": [
+            "Minardi",
+            "Toro Rosso",
+            "AlphaTauri",
+            "RB",
+            "Racing Bulls"
+        ],
+        "titles": 0,
+        "wins": 2,
+        "gps": 739
+    },
+    "Red Bull": {
+        "members": [
+            "Stewart",
+            "Jaguar",
+            "Red Bull"
+        ],
+        "titles": 6,
+        "wins": 131,
+        "gps": 551
+    },
+    "Williams": {
+        "members": [
+            "Politoys",
+            "Iso-Marlboro",
+            "Williams"
+        ],
+        "titles": 9,
+        "wins": 114,
+        "gps": 906
+    }
+}

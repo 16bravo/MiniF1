@@ -38,7 +38,7 @@
         "color": "#392F90",
         "image": "RBR26",
         "flag": "austria.png",
-        "prestige": 10,
+        "prestige": 9,
         "finance": 10
     },
     {
@@ -66,7 +66,7 @@
         "color": "#46A0EA",
         "image": "WIL26",
         "flag": "uk.png",
-        "prestige": 10,
+        "prestige": 7,
         "finance": 5
     },
     {
@@ -80,7 +80,7 @@
         "color": "#3700ff",
         "image": "VRB26",
         "flag": "italy.png",
-        "prestige": 5,
+        "prestige": 2,
         "finance": 5
     },
     {
@@ -94,7 +94,7 @@
         "color": "#2d7955",
         "image": "AST26",
         "flag": "uk.png",
-        "prestige": 7,
+        "prestige": 4,
         "finance": 9
     },
     {
@@ -108,7 +108,7 @@
         "color": "#bdbdbd",
         "image": "HAA26",
         "flag": "usa.png",
-        "prestige": 5,
+        "prestige": 1,
         "finance": 5
     },
     {
@@ -122,8 +122,8 @@
         "color": "#f00",
         "image": "AUD26",
         "flag": "germany.png",
-        "prestige": 8,
-        "finance": 10
+        "prestige": 6,
+        "finance": 9
     },
     {
         "team_id": 10,
@@ -150,7 +150,7 @@
         "color": "#fff",
         "image": "CAD26",
         "flag": "usa.png",
-        "prestige": 6,
+        "prestige": 3,
         "finance": 8
     }
 ]

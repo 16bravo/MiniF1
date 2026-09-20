@@ -48,7 +48,7 @@ let state = {
 
 document.addEventListener('DOMContentLoaded', () => {
     // Team Principal: have the engineer database ready for startNextSeason().
-    if (TeamPrincipal.isActive()) TeamPrincipalEngineers.load();
+    if (TeamPrincipal.isActive()) { TeamPrincipalEngineers.load(); TeamPrincipalSeasonEnd.load(); }
     loadData();
 
     const standings = CC.computeStandings(state.races, state.results, state.points, state.opts);
@@ -223,7 +223,7 @@ function setupButtons() {
     if (localStorage.getItem('careerMode') === 'true') {
         const nextSeasonBtn = document.getElementById('nextSeasonBtn');
         nextSeasonBtn.hidden = false;
-        nextSeasonBtn.addEventListener('click', startNextSeason);
+        nextSeasonBtn.addEventListener('click', () => startNextSeason());
         document.getElementById('finishBtn').textContent = 'End Career & Delete Save';
     }
 }
@@ -338,7 +338,14 @@ function reorderTeamsByStandings(constructorStandings) {
 // session over to a fresh season (same slot, same drivers/teams, new calendar via
 // championship_setup.html - teams/drivers are deliberately NOT reset, see
 // championship_setup.js's start-championship-btn handler).
-function startNextSeason() {
+function startNextSeason(skipWait) {
+    // Team Principal: the season-end data (team families, engineer database) must be loaded first.
+    if (!skipWait && TeamPrincipal.isActive() &&
+        !(TeamPrincipalSeasonEnd.isLoaded() && TeamPrincipalEngineers.isLoaded())) {
+        Promise.all([TeamPrincipalSeasonEnd.load(), TeamPrincipalEngineers.load()])
+            .then(() => startNextSeason(true), () => startNextSeason(true));
+        return;
+    }
     const startYear = parseInt(localStorage.getItem('careerStartYear') || '0', 10);
     const season = parseInt(localStorage.getItem('careerSeasonNumber') || '1');
     const nextYear = careerYearFor(startYear, season + 1);
@@ -350,11 +357,24 @@ function startNextSeason() {
     );
     if (!ok) return;
 
+    const slotNumber = parseInt(localStorage.getItem('championshipSlotNumber') || '0');
+    // Compact archive of the season just played (also feeds the Team Principal season end).
+    const summary = CC.summarizeSeasonArchive(state.races, state.results, state.points, state.opts);
+
+    // Team Principal: the grid position is last season's rank, so it is read before the reorder.
+    let tpCtx = null;
+    if (slotNumber >= 1 && slotNumber <= 3 && TeamPrincipal.isActive() && TeamPrincipalSeasonEnd.isLoaded()) {
+        const pre = JSON.parse(localStorage.getItem(`${careerSlotPrefix()}${slotNumber}`) || 'null');
+        if (pre && pre.data && pre.data.mode === 'teamPrincipal' && pre.data.teamPrincipal) {
+            tpCtx = TeamPrincipalSeasonEnd.prepare(pre, state.constructorStandings, summary, season);
+        }
+    }
+
     // Grid order for the new season follows this season's final Constructors'
     // standings (champion first) - same drivers/teams, new positions.
     reorderTeamsByStandings(state.constructorStandings);
-
-    const slotNumber = parseInt(localStorage.getItem('championshipSlotNumber') || '0');
+    // Team Principal: finance, prestige and confidence of every team, on the reordered list.
+    if (tpCtx) TeamPrincipalSeasonEnd.applyGauges(tpCtx);
 
     // championship_end.html doesn't include championship_save_select.js, so the
     // slot is rewritten directly here rather than through window.autoSaveChampionship.
@@ -364,7 +384,6 @@ function startNextSeason() {
         if (slot) {
             // Archive a compact per-season summary, not the full races/results -
             // see CC.summarizeSeasonArchive for why (unbounded growth otherwise).
-            const summary = CC.summarizeSeasonArchive(state.races, state.results, state.points, state.opts);
             slot.data.seasonHistory = slot.data.seasonHistory || [];
             slot.data.seasonHistory.push(Object.assign({ season: season }, summary));
             // Carry the calendar forward as-is (order, added/removed rounds, sprint
@@ -379,13 +398,10 @@ function startNextSeason() {
             // but this way it's correct even if the browser closes before then).
             try { slot.data.teams = JSON.parse(localStorage.getItem('teams') || 'null'); } catch (e) {}
             try { slot.data.drivers = JSON.parse(localStorage.getItem('drivers') || 'null'); } catch (e) {}
-            // Team Principal: retirees leave the decks, the local card and decks are redrawn.
-            // (If the database hasn't loaded yet, the Team Management tab catches the year up on its next visit.)
-            if (slot.data.mode === 'teamPrincipal' && slot.data.engineerState && slot.data.teamPrincipal &&
-                TeamPrincipalEngineers.isLoaded()) {
-                const playerTeam = (slot.data.teams || []).find(t => t.teamUid === slot.data.teamPrincipal.teamUid);
-                TeamPrincipalEngineers.advanceYear(slot.data.engineerState, nextYear, playerTeam);
-            }
+            // Team Principal: contracts and retirements, the new market, the AI teams' positions, and
+            // the season review shown to the player. (Without the engineer database, the Team
+            // Management tab catches the year up on its next visit.)
+            if (tpCtx) TeamPrincipalSeasonEnd.finish(slot, tpCtx, nextYear);
             slot.lastSaved = new Date().toLocaleString('fr-FR');
             slot.progress = `${nextYear} — Setup`;
             localStorage.setItem(key, JSON.stringify(slot));

@@ -300,6 +300,105 @@ const TeamPrincipalEngineers = (function () {
         return { ok: true, confidenceLoss: dismissed ? cfg().dismissalConfidenceLoss : 0, seasons: seasons, cost: cost };
     }
 
+    // ---- renewal: offered during the last season of a contract ----
+
+    // A contract can be renewed during its last season, unless he retires at the end of it.
+    function canRenew(state, team, role) {
+        const slot = teamSlots(state, team.teamUid)[role];
+        if (!slot || slot.contractLeft !== 1) return { ok: false, reason: 'notLastSeason' };
+        const e = get(slot.id);
+        if (lastSeason(e) <= state.year) return { ok: false, reason: 'retiring' };
+        if (isClosed(state, team.teamUid, e.engineer_id)) return { ok: false, reason: 'closed' };
+        return { ok: true };
+    }
+
+    // Longest renewal: seasons AFTER the current one, capped, and never past his retirement.
+    function renewMaxSeasons(state, e) {
+        return Math.max(1, Math.min(cfg().negotiation.maxSeasons, lastSeason(e) - state.year));
+    }
+
+    // Same negotiation as a hire (the margin is recomputed now). Accepted: the contract is
+    // extended by `offer.seasons` after the current season, at the new salary. Refused: the team
+    // loses confidence and he won't talk to it again this season - he is released when it ends.
+    function renew(state, team, role, offer, roll) {
+        const can = canRenew(state, team, role);
+        if (!can.ok) return can;
+        const uid = team.teamUid;
+        const slot = state.teams[uid][role];
+        const e = get(slot.id);
+        const seasons = offer && offer.seasons !== undefined ? offer.seasons : baseSeasons(e);
+        if (!(seasons >= 1 && seasons <= renewMaxSeasons(state, e) && Math.floor(seasons) === seasons)) {
+            return { ok: false, reason: 'seasons' };
+        }
+        const baseCost = costFor(state, team, e);
+        let cost = baseCost;
+        if (offer && offer.cost !== undefined) {
+            cost = round2(Math.min(Math.max(baseCost, offer.cost), Math.max(baseCost, cfg().negotiation.salaryMax)));
+        }
+        if (cost > maxOfferCost(state, team, e) + 1e-9) return { ok: false, reason: 'finance' };
+
+        const terms = assess(state, team, e, seasons, cost);
+        if (terms.negotiate && terms.verdict !== 'accept') {
+            const r = roll ? roll() : Math.random();
+            if (!(r < terms.odds)) {
+                listAdd(state, 'closed', uid, e.engineer_id);
+                return { ok: false, refused: true, confidenceLoss: cfg().negotiation.refusalConfidenceLoss };
+            }
+        }
+        slot.contractLeft = 1 + seasons;
+        slot.cost = cost;
+        return { ok: true, seasons: seasons, cost: cost };
+    }
+
+    // ---- end of season ----
+
+    // Contracts run down by a season and retirements are applied, for every team.
+    //  - retired engineers leave their position empty;
+    //  - the player's engineers whose contract ends were not renewed: they are released to the
+    //    market (a contract ending is not a dismissal: no confidence loss, no grudge);
+    //  - AI teams simply renew (until they get their own decisions): same salary, the base length.
+    // Returns the player's `retired` and `released` engineer ids.
+    function endOfSeason(state, year, playerUid) {
+        const out = { retired: [], released: [] };
+        Object.keys(state.teams).forEach(uid => ROLES.forEach(role => {
+            const slot = state.teams[uid][role];
+            if (!slot) return;
+            const e = get(slot.id);
+            if (!isAlive(e, year)) {
+                state.teams[uid][role] = null;
+                if (uid === playerUid) out.retired.push(e.engineer_id);
+                return;
+            }
+            slot.contractLeft -= 1;
+            if (slot.contractLeft > 0) return;
+            if (uid === playerUid) {
+                state.teams[uid][role] = null;
+                addToDeck(state, role, e.engineer_id, true);
+                out.released.push(e.engineer_id);
+            } else {
+                slot.contractLeft = Math.max(1, Math.min(baseSeasons(e), lastSeason(e) - year + 1));
+            }
+        }));
+        return out;
+    }
+
+    // AI teams fill an empty position on their own: the best card of the market they can approach
+    // and who accepts them at his base terms (no negotiation). This is the seed of the AI phase.
+    function aiFillVacancies(state, teams, playerUid) {
+        teams.forEach(team => {
+            if (team.teamUid === playerUid) return;
+            ROLES.forEach(role => {
+                if ((state.teams[team.teamUid] || {})[role]) return;
+                const candidates = state.decks[role].map(get).filter(e =>
+                    canApproach(state, team, e).ok && !assess(state, team, e, baseSeasons(e), costFor(state, team, e)).negotiate);
+                if (!candidates.length) return;
+                candidates.sort((a, b) => b.value - a.value);
+                const best = candidates[0];
+                hire(state, team, best.engineer_id, { seasons: Math.min(baseSeasons(best), maxSeasons(state, best)) });
+            });
+        });
+    }
+
     function fire(state, team, role) {
         return release(state, team.teamUid, role)
             ? { ok: true, confidenceLoss: cfg().dismissalConfidenceLoss }
@@ -308,5 +407,6 @@ const TeamPrincipalEngineers = (function () {
 
     return { ROLES, load, isLoaded, get, isAlive, lastSeason, regionOf, initState, advanceYear, expireLocal, teamSlots,
              effectiveCost, costFor, committed, freeFinance, baseSeasons, maxSeasons, maxOfferCost, isClosed,
-             isDismissed, hasGrudge, margin, canApproach, assess, hire, fire };
+             isDismissed, hasGrudge, margin, canApproach, assess, hire, fire,
+             canRenew, renewMaxSeasons, renew, endOfSeason, aiFillVacancies };
 })();

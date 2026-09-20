@@ -213,7 +213,7 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 .tp-result-role small { color: #777; }
 .tp-result-gain { font-weight: bold; min-width: 70px; text-align: right; }
 .tp-result-gain.up { color: #3fcf6e; }
-.tp-result-gain.none { color: #ff5a6e; }
+.tp-result-gain.none, .tp-result-gain.down { color: #ff5a6e; }
 .tp-result-max { color: #777; font-size: 0.85em; }
 
 /* ---- Hiring dialog ---- */
