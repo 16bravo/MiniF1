@@ -97,6 +97,9 @@ function toggleTurboMode() {
     return turboMode;
 }
 
+// The stored grids drop qualifying's per-tick scratch fields (SlimStorage, championship_save_select.js).
+const slimGrid = list => (typeof SlimStorage !== 'undefined') ? SlimStorage.grid(list) : list;
+
 // Function to create and display the "Go to Race" button after qualification
 function showRaceButton() {
     // Final sort of all 20 drivers based on their best time
@@ -117,7 +120,7 @@ function showRaceButton() {
     }
     
     // Store feature race grid (original qualification order)
-    localStorage.setItem('featureGrid', JSON.stringify(ranking));
+    localStorage.setItem('featureGrid', JSON.stringify(slimGrid(ranking)));
     
     // In Special Championship Mode, generate sprint grid
     let gridToUse = ranking;
@@ -136,10 +139,10 @@ function showRaceButton() {
             console.log('Sprint grid generated from qualification - top 10 inverted (first GP)');
         }
         
-        localStorage.setItem('sprintGrid', JSON.stringify(gridToUse));
+        localStorage.setItem('sprintGrid', JSON.stringify(slimGrid(gridToUse)));
     }
     
-    localStorage.setItem('drivers', JSON.stringify(gridToUse));
+    localStorage.setItem('drivers', JSON.stringify(slimGrid(gridToUse)));
     localStorage.setItem('isSprint', isNextRaceSprint.toString());
 
     // Auto-save championship if active
@@ -172,8 +175,10 @@ function updateTimer() {
             // Handle red flag: stop main timer
             if (flagTimer > 0) {
                 flagTimer--;
-            } else if (currentRain > 0.5) {
-                // If heavy rain, red flag persists
+            } else if (currentRain > 0.5 && timer > 0) {
+                // If heavy rain, red flag persists - but only while there is session time left:
+                // once the chrono has hit 0 the session must be able to finish (in-laps, then the
+                // next session / the "Go to Race" button), so the flag is lifted.
             } else {
                 updateTrackState('green'); // Return to green flag
             }
@@ -193,8 +198,11 @@ function updateTimer() {
         document.getElementById('timer').innerText = formatSessionTime(Math.max(0, timer));
         
         // Update track grip based on rain
-        const rainEffect = Math.max(0, rainCurve[currentFrame]);
+        // The weather curve is finite (and red flags use frames without using session time), so
+        // past its end there is simply no more rain - never NaN, which froze every car in place.
+        const rainEffect = Math.max(0, rainCurve[currentFrame] || 0);
         grip = Math.max(0, Math.min(1, grip - ((rainEffect ** 3) * 0.02)));
+        if (!Number.isFinite(grip)) grip = 0.66;
 
         // Update weather
         updateWeather();

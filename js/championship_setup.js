@@ -54,7 +54,7 @@ function renderPolePositionControls() {
 
 // Auto-save races to slot if active
 function autoSaveRaces() {
-    localStorage.setItem('championshipRaces', JSON.stringify(selectedRaces));
+    localStorage.setItem('championshipRaces', JSON.stringify(SlimStorage.races(selectedRaces)));
     if (window.autoSaveChampionship) {
         window.autoSaveChampionship();
     }
@@ -650,7 +650,7 @@ document.getElementById('reset-championship-btn').onclick = function() {
 
 document.getElementById('start-championship-btn').onclick = function() {
     // Save race list to localStorage
-    localStorage.setItem('championshipRaces', JSON.stringify(selectedRaces));
+    localStorage.setItem('championshipRaces', JSON.stringify(SlimStorage.races(selectedRaces)));
     localStorage.setItem('championshipCurrentRace', '0');
     localStorage.setItem('championshipResults', JSON.stringify([])); // Empty at start
     localStorage.setItem('championshipActive', 'true');

@@ -5,6 +5,113 @@
 
 const SLOTS_COUNT = 3;
 
+// ============================================================
+// SlimStorage - keeps only what the game reads back from localStorage.
+// A full 25-race season used to weigh ~900 kB per slot (and the live keys hold a second copy),
+// mostly because of data that is either static or only useful during a race.
+//  - circuit tracks (`coor`): static, always re-read from data/circuits.json by circuit code
+//  - race results: the full simulation state of every driver (tyres, fuel, engine...) is only
+//    needed while the race runs / for the replay export (built in memory), so once the race
+//    is over only the classification fields are kept
+//  - quali/race grids: qualifying's per-tick scratch fields
+//  - weather curves: only needed from the GP screen to the end of the race
+// Every function returns new data (never mutates its input) and is safe on already slim data.
+// ============================================================
+const SlimStorage = (function () {
+    // Fields read back from a finished race (classification, points, poles, fastest laps, stats).
+    const RESULT_KEEP = ['name', 'code', 'team', 'team_id', 'color', 'image', 'flag', 'teamFlag', 'driverLevel',
+        'startPosition', 'qualiTime', 'state', 'totalLength', 'bestLap', 'lastLap', 'pitStops', 'fastestLapOfRace'];
+    // Qualifying scratch fields, useless once the grid is set.
+    const GRID_DROP = ['lapTime', 'distance', 'currentSpeed', 'runLaps', 'sessionLaps', 'lapTimer',
+        'targetLapTime', 'currentState', 'lastTime', 'eliminated', 'inLap'];
+    const LIVE_KEYS = ['championshipRaces', 'championshipResults', 'selectedCircuit', 'drivers', 'featureGrid', 'sprintGrid'];
+
+    const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+
+    function circuit(c) {
+        if (!isObj(c) || !('coor' in c)) return c;
+        const out = Object.assign({}, c);
+        delete out.coor;
+        return out;
+    }
+    const races = list => Array.isArray(list) ? list.map(circuit) : list;
+
+    // One race's classification.
+    function result(rows) {
+        if (!Array.isArray(rows)) return rows;
+        return rows.map(d => {
+            if (!isObj(d)) return d;
+            const out = {};
+            RESULT_KEEP.forEach(k => { if (k in d) out[k] = d[k]; });
+            return out;
+        });
+    }
+    const results = list => Array.isArray(list) ? list.map(result) : list;
+
+    function grid(list) {
+        if (!Array.isArray(list)) return list;
+        return list.map(d => {
+            if (!isObj(d)) return d;
+            const out = Object.assign({}, d);
+            GRID_DROP.forEach(k => { delete out[k]; });
+            return out;
+        });
+    }
+
+    // A weekend's weather is only needed until its race is played.
+    function weekendDone(data) {
+        const r = data && data.results;
+        const i = data && (data.currentRaceIndex || 0);
+        return Array.isArray(r) && Array.isArray(r[i]) && r[i].length > 0;
+    }
+
+    // Returns a slim copy of a slot's `data` object.
+    function slotData(data) {
+        if (!isObj(data)) return data;
+        const out = Object.assign({}, data);
+        out.races = races(out.races);
+        out.results = results(out.results);
+        out.drivers = grid(out.drivers);
+        if (weekendDone(out)) { out.weatherQuali = null; out.weatherRace = null; }
+        return out;
+    }
+
+    // Rewrites the live session keys smaller when they carry heavy data (old saves).
+    function compactLive() {
+        LIVE_KEYS.forEach(key => {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return;
+                const v = JSON.parse(raw);
+                const slim = key === 'championshipRaces' ? races(v)
+                    : key === 'championshipResults' ? results(v)
+                    : key === 'selectedCircuit' ? circuit(v) : grid(v);
+                const next = JSON.stringify(slim);
+                if (next.length < raw.length) localStorage.setItem(key, next);
+            } catch (e) { /* leave the key untouched */ }
+        });
+    }
+
+    // Rewrites every stored save slot smaller (old, bloated saves).
+    function compactAllSlots() {
+        ['careerSlot', 'championshipSlot'].forEach(prefix => {
+            for (let i = 1; i <= 3; i++) {
+                try {
+                    const raw = localStorage.getItem(prefix + i);
+                    if (!raw) continue;
+                    const slot = JSON.parse(raw);
+                    if (!slot || !slot.data) continue;
+                    slot.data = slotData(slot.data);
+                    const next = JSON.stringify(slot);
+                    if (next.length < raw.length) localStorage.setItem(prefix + i, next);
+                } catch (e) { /* leave the slot untouched */ }
+            }
+        });
+    }
+
+    return { circuit, races, result, results, grid, slotData, compactLive, compactAllSlots };
+})();
+
 // The real-world season a brand-new career starts in. Bump this for a future
 // content update (e.g. once the game moves to the next real season) - it only
 // affects new careers; existing saves keep the startYear they were created with.
@@ -38,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    SlimStorage.compactAllSlots();
     renderSlots();
 
     const titleEl = document.getElementById('save-title-text');
@@ -198,6 +306,7 @@ function loadSaveSlotToSetup(slotNumber) {
     const slotData = getSaveSlot(slotNumber);
     if (!slotData) return;
     if (redirectIfTeamPickPending(slotNumber, slotData)) return;
+    slotData.data = SlimStorage.slotData(slotData.data);
 
     // Clear any existing session data
     localStorage.removeItem('championshipActive');
@@ -234,6 +343,7 @@ function loadSaveSlot(slotNumber) {
     const slotData = getSaveSlot(slotNumber);
     if (!slotData) return;
     if (redirectIfTeamPickPending(slotNumber, slotData)) return;
+    slotData.data = SlimStorage.slotData(slotData.data);
 
     // Clear any existing session data (but keep simple GP data untouched)
     localStorage.removeItem('championshipActive');
@@ -394,6 +504,9 @@ window.autoSaveChampionship = function() {
     const slotData = getSaveSlot(slotNumber, prefix);
     if (!slotData) return;
 
+    // Old saves: shrink the live keys too, not only what gets written to the slot.
+    SlimStorage.compactLive();
+
     // Update championship data from session
     const updatedSave = {
         name: slotData.name,
@@ -438,5 +551,17 @@ window.autoSaveChampionship = function() {
                 : s);
     }
 
-    localStorage.setItem(`${prefix}${slotNumber}`, JSON.stringify(updatedSave));
+    // Slim what goes into the slot (tracks, race details, quali scratch, finished weekend's weather).
+    updatedSave.data = SlimStorage.slotData(updatedSave.data);
+
+    // A full localStorage must not crash the calling page (it kept the qualifying "Go to Race" button from appearing).
+    try {
+        localStorage.setItem(`${prefix}${slotNumber}`, JSON.stringify(updatedSave));
+    } catch (e) {
+        console.error('Auto-save failed (localStorage full?):', e);
+        if (!window.__saveQuotaWarned) {
+            window.__saveQuotaWarned = true;
+            alert('Sauvegarde impossible : le stockage du navigateur est plein. Supprime une sauvegarde inutilisée.');
+        }
+    }
 };

@@ -69,8 +69,10 @@ function generateAndStoreWeather(rainProbability) {
         [qualiRain, qualiWater] = generateRainCurve(rainProbability, QUALI_FRAMES);
         [raceRain, raceWater] = generateRainCurve(rainProbability, RACE_FRAMES);
     }
-    localStorage.setItem('weatherQuali', JSON.stringify({ rainCurve: qualiRain, trackWaterCurve: qualiWater }));
-    localStorage.setItem('weatherRace', JSON.stringify({ rainCurve: raceRain, trackWaterCurve: raceWater }));
+    // 2 decimals are plenty for the simulation; raw floats take ~10 chars each and were most of a save slot.
+    const compact = curve => curve.map(v => Math.round(v * 100) / 100);
+    localStorage.setItem('weatherQuali', JSON.stringify({ rainCurve: compact(qualiRain), trackWaterCurve: compact(qualiWater) }));
+    localStorage.setItem('weatherRace', JSON.stringify({ rainCurve: compact(raceRain), trackWaterCurve: compact(raceWater) }));
     console.log('Weather curves generated, mode:', mode, ', rain probability:', rainProbability);
 }
 

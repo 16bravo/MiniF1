@@ -710,7 +710,8 @@ function handleRaceEnd() {
         // Save race results
         let championshipResults = JSON.parse(localStorage.getItem('championshipResults') || '[]');
         const currentRaceIndex = parseInt(localStorage.getItem('championshipCurrentRace') || '0');
-        championshipResults[currentRaceIndex] = sortedDrivers;
+        // Once the race is over only the classification is kept (tyres, fuel, engine... are not).
+        championshipResults[currentRaceIndex] = (typeof SlimStorage !== 'undefined') ? SlimStorage.result(sortedDrivers) : sortedDrivers;
         localStorage.setItem('championshipResults', JSON.stringify(championshipResults));
         
         // Auto-save championship if active

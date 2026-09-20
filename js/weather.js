@@ -48,10 +48,13 @@ function generateRainCurve(rainProbability, totalFrames) {
 // Update rain and water level for current qualifying frame
 function updateWeather() {
     if (currentFrame < rainCurve.length) {
+        // The forecast looks a lap ahead; it must stay inside the curve (an index past the end
+        // gave undefined and NaN downstream).
+        const ahead = Math.min(rainCurve.length - 1, currentFrame + Math.floor(baseLapTime * 1.5));
         currentRain = rainCurve[currentFrame];
-        forecastRain = rainCurve[Math.min(4000, currentFrame + Math.floor(baseLapTime * 1.5))];
+        forecastRain = rainCurve[ahead];
         currentTrackWater = trackWaterCurve[currentFrame];
-        forecastTrackWater = trackWaterCurve[Math.min(4000, currentFrame + Math.floor(baseLapTime * 1.5))];
+        forecastTrackWater = trackWaterCurve[Math.min(trackWaterCurve.length - 1, ahead)];
         currentFrame++;
     } else {
         currentRain = 0;
