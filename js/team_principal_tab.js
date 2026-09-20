@@ -348,6 +348,7 @@ function tpRenderTab(host) {
             <div class="tp-gauge-row"><span class="tp-gauge-label">Confidence</span>${TeamPrincipal.gaugeIcons(g.confidence, '♥', 'tp-confidence')}</div>
             <div class="tp-gauge-row"><span class="tp-gauge-label">Prestige</span>${TeamPrincipal.gaugeIcons(g.prestige, '', 'tp-prestige tp-star')}</div>
             <div class="tp-gauge-row"><span class="tp-gauge-label">Satisfaction</span>${TeamPrincipal.satisfactionBar(TeamPrincipalSatisfaction.current(tp))}</div>
+            ${tpRankRowsHtml(tp, teams, team)}
         </div>
         ${tpCarStatsHtml(team)}
         </div>
@@ -563,6 +564,15 @@ function tpOpenProject() {
 function tpOrdinal(n) {
     const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+// Objective (the expected rank) and current position in the constructors' championship, under the gauges.
+function tpRankRowsHtml(tp, teams, team) {
+    if (typeof TeamPrincipalSatisfaction === 'undefined') return '';
+    const s = TeamPrincipalSatisfaction.standing(tp, teams, team);
+    const state = s.position === null ? '' : (s.position < s.objective ? 'up' : (s.position > s.objective ? 'down' : ''));
+    return `<div class="tp-gauge-row"><span class="tp-gauge-label">Objective</span><span class="tp-rank" data-testid="objective">${tpOrdinal(s.objective)}</span></div>
+            <div class="tp-gauge-row"><span class="tp-gauge-label">Position</span><span class="tp-rank ${state}" data-testid="position">${s.position === null ? '-' : tpOrdinal(s.position)}</span></div>`;
 }
 
 function tpShowSeasonRecap() {
@@ -913,6 +923,7 @@ function renderSeasonInfo() {
     const current = parseInt(localStorage.getItem('championshipCurrentRace') || '0', 10);
     const results = JSON.parse(localStorage.getItem('championshipResults') || '[]');
     const year = TeamPrincipal.currentYear();
+    const points = JSON.parse(localStorage.getItem('championshipPoints') || 'null') || [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
 
     const rows = [];
     races.forEach((race, i) => {
@@ -920,13 +931,24 @@ function renderSeasonInfo() {
         const sprint = i > 0 && races[i - 1].isSprintRace && races[i - 1].circuit === race.circuit;
         const played = Array.isArray(results[i]) && results[i].length > 0;
         const cls = 'tp-cal-row' + (played ? ' played' : (i === current || (sprint && i - 1 === current) ? ' next' : ''));
-        rows.push('<li class="' + cls + '"><span class="tp-cal-no">' + (rows.length + 1) + '</span>' +
-            '<span class="tp-cal-name">' + tpEscape(tpGpName(race)) + '</span>' +
-            '<span class="tp-cal-country">' + tpEscape(race.country || '') + '</span>' +
-            (sprint ? '<span class="tp-cal-sprint">Sprint</span>' : '') + '</li>');
+        // The Grand Prix's winner and team, its pole (starting P1) and the holder of the fastest lap.
+        let winner = '', team = '', pole = '', fastest = '';
+        if (played) {
+            const classified = ChampionshipCommon.raceClassification(race, results[i], points).filter(r => !r.retired);
+            if (classified[0]) { winner = classified[0].name; team = classified[0].team; }
+            const poleRow = results[i].find(d => d && d.startPosition === 1);
+            const flRow = results[i].find(d => d && d.fastestLapOfRace);
+            pole = poleRow ? poleRow.name : '';
+            fastest = flRow ? flRow.name : '';
+        }
+        const cell = v => '<td>' + (v ? tpEscape(v) : '<span class="tp-cal-none">-</span>') + '</td>';
+        rows.push('<tr class="' + cls + '"><td class="tp-cal-no">' + (rows.length + 1) + '</td>' +
+            '<td class="tp-cal-badge">' + (sprint ? '<span class="tp-cal-sprint">Sprint</span>' : '') + '</td>' +
+            '<td class="tp-cal-name">' + tpEscape(tpGpName(race)) + '</td>' +
+            '<td class="tp-cal-country">' + tpEscape(race.country || '') + '</td>' +
+            cell(winner) + cell(team) + cell(pole) + cell(fastest) + '</tr>');
     });
 
-    const points = JSON.parse(localStorage.getItem('championshipPoints') || 'null') || [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
     const sprintPoints = JSON.parse(localStorage.getItem('championshipPointsSprint') || 'null') || [8, 7, 6, 5, 4, 3, 2, 1];
     const flPoint = localStorage.getItem('championshipFastestLapPoint') === 'true';
     const flTop = parseInt(localStorage.getItem('championshipFastestLapTopN') || '10', 10);
@@ -934,7 +956,8 @@ function renderSeasonInfo() {
 
     host.innerHTML =
         '<div class="tp-section">Calendar ' + year + '<span class="tp-section-note">' + rows.length + ' Grand Prix</span></div>' +
-        '<ol class="tp-cal">' + rows.join('') + '</ol>' +
+        '<div class="tp-cal-scroll"><table class="tp-cal"><thead><tr><th>#</th><th></th><th>Grand Prix</th><th>Country</th>' +
+            '<th>Winner</th><th>Team</th><th>Pole</th><th>Fastest lap</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
         '<div class="tp-section">Points<span class="tp-section-note">Grand Prix</span></div>' + tpPointsRow(points) +
         '<div class="tp-section">Points<span class="tp-section-note">Sprint</span></div>' + tpPointsRow(sprintPoints) +
         '<div class="tp-section">Bonus</div>' +

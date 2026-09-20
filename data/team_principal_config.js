@@ -19,7 +19,8 @@ const TP_CONFIG = {
         carryOver: 0.1,               // weight of the previous season's satisfaction (the rest is the season's own)
         bonus: { champion: 20, top3: 10, last: -10 },   // points added to the final value (champion and top 3 never add up)
         dismissBelow: 20,             // dismissed when the satisfaction falls under this...
-        checkFromSeasonFraction: 0.5  // ...once this share of the season's Grands Prix has been raced
+        checkFromSeasonFraction: 0.5, // ...once this share of the season's Grands Prix has been raced
+        protectedSeasons: 1           // no dismissal during the first season(s): the team's level isn't the player's doing
     },
 
     engineers: {

@@ -346,15 +346,24 @@ input[type="color"].tp-color::-webkit-color-swatch { border: none; border-radius
 .tp-pick-actions { padding: 0 40px 10px; display: flex; gap: 10px; }
 
 /* Season tab (read-only calendar and rules) */
-.tp-cal { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-width: 560px; }
-.tp-cal-row { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: #161616; border: 1px solid #2a2a2a; }
-.tp-cal-row.played { opacity: 0.5; }
-.tp-cal-row.next { border-color: #e10600; }
+.tp-cal-scroll { overflow-x: auto; }
+.tp-cal { border-collapse: separate; border-spacing: 0 4px; width: 100%; font-size: 0.9em; }
+.tp-cal th { text-align: left; color: #777; font-weight: normal; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 12px 2px; white-space: nowrap; }
+.tp-cal td { padding: 6px 12px; background: #161616; border-top: 1px solid #2a2a2a; border-bottom: 1px solid #2a2a2a; white-space: nowrap; }
+.tp-cal td:first-child { border-left: 1px solid #2a2a2a; }
+.tp-cal td:last-child { border-right: 1px solid #2a2a2a; }
+.tp-cal-row.played td { color: #ccc; }
+.tp-cal-row.next td { border-color: #e10600; }
 .tp-cal-no { width: 24px; color: #777; text-align: right; }
-.tp-cal-name { flex: 1; }
-.tp-cal-country { color: #777; font-size: 0.85em; }
+.tp-cal-badge { width: 60px; padding-right: 0; }
+.tp-cal-name { font-weight: bold; }
+.tp-cal-country { color: #777; font-size: 0.9em; }
+.tp-cal-none { color: #555; }
 .tp-cal-sprint { font-size: 0.7em; letter-spacing: 0.1em; text-transform: uppercase; background: #e10600; color: #fff; padding: 1px 6px; }
 .tp-rules-points { display: flex; flex-wrap: wrap; gap: 6px; }
 .tp-rules-pt { background: #161616; border: 1px solid #2a2a2a; padding: 4px 10px; font-size: 0.9em; }
 .tp-rules-pt b { color: #aaa; margin-right: 4px; }
 .tp-rules-list { margin: 0; padding-left: 18px; color: #ccc; line-height: 1.7; }
+.tp-rank { font-weight: bold; }
+.tp-rank.up { color: #4caf50; }
+.tp-rank.down { color: #e57373; }

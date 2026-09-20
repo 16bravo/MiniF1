@@ -9,7 +9,7 @@
 //   Satisfaction = 10% of the previous season's + 90% of the raw one, then the bonus of the result
 //     (champion, top 3 - never both -, last), kept between 0 and 100.
 //   Below `dismissBelow`, once half of the season is over (checked after every race), the player
-//   is dismissed: they take over the worst team of the grid (not the one that dismissed them),
+//   is dismissed (never in the first season: the team's level isn't their doing): they take over the worst team of the grid (not the one that dismissed them),
 //   with a satisfaction back at `start`.
 //
 // State on slot.data.teamPrincipal:
@@ -104,6 +104,29 @@ const TeamPrincipalSatisfaction = (function () {
         try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v === null ? fallback : v; } catch (e) { return fallback; }
     }
 
+    // Constructors' position of `team` in the championship so far (1-based), null before the first race.
+    function constructorPosition(teams, team) {
+        const races = readJson('championshipRaces', []);
+        const results = readJson('championshipResults', []);
+        if (!results.some(r => Array.isArray(r) && r.length > 0)) return null;
+        const CC = ChampionshipCommon;
+        const clean = CC.sanitizePairs(races, results);
+        const standings = CC.computeStandings(clean.races, clean.results, CC.normalizePoints(readJson('championshipPoints', null)), {
+            fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
+            fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10', 10),
+            polePositionPoints: parseInt(localStorage.getItem('championshipPolePositionPoints') || '0', 10)
+        });
+        const idx = standings.constructorStandings.findIndex(r => r.team === TeamPrincipal.teamName(team));
+        return idx >= 0 ? idx + 1 : teams.length;
+    }
+
+    // What the player is measured against: { objective: expected rank, position (null before the first race), teamCount }.
+    function standing(tp, teams, team) {
+        const sat = tp.sat && tp.sat.expected ? tp.sat : null;
+        const expected = sat ? sat.expected : expectedRanks(teams);
+        return { objective: expected[team.teamUid] || teams.length, position: constructorPosition(teams, team), teamCount: teams.length };
+    }
+
     // Updates the satisfaction from the championship so far, and dismisses the player when it falls
     // under the threshold after half of the season. Returns { changed, dismissed }.
     // Meant to be called every time the GP screen opens: it only works when a new race was recorded.
@@ -126,18 +149,10 @@ const TeamPrincipalSatisfaction = (function () {
             return none;
         }
 
-        const CC = ChampionshipCommon;
-        const clean = CC.sanitizePairs(races, results);
-        const standings = CC.computeStandings(clean.races, clean.results, CC.normalizePoints(readJson('championshipPoints', null)), {
-            fastestLapPoint: localStorage.getItem('championshipFastestLapPoint') === 'true',
-            fastestLapTopN: parseInt(localStorage.getItem('championshipFastestLapTopN') || '10', 10),
-            polePositionPoints: parseInt(localStorage.getItem('championshipPolePositionPoints') || '0', 10)
-        });
         const team = teams.find(t => t.teamUid === tp.teamUid);
         if (!team) return none;
-        const idx = standings.constructorStandings.findIndex(r => r.team === TeamPrincipal.teamName(team));
         const teamCount = teams.length;
-        const actual = idx >= 0 ? idx + 1 : teamCount;
+        const actual = constructorPosition(teams, team) || teamCount;
         const expected = sat.expected[tp.teamUid] || teamCount;
 
         sat.processed = played;
@@ -147,7 +162,7 @@ const TeamPrincipalSatisfaction = (function () {
         const weekends = races.filter(r => !r.isSprintRace).length;
         const done = races.filter((r, i) => !r.isSprintRace && Array.isArray(results[i]) && results[i].length > 0).length;
         let dismissed = false;
-        if (weekends > 0 && done >= weekends * cfg().checkFromSeasonFraction && sat.live < cfg().dismissBelow) {
+        if (season > cfg().protectedSeasons && weekends > 0 && done >= weekends * cfg().checkFromSeasonFraction && sat.live < cfg().dismissBelow) {
             const newTeam = worstTeam(teams, tp.teamUid);
             if (newTeam) { dismiss(tp, team, newTeam, season); dismissed = true; }
         }
@@ -161,6 +176,6 @@ const TeamPrincipalSatisfaction = (function () {
         tp.sat = null;
     }
 
-    return { ranksAscending, expectedRanks, rawSatisfaction, resultBonus, satisfactionOf, ensureSeason, current, worstTeam,
+    return { constructorPosition, standing, ranksAscending, expectedRanks, rawSatisfaction, resultBonus, satisfactionOf, ensureSeason, current, worstTeam,
              dismiss, check, closeSeason };
 })();
